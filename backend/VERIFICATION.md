@@ -60,3 +60,35 @@ are outside this verified milestone. No training was performed.
 
 Screenshots and transient test artifacts remain in ignored `artifacts/`; no
 credentials, raw player logs, or training datasets are committed.
+# Mubit bot milestone — 24 October 2026
+
+Verified locally on `codex/mubit-bots`, deployed to the existing development
+backend `original-buzzard-860`; no public frontend was published.
+
+- TypeScript passed. All **44 tests across four files** passed, including all
+  three room compositions, queue fairness and stable draws, role privacy,
+  scheduled generation, alternating bot seats, duplicate-job exclusion, provider
+  failures/timeouts, deadlines, the ten-attempt cap, bot reports/blocks, and
+  human-only scoring/leaderboards. Existing client/auth regressions still pass.
+- Convex reported **functions ready** after pushing the optional-field/union
+  schema and bot functions. The server Mubit credential was configured without
+  displaying or committing it; bot matchmaking is enabled on development.
+- Both diagnostic client builds and the nine shared fixture checks passed.
+  Browser bundles contain public Convex configuration; no server Mubit credential
+  is supplied to the frontend. Cash's `frontend/` was not changed.
+- A fresh anonymous browser session joined a randomly selected one-human,
+  two-bot room. Both bot seats produced real `gpt-6-luna` replies via Mubit from
+  scheduled Convex actions. The room reached its cap of ten bot messages.
+- The human sent synthetic topic text. Refresh preserved the same player,
+  room, transcript, and remaining time. The chat closed after 120 seconds;
+  both guesses were locked during the 15-second voting window. Reveal showed
+  one human and two AI seats; two correct AI guesses earned **200 points** and
+  updated the public alias leaderboard exactly once.
+- Optional training consent stayed off. No adapter training, learning claim,
+  production deployment, public frontend publishing, or teammate messaging ran.
+
+Local-only screenshots and the synthetic transcript are under ignored
+`artifacts/bot-playtest/`. The one-bot and zero-bot combinations were exercised
+by component tests; this milestone's new real-model browser round used two bots.
+Public-launch moderation/operator/retention and physical-iPhone gates remain
+separate requirements.

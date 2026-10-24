@@ -3,6 +3,7 @@ import { internalMutation, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { recognition } from "./lib";
+import { MAX_LOBBY } from "./botlogic";
 import type { Infer } from "convex/values";
 import { roundResultV } from "./validators";
 
@@ -14,8 +15,9 @@ export async function cancelRound(ctx: MutationCtx, round: Doc<"rounds">, reason
   if (round.phase === "reveal" || round.phase === "cancelled") return;
   const now = Date.now();
   await ctx.db.patch(round._id, { phase: "cancelled", cancelReason: reason, revision: round.revision + 1, updatedAt: now });
-  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
+  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(MAX_LOBBY + 3);
   for (const member of members) {
+    if (member.kind !== "human") continue;
     const player = await ctx.db.get(member.playerId);
     if (player?.activeRoundId === round._id) await ctx.db.patch(player._id, { activeRoundId: undefined, activeQueueId: undefined, updatedAt: now });
   }
@@ -24,9 +26,10 @@ export async function cancelRound(ctx: MutationCtx, round: Doc<"rounds">, reason
 async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
   if (round.settled || round.phase === "cancelled") return;
   const now = Date.now();
-  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
-  const ballots = await ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
+  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(MAX_LOBBY + 3);
+  const ballots = await ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(MAX_LOBBY + 3);
   for (const member of members) {
+    if (member.kind !== "human") continue;
     const player = await ctx.db.get(member.playerId);
     if (!player) throw new Error("Round participant missing");
     const ballot = ballots.find(b => b.playerId === member.playerId);
@@ -34,17 +37,17 @@ async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
     const received = ballots.flatMap(b => b.votes).filter(vote => vote.participantId === member._id);
     const recognised = received.filter(vote => vote.label === "human").length;
     const points = correct * 100;
-    const streak = correct === 2 ? player.streak + 1 : 0;
+    const streak = correct === members.length - 1 ? player.streak + 1 : 0;
     const data: Infer<typeof roundResultV> = {
       ballotStatus: ballot ? "submitted" : "not_submitted", votes: ballot?.votes ?? null,
-      correctGuessCount: correct as 0 | 1 | 2, guessingPointsEarned: points,
+      correctGuessCount: correct, guessingPointsEarned: points,
       totalGuessingPoints: player.guessingPoints + points, streak,
       recognition: recognition(received.length, recognised),
     };
     await ctx.db.insert("results", { roundId: round._id, playerId: player._id, data });
     await ctx.db.patch(player._id, {
       guessingPoints: data.totalGuessingPoints, roundsPlayed: player.roundsPlayed + 1,
-      guessesSubmitted: player.guessesSubmitted + (ballot ? 2 : 0), correctGuesses: player.correctGuesses + correct,
+      guessesSubmitted: player.guessesSubmitted + (ballot ? ballot.votes.length : 0), correctGuesses: player.correctGuesses + correct,
       humanVotesReceived: player.humanVotesReceived + received.length,
       humanVotesRecognisingYou: player.humanVotesRecognisingYou + recognised,
       streak, updatedAt: now,
@@ -65,6 +68,10 @@ export async function advanceRound(ctx: MutationCtx, roundId: Id<"rounds">) {
   } else if (now >= round.chatStartsAt && round.phase === "countdown") {
     await ctx.db.patch(roundId, { phase: "chat", revision: round.revision + 1, updatedAt: now });
     await ctx.scheduler.runAt(round.chatEndsAt, internal.lifecycle.advance, { roundId });
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+    if (members.some(member => member.kind === "ai")) {
+      await ctx.scheduler.runAfter(2000 + Math.floor(Math.random() * 2000), internal.bots.takeTurn, { roundId, turn: 0 });
+    }
   }
 }
 

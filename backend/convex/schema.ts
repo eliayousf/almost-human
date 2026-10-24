@@ -16,8 +16,12 @@ export default defineSchema({
   rounds: defineTable({
     phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
     topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
+    botTurn: v.optional(v.number()), botPending: v.optional(v.number()),
   }).index("by_phase_and_createdAt", ["phase", "createdAt"]),
-  members: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), alias: v.string(), kind: v.literal("human") })
+  members: defineTable(v.union(
+    v.object({ roundId: v.id("rounds"), playerId: v.id("players"), alias: v.string(), kind: v.literal("human") }),
+    v.object({ roundId: v.id("rounds"), alias: v.string(), kind: v.literal("ai"), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")) }),
+  ))
     .index("by_roundId", ["roundId"]).index("by_playerId_and_roundId", ["playerId", "roundId"]),
   ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number() })
     .index("by_roundId", ["roundId"]).index("by_roundId_and_playerId", ["roundId", "playerId"]),
@@ -27,6 +31,6 @@ export default defineSchema({
     .index("by_playerId_and_scope_and_requestId", ["playerId", "scope", "requestId"]),
   blocks: defineTable({ blockerId: v.id("players"), blockedId: v.id("players"), createdAt: v.number() })
     .index("by_blockerId_and_blockedId", ["blockerId", "blockedId"]).index("by_blockerId", ["blockerId"]),
-  reports: defineTable({ reporterId: v.id("players"), targetPlayerId: v.id("players"), roundId: v.id("rounds"), reason: reportReasonV, messageId: v.optional(v.string()), detail: v.optional(v.string()), createdAt: v.number(), status: v.union(v.literal("open"), v.literal("closed")) })
+  reports: defineTable({ reporterId: v.id("players"), targetPlayerId: v.optional(v.id("players")), targetMemberId: v.optional(v.id("members")), roundId: v.id("rounds"), reason: reportReasonV, messageId: v.optional(v.string()), detail: v.optional(v.string()), createdAt: v.number(), status: v.union(v.literal("open"), v.literal("closed")) })
     .index("by_status_and_createdAt", ["status", "createdAt"]),
 });

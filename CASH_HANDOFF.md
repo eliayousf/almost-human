@@ -5,9 +5,13 @@ Recommended demo: **React + Vite + TypeScript, opened in iPhone Safari via HTTPS
 Your design remains yours. The provider, hooks, types, fixtures, and reference
 screens below supply the connection and game behavior.
 
-Current milestone: three human players. Future rooms may include bots, so render
-the returned state rather than assuming everyone is human. AI players and Mubit
-learning are separate work. Development playtests use synthetic conversation text.
+Current milestone: lobbies of two to five participants, and rooms may already
+include bot players (zero, one, or two, chosen by the server). Always render the
+returned `participants` array by its length rather than assuming three seats or
+human-only rooms; votes need one guess per other seat. Mubit learning is
+separate work. Explain before Play that partners may be AI and that chat text
+is processed by AI services for replies; training opt-in is separate.
+Development playtests use synthetic conversation text.
 
 ## 1. Get the code without replacing your frontend
 

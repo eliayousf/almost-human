@@ -3,7 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import { createConvexGameClient } from "../../shared/convex-client";
 import type {
   ApiResult, Guess, HumanOrAi, LeaderboardView, QueueTicket, ReportReason, RoundSnapshot,
-  SessionView, Two,
+  SessionView,
 } from "../../shared/game-contract";
 
 declare const __CONVEX_URL__: string;
@@ -393,10 +393,10 @@ ui.voteForm.addEventListener("submit", (event) => {
   if (submittingVotes || round?.phase !== "voting") return;
   const others = round.participants.filter((seat) => seat.id !== round!.selfId);
   const votes: Guess[] = others.map((seat) => ({ participantId: seat.id, label: selectedVotes.get(seat.id)! }));
-  if (votes.length !== 2 || votes.some((vote) => !vote.label)) { notice("Choose a label for both participants."); return; }
+  if (votes.length !== round.participants.length - 1 || votes.some((vote) => !vote.label)) { notice("Choose a label for every other participant."); return; }
   const roundId = round.roundId;
   submittingVotes = true;
-  void busy(ui.submitVotes, () => apply(game.submitVotes(roundId, { ...command(), votes: votes as unknown as Two<Guess> }), (value) => {
+  void busy(ui.submitVotes, () => apply(game.submitVotes(roundId, { ...command(), votes: votes as unknown as Guess[] }), (value) => {
     votedRoundId = roundId; drawRound(value);
   })).finally(() => { submittingVotes = false; if (round) drawVotes(round); });
 });

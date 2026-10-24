@@ -20,7 +20,7 @@ export const messageV = v.object({ id: v.string(), senderId: v.id("members"), te
 export const ballotV = v.union(v.object({ status: v.literal("open") }), v.object({ status: v.literal("submitted"), votes: v.array(guessV), submittedAt: v.string() }));
 export const roundResultV = v.object({
   ballotStatus: v.union(v.literal("submitted"), v.literal("not_submitted")),
-  votes: v.union(v.array(guessV), v.null()), correctGuessCount: v.union(v.literal(0), v.literal(1), v.literal(2)),
+  votes: v.union(v.array(guessV), v.null()), correctGuessCount: v.number(),
   guessingPointsEarned: v.number(), totalGuessingPoints: v.number(), streak: v.number(), recognition: recognitionV,
 });
 const base = { roundId: v.id("rounds"), revision: v.number(), serverNow: v.string(), selfId: v.id("members"), participants: v.array(seatV) };

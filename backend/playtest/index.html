@@ -32,13 +32,13 @@
 </head>
 <body>
   <h1>Almost Human</h1>
-  <p class="banner"><strong>All-human backend playtest; no AI in this milestone.</strong><br>Plain test controls for the backend team. Cash owns the public frontend.</p>
-  <p>This local harness connects to the configured Convex deployment. Use synthetic conversation text. Optional consent is recorded; this test does not train a model.</p>
+  <p class="banner"><strong>Three-seat backend playtest. Rooms may contain AI participants.</strong><br>Plain test controls for the backend team. Cash owns the public frontend.</p>
+  <p>This local harness connects to the configured Convex deployment. Use synthetic text. Chat text is sent to AI services for bot replies. Optional training consent is separate; this test starts no training job.</p>
   <div class="row">
     <button id="new-tab" class="secondary" type="button">Open independent participant tab</button>
     <button id="reset" class="secondary" type="button">Reset this test player</button>
   </div>
-  <p class="muted">Use the button above twice for three separate players. Resetting creates a new anonymous identity and loses this tab’s score.</p>
+  <p class="muted">Use separate tabs for separate human players. Matchmaking may need one, two, or three humans; roles stay hidden until reveal. Resetting loses this tab’s score.</p>
   <p id="notice" role="status" aria-live="polite"></p>
   <section id="welcome">
     <h2>Start a test player</h2>

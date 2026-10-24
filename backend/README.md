@@ -1,8 +1,9 @@
 # Multiplayer backend
 
 Convex owns state, subscriptions, anonymous authentication, deadlines, and scores.
-This milestone is **three human players only**. The local diagnostic client is
-for testing; `frontend/` remains Cash's workstream. No model is called or trained.
+Rooms seat **two to five participants with zero, one, or two Mubit bots**, and at
+least one human. The local diagnostic client is for synthetic testing; `frontend/` remains
+Cash's workstream. No training job or adapter learning loop is implemented.
 
 Shared development URL for frontend integration:
 `https://original-buzzard-860.eu-west-1.convex.cloud`.
@@ -44,6 +45,54 @@ auth tokens stay in each tab's sessionStorage so three tabs represent three
 players. Refresh preserves that tab's player and resumes its current activity.
 Use synthetic text. Consent is optional; no training export exists.
 
+## Mubit bots
+
+Set `MUBIT_API_KEY` on the **Convex server deployment**, never in a `VITE_*`
+variable or frontend file. A key in a local parent `.env` or Codex Cloud vault
+does not automatically configure Convex. The CLI can read the value securely
+from stdin or its interactive prompt:
+
+```sh
+nix develop .. -c npx convex env set MUBIT_API_KEY
+nix develop .. -c npx convex env set MUBIT_BOTS_ENABLED true
+nix develop .. -c npx convex dev --once
+```
+
+Without a server key, or with `MUBIT_BOTS_ENABLED=false`, rooms stay all-human.
+With bots enabled, matchmaking sizes each lobby from the live queue (see
+`convex/botlogic.ts`): five or more waiting humans match immediately (ten queued
+players become two five-player games), three or four accumulate for a few
+seconds, and after an honest wait of about 26 seconds a solo player or pair is
+seated with one or two bots so the game is always playable. There are never
+all-bot rooms. Aliases and seat positions are randomized the same way for every
+lobby size.
+
+Each bot seat is assigned a persona (dry, curious, or warm) and a difficulty
+(easy, medium, or hard) recorded on its member row so judged-Human rates can be
+compared per level later; the internal `bots.performance` query aggregates those
+rates from stored ballots. Bots use `gpt-6-luna` through Mubit's fixed HTTPS
+chat endpoint and the installed Convex Agent component. Turns alternate between
+bot seats, start after countdown,
+and are paced 7–11 seconds apart after a reply. At most ten generation attempts
+are reserved per room, each with a ten-second provider timeout, 384 completion
+token limit, and no automatic retry. Only the topic and up to twenty recent
+room messages are sent as context; no account IDs or other rooms are included.
+
+Generation results are not automatically published. An internal mutation checks
+the active turn, chat deadline, character limit, and existing contact/threat
+filters before saving to the room's Agent thread. Late/duplicate jobs cannot
+append replies. A failed, empty, blocked, or abandoned generation ends the round
+as `service_unavailable` with no points. There is no canned-response fallback.
+These baseline filters do not satisfy the public-launch moderation gate below.
+
+Bots have member seats, not authenticated player profiles. They never vote,
+receive scores, appear on the leaderboard, or need human presence heartbeats.
+Human ballots score against actual seat roles. Reports can target bot seats;
+blocking a bot ends the room using the same public response as blocking a human.
+All public `GameClient` shapes are unchanged and contain no role/model fields
+before reveal. Cash should explain before Play that chats may include AI and
+text is processed by AI services to generate replies; training opt-in is separate.
+
 ## Frontend integration
 
 For the complete Vite/iPhone handoff and the optional ready-made React provider
@@ -82,7 +131,7 @@ There is no `/api/v1` HTTP service to proxy.
 
 ## Rules enforced on the server
 
-- Three distinct authenticated humans, compatible with either player's blocks.
+- Exactly three seats, at least one authenticated human; human pairs respect blocks.
 - Topic hidden for the 3-second countdown; chat lasts exactly 120 seconds.
 - At most 400 characters per message; burst/per-player rate and room limits.
 - Exactly two other-seat guesses, one immutable ballot, a fixed 15-second window.
@@ -92,7 +141,7 @@ There is no `/api/v1` HTTP service to proxy.
 - Heartbeats have a 25-second timeout; checks every 30 seconds cancel disconnected
   rooms and expire abandoned queue entries. Reconnecting promptly retains identity.
 - Messages are stored in the Agent component; presence/rate limits use their
-  official Convex components. No LLM call is needed for this milestone.
+  official Convex components. Bot inference runs only in internal scheduled actions.
 
 An anonymous identity survives while its auth storage survives. Clearing storage
 creates a new identity and loses score/block continuity. Public anti-abuse controls
@@ -119,5 +168,5 @@ Public launch still requires working moderation, operator report handling and
 shutdown controls, anti-abuse checks, a retention/deletion policy and withdrawal
 route, and frontend integration. Raw chats and real player data stay out of Git.
 Training consent is recorded and revocable; it does not trigger any training.
-Mubit chat and learning integration remain separate, with no claimed adapter
-improvement. All future game LLM calls must route through Mubit.
+Mubit bot inference and learning integration remain separate, with no claimed
+adapter improvement. All game LLM calls route through Mubit.
