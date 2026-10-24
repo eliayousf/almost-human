@@ -2,7 +2,10 @@
 
 - Use the root `flake.nix` devShell: `nix develop -c <command>`. `.envrc` must
   contain `use flake`. Temporary tools use `nix shell nixpkgs#<package> -c ...`;
-  do not install global tools. Prepare Nix in the cloud image before verification.
+  do not install global tools. Keep these Nix files in the repository.
+- In a managed cloud VM where Nix cannot be provisioned, use its existing Node.js
+  22 runtime with project-local dependencies via `bash scripts/cloud-setup.sh
+  --managed-cloud`. Record that runtime explicitly; do not claim Nix ran there.
 - Read `CLOUD_HANDOFF.md`, `TEAM_BRIEF.md`, and `CASH_HANDOFF.md` before work.
 - Cash owns `frontend/` and the public UI/UX. Continue backend/client work in
   `backend/` and shared contracts in `shared/`; preserve other people's changes.

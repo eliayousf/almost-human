@@ -44,12 +44,13 @@ Name: **Almost Human**. Attach only `eliayousf/almost-human`. Select codex/backe
 as the source for this handoff. Keep environment visibility private to the user
 unless they request sharing. Reuse an existing suitable environment if one exists.
 
-Prepare Nix with flakes enabled in the cloud VM, then use the pinned root flake
-for Node 22, Python, Git, and verification tools. `.envrc` contains `use flake`.
-If Nix is absent, install/configure it in the cloud image using official Nix
-instructions before running setup. Do not remove the Nix requirement or install
-global npm tools to get around it. If provisioning cannot install Nix, report the
-specific environment limitation and preserve the setup instructions.
+The repository retains its pinned root Nix devShell and `.envrc` containing
+`use flake` for local development. Use it in the cloud if available. This managed
+cloud image lacks Nix provisioning privileges; use its existing Node.js 22
+runtime with `bash scripts/cloud-setup.sh --managed-cloud`. This explicit mode
+checks the Node major version, prints runtime/package-manager versions, and uses
+project-local npm dependencies. Do not install global npm tools, weaken TLS or
+Nix verification, or claim Nix was used in this managed mode.
 
 Public environment values:
 
@@ -63,31 +64,32 @@ existing development backend. Local ignored `.env.local` files, auth caches,
 Mubit keys and deployment keys were not uploaded or committed. Do not assume
 the cloud task can deploy Convex or train models.
 
-Allow package-manager hosts and the necessary additional destinations:
-GitHub source/archive hosts, `cache.nixos.org`, official Nix installer/download
-hosts needed by the selected installation method, and the exact development
-Convex cloud/site hostnames if doing live client verification. Keep permissions
-and destinations limited to this work. Browser use is not guaranteed in a cloud
+Allow package-manager and GitHub source/archive hosts, plus the exact development
+Convex cloud/site hostnames if doing live client verification. Add Nix cache and
+official installer/download hosts only for an environment that can actually use
+Nix. Keep permissions and destinations limited to this work. Browser use is not guaranteed in a cloud
 task; use supported tests/API checks and accurately label any untested UI steps.
 
 Run setup from the selected source branch:
 
 ```sh
 bash scripts/cloud-setup.sh
+# Managed cloud image without Nix provisioning:
+bash scripts/cloud-setup.sh --managed-cloud
 ```
 
 The script performs project-local dependency installation, TypeScript, 27 tests,
-both diagnostic builds, and shared fixture checks through Nix. It does not
+both diagnostic builds, and shared fixture checks using the selected runtime. It does not
 deploy functions or call a model. If environment setup starts on main, explicitly
 fetch/check out codex/backend in the fresh setup workspace first; it contains
 the implemented backend and this script. Do not discard existing task changes.
 
-Publish the environment only after the setup checks pass. Record its actual
+Publish the environment only after the selected setup mode's checks pass. Record its actual
 environment ID/link and start a new cloud task from the published setup. Do not
 claim a GitHub-backed environment exists just because a projectless task can clone
 a public repository. Saving a draft is not successful environment publication.
 
-## Reproduce the baseline
+## Reproduce the baseline locally
 
 ```sh
 nix develop -c npm --prefix backend run check
@@ -95,6 +97,10 @@ nix develop -c npm --prefix backend test
 CONVEX_URL=https://original-buzzard-860.eu-west-1.convex.cloud nix develop -c npm --prefix backend run build:playtest
 nix develop -c node --experimental-strip-types scripts/check-shared-contract.mjs
 ```
+
+In the managed cloud VM, use the explicit cloud setup command above for the same
+checks. Record blocked live-service access separately from offline component
+tests; a permitted domain alone does not guarantee the platform proxy allows it.
 
 If a supported browser is available, the loopback reference server starts with
 `nix develop -c npm --prefix backend run playtest`. Vanilla reference is `/`;
