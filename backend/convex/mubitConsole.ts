@@ -1,9 +1,7 @@
-"use node";
 // Mubit has no public rating API, so this signs in the way the Mubit console
 // does: the console login cookie (MUBIT_CONSOLE_COOKIE, the `__client=...`
 // cookie of clerk.mubit.ai) mints a short-lived admin token for Mubit's console
-// API. That API is undocumented and may change. The Node runtime is used
-// because the login travels as a Cookie header. Off unless
+// API. That API is undocumented and may change. Off unless
 // MUBIT_RATINGS_ENABLED is "true". Secrets never enter logs or the database.
 import { v } from "convex/values";
 import { env, internalAction } from "./_generated/server";

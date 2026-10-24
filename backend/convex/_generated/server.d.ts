@@ -30,12 +30,12 @@ import type { DataModel } from "./dataModel.js";
 type Env = {
   readonly CONVEX_CLOUD_URL: string;
   readonly CONVEX_SITE_URL: string;
+  readonly BOT_LESSONS_ENABLED: string | undefined;
   readonly MUBIT_API_KEY: string | undefined;
   readonly MUBIT_BOTS_ENABLED: string | undefined;
-  readonly MUBIT_RATINGS_ENABLED: string | undefined;
   readonly MUBIT_CONSOLE_COOKIE: string | undefined;
   readonly MUBIT_PROJECT: string | undefined;
-  readonly BOT_LESSONS_ENABLED: string | undefined;
+  readonly MUBIT_RATINGS_ENABLED: string | undefined;
 };
 
 /**
