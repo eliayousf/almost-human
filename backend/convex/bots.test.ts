@@ -265,27 +265,34 @@ describe("Mubit turns and lifecycle", () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
-  test("provider errors are not retried or exposed to the room", async () => {
+  test("provider errors are retried once, then cancel the room without being exposed", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 2); await chat(r);
-    vi.mocked(fetch).mockResolvedValueOnce(new Response("secret provider error body", { status: 503 }));
-    await r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
-    expect(fetch).toHaveBeenCalledTimes(1);
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response("secret provider error body", { status: 503 }))
+      .mockResolvedValueOnce(new Response("secret provider error body", { status: 503 }));
+    const running = r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { interval: 1, timeout: 1000 });
+    await vi.advanceTimersByTimeAsync(2_001); await running;
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(await r.get()).toMatchObject({ phase: "cancelled", reason: "service_unavailable" });
     expect(JSON.stringify(await r.get())).not.toContain("secret provider");
   });
 
-  test("a timed-out provider call cancels the room without retrying", async () => {
+  test("a timed-out provider call is retried once, then cancels the room", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 1); await chat(r);
-    vi.mocked(fetch).mockImplementationOnce((_url, options) => new Promise((_resolve, reject) => {
+    vi.mocked(fetch).mockImplementation((_url, options) => new Promise((_resolve, reject) => {
       options?.signal?.addEventListener("abort", () => reject(new Error("private timeout diagnostics")), { once: true });
     }));
     const running = r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
     await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { interval: 1, timeout: 1000 });
+    await vi.advanceTimersByTimeAsync(10_001);
+    await vi.advanceTimersByTimeAsync(2_001);
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(2), { interval: 1, timeout: 1000 });
     await vi.advanceTimersByTimeAsync(10_001); await running;
     expect(await r.get()).toMatchObject({ phase: "cancelled", reason: "service_unavailable" });
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
   });
 
   test("late replies cannot publish after voting begins or a human leaves", async () => {
