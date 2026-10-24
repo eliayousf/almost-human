@@ -61,7 +61,7 @@ function App() {
       <h2>{session.leaderboardAlias}</h2><p>{session.totalGuessingPoints} total guessing points</p>
       <label><input type="checkbox" checked={session.trainingOptIn} onChange={event => {
         void accepted(game!.setTrainingConsent({ ...command(), policyVersion: "playtest-v1", trainingOptIn: event.target.checked }));
-      }} /> Allow reviewed training use (optional; no training runs in this test)</label>
+      }} /> Let my votes judge the bots (optional)</label>
       {!roundId && !queueId && <p><button disabled={joining} onClick={() => { void join(); }}>Join queue</button></p>}
     </section>}
     {queueId && <section>
@@ -106,7 +106,7 @@ function StartPlayer({ onStart }: { onStart: (input: StartInput) => Promise<unkn
     <h2>Start a test player</h2>
     <label><input type="checkbox" name="adult" required /> I am 18 or older.</label>
     <label><input type="checkbox" name="rules" required /> I agree to use respectful synthetic text and share no contact details.</label>
-    <label><input type="checkbox" name="training" /> Optional reviewed training use.</label>
+    <label><input type="checkbox" name="training" /> Optional: let my votes judge the bots and replay bot-written lines as style examples. Your own messages are never used.</label>
     <button disabled={pending}>Start player</button>
   </form>;
 }

@@ -33,7 +33,7 @@
 <body>
   <h1>Almost Human</h1>
   <p class="banner"><strong>Three-seat backend playtest. Rooms may contain AI participants.</strong><br>Plain test controls for the backend team. Cash owns the public frontend.</p>
-  <p>This local harness connects to the configured Convex deployment. Use synthetic text. Chat text is sent to AI services for bot replies. Optional training consent is separate; this test starts no training job.</p>
+  <p>This local harness connects to the configured Convex deployment. Use synthetic text. Your own messages are never used. With optional consent, only your votes judge the bots and only bot-written lines are replayed as style examples. This test starts no training job.</p>
   <div class="row">
     <button id="new-tab" class="secondary" type="button">Open independent participant tab</button>
     <button id="reset" class="secondary" type="button">Reset this test player</button>
@@ -45,14 +45,14 @@
     <form id="start-form">
       <label class="check"><input id="adult" type="checkbox" required> I am 18 or older.</label>
       <label class="check"><input id="rules" type="checkbox" required> I agree to be respectful, share no personal/contact details, and use synthetic text for this test.</label>
-      <label class="check"><input id="training" type="checkbox"> Optional: allow my text to be considered for reviewed training examples.</label>
+      <label class="check"><input id="training" type="checkbox"> Optional: let my votes judge the bots and replay bot-written lines as style examples. Your own messages are never used.</label>
       <button id="start" type="submit">Start player</button>
     </form>
   </section>
   <section id="player" hidden>
     <h2 id="alias"></h2>
     <p id="score"></p>
-    <label class="check"><input id="consent" type="checkbox"> Allow reviewed training use</label>
+    <label class="check"><input id="consent" type="checkbox"> Let my votes judge the bots (optional)</label>
     <button id="join" type="button">Join three-person queue</button>
   </section>
   <section id="queue" hidden>
