@@ -83,10 +83,21 @@ export function createConvexGameClient(
   const heartbeatSessionId = crypto.randomUUID();
   let heartbeatWatchers = 0;
   let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
+  let heartbeatInFlight: Promise<void> | undefined;
 
-  async function heartbeat(): Promise<void> {
-    try { await convex.mutation(refs.heartbeat, { sessionId: heartbeatSessionId }); }
-    catch { /* Native subscriptions expose connection errors; the next beat retries. */ }
+  function heartbeat(): Promise<void> {
+    // The SDK queues mutations while offline. Keep one outstanding beat rather
+    // than accumulating a burst during a mobile suspension or reconnect.
+    return heartbeatInFlight ??= (async () => {
+      try { await convex.mutation(refs.heartbeat, { sessionId: heartbeatSessionId }); }
+      catch { /* Native subscriptions expose connection errors; the next beat retries. */ }
+    })().finally(() => { heartbeatInFlight = undefined; });
+  }
+
+  function resumePresence(): void {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    void heartbeat();
+    void refreshClock().catch(() => undefined);
   }
 
   function keepPresent(): () => void {
@@ -94,6 +105,11 @@ export function createConvexGameClient(
     if (heartbeatWatchers === 1) {
       void heartbeat();
       heartbeatTimer = setInterval(() => { void heartbeat(); }, 10_000);
+      if (typeof window !== "undefined" && typeof document !== "undefined") {
+        window.addEventListener("online", resumePresence);
+        window.addEventListener("pageshow", resumePresence);
+        document.addEventListener("visibilitychange", resumePresence);
+      }
     }
     let active = true;
     return () => {
@@ -103,6 +119,11 @@ export function createConvexGameClient(
       if (heartbeatWatchers === 0 && heartbeatTimer) {
         clearInterval(heartbeatTimer);
         heartbeatTimer = undefined;
+        if (typeof window !== "undefined" && typeof document !== "undefined") {
+          window.removeEventListener("online", resumePresence);
+          window.removeEventListener("pageshow", resumePresence);
+          document.removeEventListener("visibilitychange", resumePresence);
+        }
       }
     };
   }
@@ -134,7 +155,7 @@ export function createConvexGameClient(
 
   async function call<T>(work: () => Promise<ApiResult<T>>, syncClock = false): Promise<ApiResult<T>> {
     try {
-      if (syncClock) await refreshClock();
+      if (syncClock) void refreshClock().catch(() => undefined);
       return stamp(await work());
     } catch {
       return unavailable();
@@ -151,9 +172,14 @@ export function createConvexGameClient(
     let latest: ApiResult<T> | undefined;
     void (async () => {
       try {
-        // A temporary clock failure must not prevent the native subscription
-        // from reconnecting. A later calibration refreshes its latest value.
-        if (syncClock) await refreshClock().catch(() => undefined);
+        // Calibration can stall during reconnects. It must not hold up the
+        // subscription or presence, or replace the current round on failure.
+        if (syncClock) {
+          void refreshClock().then(() => {
+            if (active && latest) listener(stamp(latest));
+          }).catch(() => undefined);
+          await Promise.resolve(); // Allow immediate unsubscribe before setup.
+        }
         if (!active) return;
         if (syncClock) stopPresence = keepPresent();
         const updated = (result: ApiResult<T>) => {
@@ -180,7 +206,7 @@ export function createConvexGameClient(
           timer = setInterval(() => {
             void refreshClock().then(() => {
               if (active && latest) listener(stamp(latest));
-            }).catch(() => { if (active) listener(unavailable()); });
+            }).catch(() => undefined);
           }, 30_000);
         }
       } catch {
@@ -201,7 +227,7 @@ export function createConvexGameClient(
     getSession: () => call(() => convex.query(refs.session, {}), true),
     createSession: (input) => call(async () => {
       await ensureAnonymous();
-      await refreshClock();
+      void refreshClock().catch(() => undefined);
       const result = await convex.mutation(refs.createSession, { input });
       if (result.ok) await heartbeat();
       return result;

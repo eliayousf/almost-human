@@ -6,6 +6,7 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { isOnline } from "./connections";
 import { SEAT_NAMES, TOPICS, shuffled } from "./lib";
 import { BOT_DIFFICULTIES, BOT_FALLBACK_WAIT_MS, BOT_PERSONAS, MAX_LOBBY, chooseLobby } from "./botlogic";
+import { GAME_DEFAULTS } from "../../shared/game-contract";
 
 function botsEnabled(): boolean {
   return Boolean(process.env.MUBIT_API_KEY) && process.env.MUBIT_BOTS_ENABLED !== "false";
@@ -61,9 +62,11 @@ export async function matchWaiting(ctx: MutationCtx): Promise<void> {
   const group = await findGroup(ctx, candidates, lobby.humans);
   if (!group) return;
   const threadId = await createThread(ctx, components.agent, {});
+  const chatStartsAt = now + GAME_DEFAULTS.countdownMs;
+  const chatEndsAt = chatStartsAt + GAME_DEFAULTS.chatMs;
   const roundId = await ctx.db.insert("rounds", {
     phase: "countdown", revision: 1, createdAt: now, updatedAt: now,
-    chatStartsAt: now + 3000, chatEndsAt: now + 123000, votingEndsAt: now + 138000,
+    chatStartsAt, chatEndsAt, votingEndsAt: chatEndsAt + GAME_DEFAULTS.votingMs,
     topic: shuffled(TOPICS)[0], threadId, messageCount: 0, settled: false, botTurn: 0,
   });
   const seats = shuffled([
@@ -84,7 +87,7 @@ export async function matchWaiting(ctx: MutationCtx): Promise<void> {
       await ctx.db.patch(seat.ticket.playerId, { activeRoundId: roundId, activeQueueId: seat.ticket._id, updatedAt: now });
     }
   }
-  await ctx.scheduler.runAt(now + 3000, internal.lifecycle.advance, { roundId });
+  await ctx.scheduler.runAt(chatStartsAt, internal.lifecycle.advance, { roundId });
   await ctx.scheduler.runAt(now + 30000, internal.connections.checkRound, { roundId });
   if (candidates.length > group.length) await ctx.scheduler.runAfter(0, internal.matchmaking.match, {});
 }

@@ -80,7 +80,7 @@ function App() {
         <strong>{round.participants.find(seat => seat.id === message.senderId)?.alias}: </strong>{message.text}
       </li>)}</ol>}
       <RoundControls key={round.roundId} round={round} accepted={accepted} />
-      {round.phase === "reveal" && <p>{round.yourResult.correctGuessCount}/2 correct · +{round.yourResult.guessingPointsEarned} points · {round.yourResult.totalGuessingPoints} total</p>}
+      {round.phase === "reveal" && <p>{round.yourResult.correctGuessCount}/{round.participants.length - 1} correct · +{round.yourResult.guessingPointsEarned} points · {round.yourResult.totalGuessingPoints} total</p>}
       {round.phase === "cancelled" && <p>{round.message}</p>}
       {["reveal", "cancelled"].includes(round.phase) && <button disabled={joining} onClick={() => { void join(); }}>Play again</button>}
     </section>}

@@ -14,6 +14,8 @@ function checkPublicFields(value) {
 
 const rounds = Object.values(fixtures).filter(value => value && 'phase' in value);
 assert(rounds.length >= 9);
+assert.equal(Date.parse(fixtures.votingFixture.votingEndsAt) - Date.parse(fixtures.countdownFixture.chatEndsAt), GAME_DEFAULTS.votingMs);
+assert.equal(Date.parse(fixtures.revealFixture.serverNow), Date.parse(fixtures.votingFixture.votingEndsAt));
 for (const round of rounds) {
   const ids = new Set(round.participants.map(seat => seat.id));
   assert.ok(ids.size >= GAME_DEFAULTS.minParticipants && ids.size <= GAME_DEFAULTS.maxParticipants, 'lobby size within 2-5');

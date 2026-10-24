@@ -6,6 +6,7 @@ import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
 import { advanceRound, cancelRound } from "./lifecycle";
+import { scheduleBotTurn } from "./botState";
 import { presence } from "./connections";
 import { matchWaiting } from "./matchmaking";
 import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
@@ -27,7 +28,9 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
   const base = { roundId, revision: round.revision, serverNow: iso(round.updatedAt), selfId: self._id, participants: members.map(m => ({ id: m._id, alias: m.alias })) };
   if (round.phase === "countdown") return ok({ ...base, phase: "countdown" as const, chatStartsAt: iso(round.chatStartsAt), chatEndsAt: iso(round.chatEndsAt) });
-  if (round.phase === "cancelled") return ok({ ...base, phase: "cancelled" as const, reason: round.cancelReason ?? "room_closed", message: "This round ended early. No points were awarded." });
+  if (round.phase === "cancelled") return ok({ ...base, phase: "cancelled" as const, reason: round.cancelReason ?? "room_closed", message: round.cancelReason === "service_unavailable"
+    ? "The game service is temporarily unavailable. This round ended with no points awarded. Please try playing again."
+    : "This round ended early. No points were awarded." });
   const stored = await listMessages(ctx, components.agent, { threadId: round.threadId, paginationOpts: { cursor: null, numItems: 240 }, excludeToolMessages: true, statuses: ["success"] });
   const messages = stored.page.reverse().flatMap(m => {
     const sender = members.find(seat => seat._id === m.userId);
@@ -128,6 +131,13 @@ export const sendMessage = playerMutation({ args: { roundId: v.id("rounds"), inp
     if (!rate.ok) return fail("RATE_LIMITED", "Please slow down a little.", rate.retryAfter);
     const { messageId } = await saveMessage(ctx, components.agent, { threadId: round.threadId, userId: self._id, message: { role: "user", content: text } });
     await ctx.db.patch(roundId, { messageCount: round.messageCount + 1, revision: round.revision + 1, updatedAt: now });
+    const nextBotTurn = round.botTurn ?? 0;
+    if (round.botPending === undefined && nextBotTurn > 0) {
+      const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+      if (members.length === 2 && members.some(member => member.kind === "ai")) {
+        await scheduleBotTurn(ctx, round, nextBotTurn, true);
+      }
+    }
     return ok({ id: messageId, senderId: self._id, text, sentAt: iso(now) });
   });
 } });

@@ -314,7 +314,7 @@ function drawRound(value: RoundSnapshot): void {
   if (value.phase === "reveal") {
     ui.result.replaceChildren();
     const score = document.createElement("p");
-    score.textContent = `${value.yourResult.correctGuessCount}/2 correct · +${value.yourResult.guessingPointsEarned} points · ${value.yourResult.totalGuessingPoints} total · streak ${value.yourResult.streak}`;
+    score.textContent = `${value.yourResult.correctGuessCount}/${value.participants.length - 1} correct · +${value.yourResult.guessingPointsEarned} points · ${value.yourResult.totalGuessingPoints} total · streak ${value.yourResult.streak}`;
     const votes = document.createElement("p");
     votes.textContent = value.yourResult.votes
       ? value.yourResult.votes.map((vote) => `${value.participants.find((seat) => seat.id === vote.participantId)?.alias}: you guessed ${vote.label}`).join(" · ")
@@ -431,7 +431,10 @@ if (readTokens()) {
   }).catch(() => notice("Could not restore this player. Reset this test player to sign in again."));
 }
 
-window.addEventListener("pagehide", () => {
+window.addEventListener("pagehide", (event) => {
+  // Safari can freeze this document in its back/forward cache. Its existing
+  // subscriptions resume on return; closing the SDK here is permanent.
+  if (event.persisted) return;
   stopQueue?.(); stopRound?.(); stopLeaderboard?.();
   void convex.close();
 });

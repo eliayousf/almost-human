@@ -188,7 +188,7 @@ null or unmount when exiting. Leaderboard/session watches do not keep a room ali
 Route by the server's phase. Zero on a local timer never reveals roles, invents
 a result, or starts voting. If the next snapshot is delayed, show a short waiting
 state. The backend controls all deadlines and scores. Chat is 120 seconds after a 3-second
-countdown; voting is 15 seconds. Messages are limited to 400 characters.
+countdown; voting is 30 seconds. Messages are limited to 400 characters.
 
 ## 6. Commands: actual shapes
 
@@ -328,7 +328,7 @@ Long backgrounding can void a room: 25-second heartbeat timeout, checked every 3
 - [ ] Three devices or independent sessions create three distinct players.
 - [ ] They enter one room, see the same countdown and topic, and exchange text.
 - [ ] Refresh preserves identity, room, transcript, and remaining time.
-- [ ] Chat closes after 120 seconds; both other seats can be classified for 15 seconds.
+- [ ] Chat closes after 120 seconds; the other seats can be classified for 30 seconds.
 - [ ] Guesses lock and each player sees only their own submitted ballot.
 - [ ] Reveal and leaderboard reflect real server points; no ballot earns 0.
 - [ ] Play again works; Cancel waiting, Leave, Block, and Report are accessible.

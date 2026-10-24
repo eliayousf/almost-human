@@ -37,7 +37,7 @@ to the resulting adapter remain unverified.
 
 The **multiplayer backend is implemented with Convex**: anonymous sessions,
 matchmaking for two-to-five-player lobbies, a 3-second countdown, 120-second
-chat, 15-second voting, server-scored results, a public leaderboard, and AI bot
+chat, 30-second voting, server-scored results, a public leaderboard, and AI bot
 players through the Mubit chat gateway. Cash owns the public frontend.
 [Backend setup and integration](backend/README.md) includes a local diagnostic
 client. Comprehensive moderation and the learning pipeline remain separate

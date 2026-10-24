@@ -48,7 +48,7 @@ export const chatFixture: ChatRound = {
 };
 export const votingFixture: VotingRound = {
   ...base, phase: "voting", revision: 3, serverNow: "2026-10-24T12:02:03.000Z",
-  topic, messages, votingEndsAt: "2026-10-24T12:02:18.000Z", ownBallot: { status: "open" },
+  topic, messages, votingEndsAt: "2026-10-24T12:02:33.000Z", ownBallot: { status: "open" },
 };
 export const submittedFixture: VotingRound = {
   ...votingFixture, revision: 4, serverNow: "2026-10-24T12:02:10.000Z",
@@ -61,7 +61,7 @@ export const submittedFixture: VotingRound = {
   },
 };
 export const revealFixture: RevealRound = {
-  ...base, phase: "reveal", revision: 5, serverNow: "2026-10-24T12:02:18.000Z",
+  ...base, phase: "reveal", revision: 5, serverNow: "2026-10-24T12:02:33.000Z",
   participants: [
     { ...participants[0], kind: "human" },
     { ...participants[1], kind: "ai" },
@@ -118,7 +118,7 @@ export const missedVoteRevealFixture: RevealRound = {
   },
 };
 export const leaderboardFixture: LeaderboardView = {
-  generatedAt: "2026-10-24T12:02:20.000Z",
+  generatedAt: "2026-10-24T12:02:35.000Z",
   entries: [
     { entryId: "demo-score-2", rank: 1, alias: "Silver Otter", guessingPoints: 1_400,
       roundsPlayed: 9, guessAccuracy: 14 / 18,

@@ -136,7 +136,7 @@ Voting is one atomic submission containing exactly two distinct other-seat IDs.
 Both labels must be present. Submitted ballots cannot change. Return the saved
 result for a repeated identical command; reject a new attempt to edit a locked
 ballot. Reveal after the fixed voting window closes; do not expose which seats
-are waiting to vote. Defaults: 3-second countdown, 120-second chat, 15-second vote
+are waiting to vote. Defaults: 3-second countdown, 120-second chat, 30-second vote
 window, 400-character messages. These defaults are enforced by the backend.
 
 Leaving or blocking ends the caller's active round without awarding new points.

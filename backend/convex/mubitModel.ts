@@ -1,4 +1,13 @@
 import type { LanguageModelV4, LanguageModelV4GenerateResult } from "@ai-sdk/provider";
+import { MUBIT_TIMEOUT_MS } from "./botTiming";
+
+class MubitError extends Error {
+  constructor(message: string, readonly retryable: boolean) { super(message); }
+}
+
+export function isTransientMubitError(error: unknown): boolean {
+  return error instanceof MubitError && error.retryable;
+}
 
 declare global {
   // Register the sole application provider with AI SDK v7. This also keeps the
@@ -27,15 +36,26 @@ export function createMubitModel(apiKey: string, onRequestId?: (requestId: strin
       const abort = () => controller.abort();
       options.abortSignal?.addEventListener("abort", abort, { once: true });
       if (options.abortSignal?.aborted) controller.abort();
-      const timeout = setTimeout(abort, 10_000);
+      let timedOut = false;
+      let receivedResponse = false;
+      let readingBody = false;
+      const timeout = setTimeout(() => { timedOut = true; abort(); }, MUBIT_TIMEOUT_MS);
       try {
         const response = await fetch("https://api.mubit.ai/openai/v1/chat/completions", {
           method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
           body: JSON.stringify({ model: "gpt-6-luna", messages, max_completion_tokens: Math.min(options.maxOutputTokens ?? 384, 384), reasoning_effort: "low" }),
           signal: controller.signal, redirect: "error",
         });
-        if (!response.ok) throw new Error(`Mubit chat is unavailable (upstream status ${response.status}).`);
-        const data = record(await response.json());
+        receivedResponse = true;
+        if (!response.ok) {
+          // Rate limiting is the sole retryable 4xx response.
+          const retryable = response.status === 429 || (response.status >= 500 && response.status < 600);
+          throw new MubitError(`Mubit chat is unavailable (upstream status ${response.status}).`, retryable);
+        }
+        readingBody = true;
+        const payload: unknown = await response.json();
+        readingBody = false;
+        const data = record(payload);
         const choices = Array.isArray(data.choices) ? data.choices : [];
         const choice = record(choices[0]);
         const content = record(choice.message).content;
@@ -53,9 +73,14 @@ export function createMubitModel(apiKey: string, onRequestId?: (requestId: strin
             outputTokens: { total: output, text: output === undefined ? undefined : output - (reasoning ?? 0), reasoning },
           },
         };
-      } catch {
+      } catch (error) {
         // Do not propagate fetch errors, headers, or provider response bodies.
-        throw new Error("Mubit chat is unavailable.");
+        // This trusted error contains only our text and the numeric HTTP status.
+        if (error instanceof MubitError) throw error;
+        // Only transport failures and our timeout qualify. Malformed or unusable
+        // successful responses and caller cancellations are not retryable.
+        const transportFailure = !receivedResponse || (readingBody && error instanceof TypeError);
+        throw new MubitError("Mubit chat is unavailable.", !options.abortSignal?.aborted && (transportFailure || timedOut));
       } finally {
         clearTimeout(timeout);
         options.abortSignal?.removeEventListener("abort", abort);

@@ -207,6 +207,7 @@ describe("round authorization, messages, and server deadlines", () => {
     const [a] = people;
     const countdown = await snapshot(a, roundId);
     if (countdown.phase !== "countdown") throw new Error("Expected countdown");
+    expect(Date.parse(countdown.chatStartsAt) - Date.parse(countdown.serverNow)).toBe(3_000);
     expect(Date.parse(countdown.chatEndsAt) - Date.parse(countdown.chatStartsAt)).toBe(120_000);
     // convex-test's commit clock can move a few milliseconds beyond the frozen
     // wall clock while setup transactions commit. Use the actual server deadline.
@@ -221,6 +222,13 @@ describe("round authorization, messages, and server deadlines", () => {
     expect((await snapshot(a, roundId)).phase).toBe("voting");
     const voting = await snapshot(a, roundId);
     if (voting.phase !== "voting") throw new Error("Expected voting");
+    expect(Date.parse(voting.votingEndsAt) - Date.parse(countdown.chatEndsAt)).toBe(30_000);
+    // Product-owner decision: the old 15-second cutoff must still allow voting.
+    await elapseWithHeartbeats(t, people, Date.parse(countdown.chatEndsAt) + 15_000);
+    expect((await snapshot(a, roundId)).phase).toBe("voting");
+    must(await a.client.mutation(api.game.submitVotes, { roundId, input: { ...command(), votes: guesses(voting) } }));
+    await elapseWithHeartbeats(t, people, Date.parse(voting.votingEndsAt) - 1);
+    expect((await snapshot(a, roundId)).phase).toBe("voting");
     await elapseWithHeartbeats(t, people, Date.parse(voting.votingEndsAt));
     await t.finishInProgressScheduledFunctions();
     expect((await snapshot(a, roundId)).phase).toBe("reveal");
@@ -336,6 +344,21 @@ describe("leave, block, and safe rematching", () => {
     await t.finishInProgressScheduledFunctions();
     expect(await snapshot(a, roundId)).toMatchObject({ phase: "cancelled", reason: "connection_lost" });
     for (const person of [a, b, c]) expect(must(await person.client.query(api.game.getSession, {})).totalGuessingPoints).toBe(0);
+  });
+
+  test("reconnecting within the existing grace keeps the same seat, transcript and deadline", async () => {
+    const t = init();
+    const { people, roundId } = await room(t);
+    const before = await advance(t, people[0], roundId);
+    if (before.phase !== "chat") throw new Error("Expected chat");
+    const message = { ...command(), text: "A synthetic message before reconnecting." };
+    const sent = must(await people[0].client.mutation(api.game.sendMessage, { roundId, input: message }));
+    for (const person of people) must(await person.client.mutation(api.game.heartbeat, { sessionId: `test-${person.userId}` }));
+    await vi.advanceTimersByTimeAsync(20_000); await t.finishInProgressScheduledFunctions();
+    for (const person of people) must(await person.client.mutation(api.game.heartbeat, { sessionId: `test-${person.userId}` }));
+    await t.mutation(internal.connections.checkRound, { roundId });
+    expect(await snapshot(people[0], roundId)).toMatchObject({ phase: "chat", roundId, selfId: before.selfId, chatEndsAt: before.chatEndsAt, messages: [sent] });
+    expect(must(await people[0].client.mutation(api.game.sendMessage, { roundId, input: message })).id).toBe(sent.id);
   });
 
   test("an abandoned queue entry expires rather than matching a departed player", async () => {

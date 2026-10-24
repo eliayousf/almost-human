@@ -3,7 +3,7 @@
 Convex owns state, subscriptions, anonymous authentication, deadlines, and scores.
 Rooms seat **two to five participants with zero, one, or two Mubit bots**, and at
 least one human. The local diagnostic client is for synthetic testing; `frontend/` remains
-Cash's workstream. No training job or adapter learning loop is implemented.
+Cash's workstream. Model training and trained-adapter use remain unverified.
 
 Shared development URL for frontend integration:
 `https://original-buzzard-860.eu-west-1.convex.cloud`.
@@ -72,17 +72,52 @@ Each bot seat is assigned a persona (dry, curious, or warm) and a difficulty
 compared per level later; the internal `bots.performance` query aggregates those
 rates from stored ballots. Bots use `gpt-6-luna` through Mubit's fixed HTTPS
 chat endpoint and the installed Convex Agent component. Turns alternate between
-bot seats, start after countdown,
-and are paced 7–11 seconds apart after a reply. At most ten generation attempts
-are reserved per room, each with a ten-second provider timeout, 384 completion
-token limit, and no automatic retry. Only the topic and up to twenty recent
-room messages are sent as context; no account IDs or other rooms are included.
+bot seats and start after countdown. In two-seat rooms the bot may open once,
+then waits for a new human message before generating another reply. Human text
+arriving during generation or typing gets a follow-up; duplicate callbacks and
+retried human commands cannot restart a self-conversation. Larger rooms retain
+their scheduled turns and existing 7–11-second gap between generations.
+
+Every generated reply is moderated, then published by a durable scheduled
+mutation after a typing delay: 2 seconds plus 70 ms per Unicode character,
+capped at 12 seconds. Two-seat replies begin generating on human input instead
+of adding the group-room gap. No reply is rushed into the transcript at the
+deadline: if typing cannot finish before chat ends, it is discarded. The final
+mutation rechecks phase, moderation, membership and the claimed turn.
+
+The prompt targets one brief phone text: 3–12 words, at most 80 characters,
+one or two short lines, plain keyboard punctuation, and no em/en dashes, smart
+quotes, typographic ellipses, bullets, headings or markdown. Most messages have
+no emoji; any emoji is rare, limited to one, varied and not repeated from the
+bot's earlier messages. Own transcript lines are marked `(you)`, and the prompt
+lists the actual participants. These are model instructions; the existing
+400-character moderation limit remains the publication safeguard.
+
+Shared game, style and safety instructions are identical across seats and
+variants. Ayo's prompt format places alias, persona style, difficulty texture
+and optional earlier bot-only lessons in the user message. Published replies
+retain their Mubit request ID and lesson count for consent-aware round verdicts
+and optional ratings. See [MUBIT_LEARNING.md](../MUBIT_LEARNING.md) for that flow
+and its existing controls. Live console task pooling remains unverified here.
+
+At most ten turns are reserved per room. Each request has a ten-second provider timeout and 384 completion token
+limit. Network errors, timeouts, HTTP 429 and HTTP 5xx responses get at most one
+retry after two seconds. Other HTTP 4xx responses (including 408), malformed
+responses and other non-transient failures are never retried. A turn needs the
+24-second generation budget plus the minimum typing delay before chat ends;
+its 40-second watchdog covers both attempts, maximum typing and processing overhead.
+The topic, up to twenty recent room messages and optional earlier bot-only
+lessons form the context; no account IDs or other rooms' human messages are included.
 
 Generation results are not automatically published. An internal mutation checks
 the active turn, chat deadline, character limit, and existing contact/threat
 filters before saving to the room's Agent thread. Late/duplicate jobs cannot
-append replies. A failed, empty, blocked, or abandoned generation ends the round
-as `service_unavailable` with no points. There is no canned-response fallback.
+append replies. A failed generation after its permitted retry, or an empty,
+blocked or abandoned generation, ends the round as `service_unavailable` with no
+points. Players see a service-unavailable explanation and can play again. Server
+diagnostics retain the numeric upstream HTTP status without response bodies or
+credentials; public round data never includes provider diagnostics.
+There is no canned-response fallback.
 These baseline filters do not satisfy the public-launch moderation gate below.
 
 Bots have member seats, not authenticated player profiles. They never vote,
@@ -117,6 +152,14 @@ runs at <http://127.0.0.1:3219/react.html> after the same playtest build below.
    timer display. The adapter calibrates a fresh action, because cached query
    timestamps are not a ticking clock. Only the server changes phases or scores.
 
+Clock calibration is best effort and cannot delay round queries, subscriptions
+or presence. While a mobile connection is unavailable, at most one heartbeat is
+in flight; returning to a visible page or reconnecting sends a fresh beat without
+waiting for the next interval. Safari page-cache suspension preserves the SDK
+and subscriptions instead of permanently closing them. Refresh restores the same
+stored anonymous identity. The existing 25-second presence timeout still applies;
+resume cannot revive a round the server has already cancelled.
+
 The transport is Convex RPC/subscriptions, replacing the earlier proposed REST
 and cookie implementation. Public data and GameClient methods are preserved.
 The only added SessionView fields are optional own `activeRoundId` and
@@ -134,7 +177,7 @@ There is no `/api/v1` HTTP service to proxy.
 - Exactly three seats, at least one authenticated human; human pairs respect blocks.
 - Topic hidden for the 3-second countdown; chat lasts exactly 120 seconds.
 - At most 400 characters per message; burst/per-player rate and room limits.
-- Exactly two other-seat guesses, one immutable ballot, a fixed 15-second window.
+- One guess per other seat, one immutable ballot, a fixed 30-second window.
 - 100 points per correct guess; atomic, single settlement, no client score input.
 - Private round membership, own ballot only, roles shown only at reveal.
 - Leave/block cancels the round with no new score; reports remain private.

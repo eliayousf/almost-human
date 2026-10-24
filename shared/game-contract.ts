@@ -5,7 +5,7 @@ export const GAME_DEFAULTS = {
   maxParticipants: 5,
   countdownMs: 3_000,
   chatMs: 120_000,
-  votingMs: 15_000,
+  votingMs: 30_000,
   activePollMs: 1_000,
   maxMessageCharacters: 400,
   guessPoints: 100,

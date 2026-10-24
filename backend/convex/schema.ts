@@ -17,6 +17,8 @@ export default defineSchema({
     phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
     topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
     botTurn: v.optional(v.number()), botPending: v.optional(v.number()),
+    // Latest human message included in a claimed two-seat turn; null for an opener.
+    botLastHumanMessageId: v.optional(v.union(v.string(), v.null())),
   }).index("by_phase_and_createdAt", ["phase", "createdAt"]),
   members: defineTable(v.union(
     v.object({ roundId: v.id("rounds"), playerId: v.id("players"), alias: v.string(), kind: v.literal("human") }),

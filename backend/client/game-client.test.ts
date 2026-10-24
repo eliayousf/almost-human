@@ -178,7 +178,7 @@ describe.each(["native", "react"] as const)("%s SDK lifecycle and failures", (ki
     expect(sdk.subscriptions).toHaveLength(1);
     sdk.subscriptions[0].emit(waiting);
     expect(listener).toHaveBeenLastCalledWith(waiting);
-    expect(await game.getSession()).toEqual(unavailable);
+    expect(await game.getSession()).toEqual(waiting); // A clock failure does not fail a healthy query.
     sdk.query.mockRejectedValue(unsafeError());
     expect(await game.getLeaderboard()).toEqual(unavailable);
     stop();

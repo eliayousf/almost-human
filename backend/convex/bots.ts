@@ -3,8 +3,9 @@ import { v, type Infer } from "convex/values";
 import { env, internalAction, internalQuery } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { botContextV } from "./botState";
-import { createMubitModel } from "./mubitModel";
+import { createMubitModel, isTransientMubitError } from "./mubitModel";
 import { BOT_PERSONAS, MAX_LOBBY, buildBotMessages } from "./botlogic";
+import { BOT_RETRY_DELAY_MS } from "./botTiming";
 
 export const takeTurn = internalAction({
   args: { roundId: v.id("rounds"), turn: v.number() }, returns: v.null(),
@@ -35,8 +36,9 @@ export const takeTurn = internalAction({
           maxOutputTokens: 384, maxRetries: 0,
         }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
       } catch (firstError) {
+        if (!isTransientMubitError(firstError)) throw firstError;
         console.error("bot turn first attempt failed:", firstError instanceof Error ? firstError.message : String(firstError));
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, BOT_RETRY_DELAY_MS));
         result = await agent.generateText(ctx, { threadId: context.threadId }, {
           prompt: user.content,
           maxOutputTokens: 384, maxRetries: 0,
@@ -44,11 +46,11 @@ export const takeTurn = internalAction({
       }
       // Only the transactional commit can publish a moderated reply, and only
       // while the claimed turn still belongs to an active chat window.
-      await ctx.runMutation(internal.botState.commit, {
+      await ctx.runMutation(internal.botState.prepareReply, {
         ...args, text: result.text, mubitRequestId, lessonCount: context.lessons.passed.length + context.lessons.caught.length,
       });
     } catch (error) {
-      console.error("bot turn failed after retry:", error instanceof Error ? error.message : String(error));
+      console.error("bot turn failed:", error instanceof Error ? error.message : String(error));
       await ctx.runMutation(internal.botState.fail, args);
     }
     return null;
