@@ -1,4 +1,4 @@
-/** Proposed public API v1. No backend implementation exists yet. */
+/** Public game API v1. Implemented by the backend-owned Convex adapter. */
 export const GAME_DEFAULTS = {
   participants: 3,
   countdownMs: 3_000,
@@ -113,6 +113,9 @@ export interface SessionView {
   leaderboardAlias: string;
   totalGuessingPoints: number;
   trainingOptIn: boolean;
+  /** Optional resume pointers for this player only. */
+  activeRoundId?: string;
+  activeQueueId?: string;
 }
 
 export type QueueTicket = {
@@ -175,7 +178,7 @@ export interface ReportInput extends CommandInput {
 }
 export interface BlockInput extends CommandInput { participantId: ParticipantId }
 
-/** Implement with local mock data or HTTP; never import provider SDKs into UI code. */
+/** Use a mock or the shared Convex adapter; never import LLM SDKs into UI code. */
 export interface GameClient {
   getSession(): Promise<ApiResult<SessionView>>;
   createSession(input: CreateSessionInput): Promise<ApiResult<SessionView>>;

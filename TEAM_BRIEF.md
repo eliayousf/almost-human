@@ -4,8 +4,8 @@
 frontend and UI/UX**. This brief and the shared types are the integration
 agreement. [PLAN.md](PLAN.md) has the fuller product and safety requirements.
 
-Status: planning, contracts, and synthetic fixtures only. No game backend or
-frontend has been implemented. Mubit provider chat works; learning and trained
+Status: the all-human Convex backend and diagnostic test client are implemented.
+Cash owns the public frontend. Mubit provider chat works; learning and trained
 adapter use remain unverified. See [MUBIT_VERIFICATION.md](MUBIT_VERIFICATION.md).
 
 ## The game we are building
@@ -31,10 +31,10 @@ interactions; the backend must not depend on a component library or framework.
 | Local screen previews and mock UI adapter | cashpointsoulja | `frontend/`, using `shared/fixtures.ts` |
 | Sessions, queue, room lifecycle, timers, messaging, voting, scoring | Elia + Codex | `backend/` |
 | Mubit calls, moderation, consent, storage, blocks, reports, operator tools | Elia + Codex | `backend/`, `scripts/` |
-| Types, constants, fixtures, HTTP contract | Shared agreement; Elia + Codex maintains initial version | `shared/`, this brief |
+| Types, constants, fixtures, client contract | Shared agreement; Elia + Codex maintains initial version | `shared/`, this brief |
 | Root setup and deployment configuration | Coordinate before changing | Root files, Nix flake, hosting config |
 
-`frontend/` and `backend/` are reserved boundaries, not generated projects yet.
+`backend/` contains the running Convex service; `frontend/` remains Cash's boundary.
 Cash chooses the frontend framework and owns its package manifest and lockfile.
 Backend dependencies stay under `backend/`. Coordinate a root workspace setup
 before introducing one. The existing Nix shell supplies Node.js and Python.
@@ -65,22 +65,26 @@ text. The frontend must not call an LLM or hold a Mubit key.
 - Import types and `GAME_DEFAULTS` from [shared/game-contract.ts](shared/game-contract.ts).
 - Import the synthetic examples from [shared/fixtures.ts](shared/fixtures.ts).
 - The UI talks through the `GameClient` interface. Cash may implement a local
-  mock of that interface; the backend workstream supplies its real HTTP adapter.
-  That browser-safe adapter will live at `shared/http-client.ts`; it is not
-  implemented yet and must contain no server credentials.
+  mock of that interface; the real browser-safe adapter is now
+  [shared/convex-client.ts](shared/convex-client.ts). It contains no server secrets.
+  [Backend integration instructions](backend/README.md) explain anonymous auth
+  and the native realtime subscriptions.
 - Mock mode is explicitly labelled local demo mode. An unavailable backend
   must show an error rather than silently replacing real players with fixtures.
-- Types and routes below describe the proposed v1 contract, not existing endpoints.
+- GameClient methods are implemented as authenticated Convex functions. No REST
+  routes or cookie service are required. SessionView adds optional own activity
+  IDs for refresh/recovery; the other public shapes are preserved.
 
-All dates are UTC ISO 8601 strings. `serverNow` is the server's time when the
-snapshot was generated; use its offset from the client clock for countdowns.
+All dates are UTC ISO 8601 strings. Raw query snapshots have cached timestamps;
+the adapter calibrates a fresh server action and supplies current `serverNow`.
+Use `estimatedServerNow()` for ticking countdown displays.
 Use `chatStartsAt`, `chatEndsAt`, and `votingEndsAt` supplied by the server.
 Do not give each browser its own authoritative two-minute clock.
 
 Snapshots have a monotonic per-round `revision`. Ignore older responses that
-arrive late. The first HTTP adapter can poll once a second while queued or in a
-round, with one request in flight at a time. Stop polling on unmount/exit. Realtime
-transport can change inside the adapter without changing public data shapes.
+arrive late. Use `watchQueue`, `watchRound`, and `watchLeaderboard` from the
+adapter for native realtime updates. Keep the adapter stable and unsubscribe on
+unmount/exit. Queue and round subscriptions maintain presence heartbeats.
 
 Before reveal, the payload includes **no roles, bot counts, model names,
 provider details, other ballots, or internal training metadata**. Before chat,
@@ -96,32 +100,26 @@ nix shell nixpkgs#typescript -c tsc --noEmit --strict --target es2022 --module e
 nix develop -c node --experimental-strip-types scripts/check-shared-contract.mjs
 ```
 
-## HTTP mapping for the backend adapter
+## Implemented backend transport
 
-Base path: `/api/v1`, on the same origin as the public frontend. The backend
-issues an HttpOnly session cookie. Requests use `credentials: "include"`.
-No account ID or role supplied by the browser establishes authority.
-Backend writes also enforce origin/CSRF protection; cookies alone are not the
-complete authorisation check.
+The backend uses Convex RPC and subscriptions with official anonymous Convex
+Auth. The frontend supplies an authenticated SDK client and an `ensureAnonymous`
+callback to the shared adapter. No real name, invite code, or sign-up form is
+needed. Anonymous credentials preserve score continuity while browser storage
+survives. Clearing storage creates a fresh identity.
 
-Every response follows `ApiResult<T>`, including errors. Errors have a safe
-message and stable code; no stack traces, provider errors, or hidden role clues.
+GameClient methods map to `game:<methodName>` Convex functions. For example,
+`getRound(roundId)` calls `game:getRound({roundId})` and `sendMessage(roundId,
+input)` calls `game:sendMessage({roundId,input})`. All other command methods wrap
+their payload in `{input}`; queue leave also supplies `{queueId}`. Membership and
+identity are checked on the server; browser-supplied participant IDs establish
+no authority. `getLeaderboard` is deliberately public.
 
-| Method/path | GameClient method | Request / result |
-| --- | --- | --- |
-| `GET /session` | `getSession` | Own `SessionView`, or `UNAUTHENTICATED` |
-| `POST /session` | `createSession` | `CreateSessionInput` → own `SessionView` |
-| `PATCH /session/consent` | `setTrainingConsent` | `TrainingConsentInput` → own `SessionView` |
-| `POST /queue` | `joinQueue` | `CommandInput` → `QueueTicket` |
-| `GET /queue/:queueId` | `getQueue` | Own `QueueTicket` |
-| `POST /queue/:queueId/leave` | `leaveQueue` | `CommandInput` → `LeftResult` |
-| `GET /rounds/:roundId` | `getRound` | Member-specific `RoundSnapshot` |
-| `POST /rounds/:roundId/messages` | `sendMessage` | `SendMessageInput` → accepted `ChatMessage` |
-| `POST /rounds/:roundId/votes` | `submitVotes` | `SubmitVotesInput` → caller's `RoundSnapshot` |
-| `POST /rounds/:roundId/leave` | `leaveRound` | `CommandInput` → `LeftResult` |
-| `POST /rounds/:roundId/reports` | `reportParticipant` | `ReportInput` → `RecordedResult` |
-| `POST /rounds/:roundId/blocks` | `blockParticipant` | `BlockInput` → `LeftResult` |
-| `GET /leaderboard` | `getLeaderboard` | Public `LeaderboardView`, initially top 50 |
+Every game response follows `ApiResult<T>`, including safe messages and stable
+error codes. SDK exceptions are sanitized by the adapter. The raw clock action
+and internal scheduled functions are transport details, not UI API methods.
+There are no `/api/v1` routes to proxy. See [backend/README.md](backend/README.md)
+for the exact frontend setup and local playtest commands.
 
 Commands carry a fresh `clientRequestId`, reused when retrying that same action.
 The server makes retries idempotent. It validates membership, deadlines, message
@@ -132,11 +130,11 @@ Both labels must be present. Submitted ballots cannot change. Return the saved
 result for a repeated identical command; reject a new attempt to edit a locked
 ballot. Reveal after the fixed voting window closes; do not expose which seats
 are waiting to vote. Defaults: 3-second countdown, 120-second chat, 15-second vote
-window, 400-character messages. These are server-configurable defaults.
+window, 400-character messages. These defaults are enforced by the backend.
 
 Leaving or blocking ends the caller's active round without awarding new points.
-After a short reconnect grace period, a departed human voids the room; do not
-secretly substitute a bot. Reporting records a private report and offers Leave.
+Heartbeat timeout is 25 seconds, checked every 30 seconds. A disconnected human
+voids the room; no bot is secretly substituted. Reporting records a private report and offers Leave.
 
 ## Scoring agreement and unresolved proposal
 
@@ -184,8 +182,9 @@ If Cash does not have write access to this repository, he can work in a fork
 and open pull requests. Collaborator access can be arranged separately.
 
 The first integration milestone is **three real browsers completing an all-human
-round**. Next, test one-bot and two-bot rooms with actual Mubit replies, then
-scoring/leaderboard, moderation, and reconnect behaviour. Synthetic preview
+round**. The all-human service includes scoring/leaderboard and reconnect
+handling. Next, integrate Cash's frontend, complete public-launch safeguards, and
+test one-bot and two-bot rooms with actual Mubit replies. Synthetic preview
 fixtures cannot satisfy those live acceptance checks.
 
 ## First handoff
@@ -193,9 +192,9 @@ fixtures cannot satisfy those live acceptance checks.
 **Cash:** create `frontend/`, choose the framework, build the public screens and
 mock adapter from the shared contract. Keep all state server-driven at the boundary.
 
-**Elia + Codex:** choose backend/runtime/storage, implement anonymous sessions
-and an all-human queue/round first, then AI, scoring, moderation, operator tools,
-and the Mubit learning proof. Supply the HTTP client adapter and deployment routing.
+**Elia + Codex:** the all-human Convex backend and shared realtime adapter are
+ready for integration. Continue with public-launch moderation/operator tools,
+then Mubit AI players and the independent learning proof.
 
 Coordinate before either side changes root build files, shared types, URL paths,
 or scoring. Keep secrets, real conversations, participant records, and model

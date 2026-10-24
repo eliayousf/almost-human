@@ -1,0 +1,32 @@
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+import { authTables } from "@convex-dev/auth/server";
+import { cancelReasonV, guessV, phaseV, reportReasonV, roundResultV, topicV } from "./validators";
+
+export default defineSchema({
+  ...authTables,
+  players: defineTable({
+    userId: v.id("users"), alias: v.string(), trainingOptIn: v.boolean(), policyVersion: v.string(),
+    guessingPoints: v.number(), roundsPlayed: v.number(), guessesSubmitted: v.number(), correctGuesses: v.number(),
+    humanVotesReceived: v.number(), humanVotesRecognisingYou: v.number(), streak: v.number(), updatedAt: v.number(),
+    activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),
+  }).index("by_userId", ["userId"]).index("by_guessingPoints", ["guessingPoints"]),
+  queue: defineTable({ playerId: v.id("players"), status: v.union(v.literal("waiting"), v.literal("assigned"), v.literal("closed")), joinedAt: v.number(), updatedAt: v.number(), roundId: v.optional(v.id("rounds")) })
+    .index("by_status_and_joinedAt", ["status", "joinedAt"]).index("by_playerId_and_status", ["playerId", "status"]),
+  rounds: defineTable({
+    phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
+    topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
+  }).index("by_phase_and_createdAt", ["phase", "createdAt"]),
+  members: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), alias: v.string(), kind: v.literal("human") })
+    .index("by_roundId", ["roundId"]).index("by_playerId_and_roundId", ["playerId", "roundId"]),
+  ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number() })
+    .index("by_roundId", ["roundId"]).index("by_roundId_and_playerId", ["roundId", "playerId"]),
+  results: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), data: roundResultV })
+    .index("by_roundId_and_playerId", ["roundId", "playerId"]),
+  commands: defineTable({ playerId: v.id("players"), scope: v.string(), requestId: v.string(), fingerprint: v.string(), responseJson: v.string(), createdAt: v.number() })
+    .index("by_playerId_and_scope_and_requestId", ["playerId", "scope", "requestId"]),
+  blocks: defineTable({ blockerId: v.id("players"), blockedId: v.id("players"), createdAt: v.number() })
+    .index("by_blockerId_and_blockedId", ["blockerId", "blockedId"]).index("by_blockerId", ["blockerId"]),
+  reports: defineTable({ reporterId: v.id("players"), targetPlayerId: v.id("players"), roundId: v.id("rounds"), reason: reportReasonV, messageId: v.optional(v.string()), detail: v.optional(v.string()), createdAt: v.number(), status: v.union(v.literal("open"), v.literal("closed")) })
+    .index("by_status_and_createdAt", ["status", "createdAt"]),
+});

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Almost Human — backend playtest</title>
+  <style>
+    :root { font: 16px/1.5 system-ui, sans-serif; color: #102033; background: #fff; }
+    body { max-width: 56rem; margin: auto; padding: 1rem; }
+    h1, h2, h3 { line-height: 1.2; }
+    button, input, select, textarea { font: inherit; padding: .55rem; }
+    button { cursor: pointer; border: 2px solid #164e8b; background: #164e8b; color: #fff; border-radius: .2rem; }
+    button:disabled { opacity: .6; cursor: wait; }
+    button.secondary { background: #fff; color: #164e8b; }
+    button.danger { background: #962323; border-color: #962323; }
+    button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid #bf6000; outline-offset: 2px; }
+    section { padding: 1rem; border: 2px solid #66778b; margin: 1rem 0; }
+    [hidden] { display: none !important; }
+    .banner { background: #fff2be; border: 2px solid #8b6400; padding: .7rem; }
+    #notice { padding: .6rem 0; min-height: 1.5rem; color: #862121; font-weight: 600; }
+    label.check { display: block; margin: .8rem 0; }
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+    #transcript { height: 15rem; overflow-y: auto; border: 1px solid #66778b; padding: .7rem; list-style: none; }
+    #transcript li { margin-bottom: .6rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+    #message { flex: 1; min-width: 12rem; }
+    #timer { font-size: 2rem; font-weight: 700; }
+    #votes label { display: block; margin: .6rem 0; }
+    #safety > div { margin: .6rem 0; padding: .6rem 0; border-top: 1px solid #66778b; }
+    #leaderboard { padding-left: 1.5rem; }
+    .muted { color: #405269; }
+  </style>
+</head>
+<body>
+  <h1>Almost Human</h1>
+  <p class="banner"><strong>All-human backend playtest; no AI in this milestone.</strong><br>Plain test controls for the backend team. Cash owns the public frontend.</p>
+  <p>This local harness connects to the configured Convex deployment. Use synthetic conversation text. Optional consent is recorded; this test does not train a model.</p>
+  <div class="row">
+    <button id="new-tab" class="secondary" type="button">Open independent participant tab</button>
+    <button id="reset" class="secondary" type="button">Reset this test player</button>
+  </div>
+  <p class="muted">Use the button above twice for three separate players. Resetting creates a new anonymous identity and loses this tab’s score.</p>
+  <p id="notice" role="status" aria-live="polite"></p>
+  <section id="welcome">
+    <h2>Start a test player</h2>
+    <form id="start-form">
+      <label class="check"><input id="adult" type="checkbox" required> I am 18 or older.</label>
+      <label class="check"><input id="rules" type="checkbox" required> I agree to be respectful, share no personal/contact details, and use synthetic text for this test.</label>
+      <label class="check"><input id="training" type="checkbox"> Optional: allow my text to be considered for reviewed training examples.</label>
+      <button id="start" type="submit">Start player</button>
+    </form>
+  </section>
+  <section id="player" hidden>
+    <h2 id="alias"></h2>
+    <p id="score"></p>
+    <label class="check"><input id="consent" type="checkbox"> Allow reviewed training use</label>
+    <button id="join" type="button">Join three-person queue</button>
+  </section>
+  <section id="queue" hidden>
+    <h2>Waiting for three people</h2>
+    <p>Open two independent participant tabs, accept the rules, and join the queue in each.</p>
+    <button id="cancel-queue" class="secondary" type="button">Cancel waiting</button>
+  </section>
+  <section id="round" hidden>
+    <h2 id="phase"></h2>
+    <p id="seats"></p>
+    <p id="timer" aria-live="off"></p>
+    <h3 id="topic" hidden></h3>
+    <ol id="transcript" aria-label="Chat messages" aria-live="polite" hidden></ol>
+    <form id="message-form" class="row" hidden>
+      <label for="message">Message</label>
+      <input id="message" type="text" maxlength="400" autocomplete="off" required>
+      <button id="send" type="submit">Send</button>
+    </form>
+    <form id="vote-form" hidden>
+      <h3>Classify the other two participants</h3>
+      <div id="votes"></div>
+      <button id="submit-votes" type="submit">Lock guesses</button>
+      <p id="ballot-status"></p>
+    </form>
+    <div id="result" hidden></div>
+    <button id="play-again" type="button" hidden>Play again</button>
+    <div id="safety"></div>
+    <button id="leave" class="danger" type="button">Leave round</button>
+  </section>
+  <section>
+    <h2>Public leaderboard</h2>
+    <p class="muted">Generated aliases and guessing points only.</p>
+    <ol id="leaderboard"><li>Start a player to load scores.</li></ol>
+  </section>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

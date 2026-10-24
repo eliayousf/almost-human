@@ -16,7 +16,12 @@ Project brief, [MVP plan](PLAN.md), development environment, and a small
 through Mubit works. Ingestion of human training examples and application access
 to the resulting adapter remain unverified.
 
-The chat game, moderation, and player-feedback collection are not implemented yet.
+The **all-human multiplayer backend is implemented with Convex**: anonymous
+sessions, three-person matchmaking, a 3-second countdown, 120-second chat,
+15-second voting, server-scored results, and a public leaderboard. Cash owns the
+public frontend. [Backend setup and integration](backend/README.md) includes a
+local diagnostic client. AI players, comprehensive moderation, and the learning
+pipeline remain separate milestones.
 
 ## The game
 
@@ -67,8 +72,20 @@ nix develop
 ```
 
 With direnv configured, allow this project's `.envrc`, which contains `use flake`.
-There is no application start command yet. See the verification report to run
-the synthetic server probe.
+For the multiplayer backend and local test client:
+
+```sh
+cd backend
+nix develop .. -c npm ci --ignore-scripts
+nix develop .. -c npm run dev
+# In another terminal, after configuring backend/.env.local:
+nix develop .. -c npm run build:playtest
+nix develop .. -c npm run playtest
+```
+
+Open `http://127.0.0.1:3219/` in three independent tabs. Use synthetic text.
+See [backend/README.md](backend/README.md) for anonymous auth setup, checks,
+frontend handoff, and remaining public-launch requirements.
 
 Use `nix shell nixpkgs#<package> -c <command>` for temporary tools instead of
 installing them globally.
