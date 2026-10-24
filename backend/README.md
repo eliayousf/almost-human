@@ -46,6 +46,10 @@ Use synthetic text. Consent is optional; no training export exists.
 
 ## Frontend integration
 
+For the complete Vite/iPhone handoff and the optional ready-made React provider
+and hooks, start with [CASH_HANDOFF.md](../CASH_HANDOFF.md). The React reference
+runs at <http://127.0.0.1:3219/react.html> after the same playtest build below.
+
 1. Install compatible `convex`, `@convex-dev/auth`, and React dependencies in the
    frontend's own package manifest. Use Convex Auth's official React provider and
    anonymous sign-in integration; no sign-up form is required. The diagnostic

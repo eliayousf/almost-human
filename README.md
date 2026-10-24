@@ -11,6 +11,10 @@ is human and who is AI.
 **Working separately? Start with the [shared build brief](TEAM_BRIEF.md),
 [public data contract](shared/game-contract.ts), and [synthetic screen fixtures](shared/fixtures.ts).**
 
+**Connecting the frontend?** [Cash's handoff](CASH_HANDOFF.md) includes the
+React/Vite setup, anonymous auth provider, live hooks, runnable reference, and
+iPhone acceptance checklist.
+
 Project brief, [MVP plan](PLAN.md), development environment, and a small
 [Mubit connectivity probe](MUBIT_VERIFICATION.md). Server-side provider chat
 through Mubit works. Ingestion of human training examples and application access

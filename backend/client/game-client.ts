@@ -59,6 +59,7 @@ function safeResult<T>(value: ApiResult<T>): ApiResult<T> {
 }
 
 export interface RealtimeGameClient extends GameClient {
+  watchSession(listener: Listener<SessionView>): () => void;
   watchRound(roundId: string, listener: Listener<RoundSnapshot>): () => void;
   watchQueue(queueId: string, listener: Listener<QueueTicket>): () => void;
   watchLeaderboard(listener: Listener<LeaderboardView>): () => void;
@@ -216,6 +217,7 @@ export function createConvexGameClient(
     reportParticipant: (roundId, input) => call(() => convex.mutation(refs.report, { roundId, input })),
     blockParticipant: (roundId, input) => call(() => convex.mutation(refs.block, { roundId, input })),
     getLeaderboard: () => call(() => convex.query(refs.leaderboard, {})),
+    watchSession: (listener) => watch(refs.session, {}, listener, false),
     watchRound: (roundId, listener) => watch(refs.round, { roundId }, listener, true),
     watchQueue: (queueId, listener) => watch(refs.queue, { queueId }, listener, true),
     watchLeaderboard: (listener) => watch(refs.leaderboard, {}, listener, false),

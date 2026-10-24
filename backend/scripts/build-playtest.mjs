@@ -32,4 +32,12 @@ await build({
   logLevel: "warning",
 });
 await copyFile(path.join(backend, "playtest/index.html"), path.join(outdir, "index.html"));
+await build({
+  entryPoints: [path.join(backend, "playtest/react-main.tsx")],
+  outfile: path.join(outdir, "react-app.js"), bundle: true, format: "esm", platform: "browser",
+  target: ["es2022"], jsx: "automatic", nodePaths: [path.join(backend, "node_modules")],
+  define: { __CONVEX_URL__: JSON.stringify(deploymentUrl), "process.env.NODE_ENV": '"development"' },
+  sourcemap: false, logLevel: "warning",
+});
+await copyFile(path.join(backend, "playtest/react.html"), path.join(outdir, "react.html"));
 console.log("Built backend/build. Only the public Convex deployment URL is included in the bundle.");

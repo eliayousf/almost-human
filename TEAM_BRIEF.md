@@ -4,6 +4,9 @@
 frontend and UI/UX**. This brief and the shared types are the integration
 agreement. [PLAN.md](PLAN.md) has the fuller product and safety requirements.
 
+**Cash's implementation guide:** [CASH_HANDOFF.md](CASH_HANDOFF.md), including
+the Vite/iPhone path, ready-made React provider/hooks, and live reference screens.
+
 Status: the all-human Convex backend and diagnostic test client are implemented.
 Cash owns the public frontend. Mubit provider chat works; learning and trained
 adapter use remain unverified. See [MUBIT_VERIFICATION.md](MUBIT_VERIFICATION.md).
