@@ -18,7 +18,9 @@ import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as lifecycle from "../lifecycle.js";
 import type * as matchmaking from "../matchmaking.js";
+import type * as mubitConsole from "../mubitConsole.js";
 import type * as mubitModel from "../mubitModel.js";
+import type * as ratings from "../ratings.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -38,7 +40,9 @@ declare const fullApi: ApiFromModules<{
   lib: typeof lib;
   lifecycle: typeof lifecycle;
   matchmaking: typeof matchmaking;
+  mubitConsole: typeof mubitConsole;
   mubitModel: typeof mubitModel;
+  ratings: typeof ratings;
   validators: typeof validators;
 }>;
 

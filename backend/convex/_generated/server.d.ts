@@ -32,6 +32,10 @@ type Env = {
   readonly CONVEX_SITE_URL: string;
   readonly MUBIT_API_KEY: string | undefined;
   readonly MUBIT_BOTS_ENABLED: string | undefined;
+  readonly MUBIT_RATINGS_ENABLED: string | undefined;
+  readonly MUBIT_CONSOLE_COOKIE: string | undefined;
+  readonly MUBIT_PROJECT: string | undefined;
+  readonly BOT_LESSONS_ENABLED: string | undefined;
 };
 
 /**

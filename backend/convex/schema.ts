@@ -23,6 +23,16 @@ export default defineSchema({
     v.object({ roundId: v.id("rounds"), alias: v.string(), kind: v.literal("ai"), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")) }),
   ))
     .index("by_roundId", ["roundId"]).index("by_playerId_and_roundId", ["playerId", "roundId"]),
+  // One row per published bot line: its Mubit call, the room's verdict on the
+  // seat (training-opted-in votes only) and what Mubit reported about the call.
+  botCalls: defineTable({
+    roundId: v.id("rounds"), memberId: v.id("members"), text: v.string(), createdAt: v.number(), lessonCount: v.number(),
+    mubitRequestId: v.optional(v.string()),
+    judgedAt: v.optional(v.number()), judgedHuman: v.optional(v.number()), judgedAi: v.optional(v.number()),
+    verdict: v.optional(v.union(v.literal("passed"), v.literal("caught"))),
+    mubitRating: v.optional(v.union(v.literal("sent"), v.literal("failed"), v.literal("not_found"))),
+    servedBy: v.optional(v.string()),
+  }).index("by_roundId", ["roundId"]).index("by_verdict_and_judgedAt", ["verdict", "judgedAt"]).index("by_judgedAt", ["judgedAt"]),
   ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number() })
     .index("by_roundId", ["roundId"]).index("by_roundId_and_playerId", ["roundId", "playerId"]),
   results: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), data: roundResultV })

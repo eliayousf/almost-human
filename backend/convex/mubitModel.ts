@@ -10,8 +10,10 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 const tokens = (value: unknown): number | undefined => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
 
 /** Text-only AI SDK adapter. The destination is fixed; secrets and upstream
- * bodies never enter errors, telemetry, or the public game transcript. */
-export function createMubitModel(apiKey: string): LanguageModelV4 {
+ * bodies never enter errors, telemetry, or the public game transcript.
+ * `onRequestId` receives Mubit's call ID (mreq_...) for each usable reply, so
+ * the round's verdict can later be sent to Mubit as a rating for that call. */
+export function createMubitModel(apiKey: string, onRequestId?: (requestId: string) => void): LanguageModelV4 {
   return {
     specificationVersion: "v4", provider: "mubit", modelId: "gpt-6-luna", supportedUrls: {},
     async doGenerate(options): Promise<LanguageModelV4GenerateResult> {
@@ -38,6 +40,8 @@ export function createMubitModel(apiKey: string): LanguageModelV4 {
         const choice = record(choices[0]);
         const content = record(choice.message).content;
         if (typeof content !== "string" || !content.trim() || choice.finish_reason !== "stop") throw new Error("Mubit returned an unusable reply.");
+        const requestId = response.headers.get("x-middleware-request-id");
+        if (requestId && /^mreq_[A-Za-z0-9_-]{1,64}$/.test(requestId)) onRequestId?.(requestId);
         const usage = record(data.usage);
         const input = tokens(usage.prompt_tokens);
         const output = tokens(usage.completion_tokens);

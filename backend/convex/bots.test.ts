@@ -23,20 +23,20 @@ function init() {
   return t;
 }
 type Backend = ReturnType<typeof init>;
-async function player(t: Backend) {
+async function player(t: Backend, trainingOptIn = false) {
   const userId = await t.run(ctx => ctx.db.insert("users", { isAnonymous: true }));
   const client = t.withIdentity({ subject: `${userId}|test-session` });
-  must(await client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v1", trainingOptIn: false } }));
+  must(await client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v1", trainingOptIn } }));
   return client;
 }
 
 // Match `humans` players into one room under the lobby rules: 3-4 accumulate
 // briefly, 1-2 wait out the honest window (staying online) before bots fill.
-async function room(t: Backend, humans: number) {
+async function room(t: Backend, humans: number, trainingOptIn = false) {
   const people: Awaited<ReturnType<typeof player>>[] = [];
   const tickets = [];
   for (let i = 0; i < humans; i++) {
-    const person = await player(t); people.push(person);
+    const person = await player(t, trainingOptIn); people.push(person);
     tickets.push(must(await person.mutation(api.game.joinQueue, { input: command() })));
   }
   if (humans >= 3) {
@@ -399,8 +399,8 @@ describe("bot persona, difficulty and performance analytics", () => {
       transcript: [{ senderAlias: "Pebble", text: "a little place near the old harbour" }],
     });
     expect(system.role).toBe("system");
-    expect(system.content).toContain("Mango");
-    expect(system.content).toMatch(/lowercase|typo|casual/i);
+    expect(user.content).toContain("You are Mango");
+    expect(user.content).toMatch(/lowercase|typo|casual/i);
     expect(system.content).toMatch(/never claim to be a specific real person/i);
     expect(system.content).toMatch(/claim to be human/i);
     expect(system.content).toMatch(/suspicion/i);
@@ -414,13 +414,23 @@ describe("bot persona, difficulty and performance analytics", () => {
       topic: { id: "best-meal", text: "What's the best meal you've ever had?" },
       selfAlias: "Mango", persona: BOT_PERSONAS[0], participantAliases: ["Mango", "Pebble", "Orbit"], transcript: [],
     };
-    const easy = buildBotMessages({ ...base, difficulty: "easy" })[0].content;
-    const medium = buildBotMessages({ ...base, difficulty: "medium" })[0].content;
-    const hard = buildBotMessages({ ...base, difficulty: "hard" })[0].content;
+    const easy = buildBotMessages({ ...base, difficulty: "easy" })[1].content;
+    const medium = buildBotMessages({ ...base, difficulty: "medium" })[1].content;
+    const hard = buildBotMessages({ ...base, difficulty: "hard" })[1].content;
     expect(new Set([easy, medium, hard]).size).toBe(3);
     expect(easy).toMatch(/generic|polite/i);
     expect(hard).toMatch(/typo|backstory/i);
     for (const text of [easy, medium, hard]) expect(text).not.toMatch(/difficulty: (easy|medium|hard)/i);
+  });
+
+  test("the system prompt is identical for every bot, so Mubit keeps one task to train", () => {
+    const base = { topic: { id: "t", text: "Worst holiday?" }, participantAliases: ["Mango", "Pebble"], transcript: [] };
+    const systems = new Set([
+      buildBotMessages({ ...base, selfAlias: "Mango", persona: BOT_PERSONAS[0], difficulty: "easy" })[0].content,
+      buildBotMessages({ ...base, selfAlias: "Pebble", persona: BOT_PERSONAS[2], difficulty: "hard" })[0].content,
+      buildBotMessages({ ...base, selfAlias: "Orbit", persona: BOT_PERSONAS[1], difficulty: "medium", lessons: { passed: ["lol same"], caught: ["As an avid traveller"] } })[0].content,
+    ]);
+    expect(systems.size).toBe(1);
   });
 
   test("bot seats carry a recorded persona and difficulty for accuracy analysis", async () => {
@@ -472,4 +482,131 @@ test("Mubit adapter rejects non-text/tool input and strips upstream failure deta
   expect(fetch).not.toHaveBeenCalled();
   vi.mocked(fetch).mockRejectedValueOnce(new Error("mbt_synthetic_test_key provider headers"));
   await expect(model.doGenerate({ prompt: [{ role: "system", content: "Test" }] })).rejects.toThrow("Mubit chat is unavailable.");
+});
+
+// A fake Mubit: chat completions carry request IDs and appear as console
+// traces; the console login, token mint and feedback routes are recorded.
+function fakeMubit() {
+  let calls = 0;
+  const traces: Record<string, unknown>[] = [];
+  const feedback: { traceId: string; body: unknown; authorization: string }[] = [];
+  const fn = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+    const url = String(input);
+    const headers = (init?.headers ?? {}) as Record<string, string>;
+    if (url === "https://api.mubit.ai/openai/v1/chat/completions") {
+      calls += 1;
+      const requestId = `mreq_test${calls}`;
+      traces.unshift({ trace_id: `trace-${calls}`, routing: { served_by: "provider", adapter: null, relay: { request_id: requestId } } });
+      const text = calls % 2 ? "honestly cant decide, both sound mid" : "I would say travelling is very enriching overall.";
+      return new Response(await completion(text).text(), { status: 200, headers: { "content-type": "application/json", "x-middleware-request-id": requestId } });
+    }
+    if (url === "https://clerk.mubit.ai/v1/client") {
+      if (headers.cookie !== "__client=synthetic-cookie") return new Response("{}", { status: 401 });
+      return Response.json({ response: { last_active_session_id: "sess_1", sessions: [{ id: "sess_1", last_active_organization_id: "org_1" }] } });
+    }
+    if (url === "https://clerk.mubit.ai/v1/client/sessions/sess_1/tokens") return Response.json({ jwt: "synthetic.admin.jwt" });
+    if (url.startsWith("https://app.mubit.ai/mapi/engine/v2/traces?project=almost-human&")) return Response.json({ traces, next_cursor: null });
+    const rated = url.match(/^https:\/\/app\.mubit\.ai\/mapi\/engine\/v2\/traces\/([^/]+)\/feedback$/);
+    if (rated) {
+      feedback.push({ traceId: rated[1], body: JSON.parse(String(init?.body)), authorization: headers.authorization });
+      return Response.json({ ok: true });
+    }
+    return new Response("unexpected route", { status: 500 });
+  });
+  return { fn, feedback, consoleCalls: () => fn.mock.calls.filter(([url]) => !String(url).startsWith("https://api.mubit.ai/")).length };
+}
+
+// One solo human (two bots) round: each bot speaks once, the human votes the
+// first speaker human and the second AI, then the round settles.
+async function judgedRound(t: Backend, trainingOptIn: boolean) {
+  vi.spyOn(Math, "random").mockReturnValue(0.99);
+  const r = await room(t, 1, trainingOptIn); await chat(r);
+  await r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
+  await r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 1 });
+  const round = await r.t.run(ctx => ctx.db.get(r.roundId));
+  vi.setSystemTime(round!.chatEndsAt); await r.t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
+  const spoken = await r.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).collect());
+  expect(spoken).toHaveLength(2);
+  must(await r.people[0].mutation(api.game.submitVotes, {
+    roundId: r.roundId,
+    input: { ...command(), votes: [{ participantId: spoken[0].memberId, label: "human" as const }, { participantId: spoken[1].memberId, label: "ai" as const }] },
+  }));
+  vi.setSystemTime(round!.votingEndsAt); await r.t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
+  const judged = await r.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).collect());
+  return { r, judged };
+}
+
+describe("round verdicts teach the bots and Mubit", () => {
+  test("opted-in votes judge each bot seat, and the next round's prompt learns from those lines", async () => {
+    const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
+    const { judged } = await judgedRound(t, true);
+    expect(judged.map(call => call.mubitRequestId)).toEqual(["mreq_test1", "mreq_test2"]);
+    expect(judged.map(call => call.verdict)).toEqual(["passed", "caught"]);
+    expect(judged[0]).toMatchObject({ judgedHuman: 1, judgedAi: 0, lessonCount: 0 });
+    // Ratings are off by default: no console login, no feedback.
+    expect(mubit.consoleCalls()).toBe(0);
+    const firstSystem = JSON.parse(String(mubit.fn.mock.calls[0][1]?.body)).messages[0].content;
+
+    const next = await room(t, 1, true); await chat(next);
+    await next.t.action(internal.bots.takeTurn, { roundId: next.roundId, turn: 0 });
+    const body = JSON.parse(String(mubit.fn.mock.calls.at(-1)![1]?.body));
+    const user = body.messages.at(-1).content as string;
+    expect(user).toContain(`Lines players believed were human:\n- "${judged[0].text}"`);
+    expect(user).toContain(`Lines that got a player found out as AI:\n- "${judged[1].text}"`);
+    expect(body.messages[0].content).toBe(firstSystem); // same Mubit task
+    const latest = await next.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", next.roundId)).first());
+    expect(latest?.lessonCount).toBe(2);
+  });
+
+  test("votes from players who did not opt in to training never judge a bot", async () => {
+    const t = init(); vi.stubGlobal("fetch", fakeMubit().fn);
+    const { judged } = await judgedRound(t, false);
+    expect(judged.every(call => call.verdict === undefined && call.judgedAt === undefined)).toBe(true);
+  });
+
+  test("with ratings on, each verdict reaches Mubit as Good/Bad and the serving model is tracked", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
+    const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
+    const { r } = await judgedRound(t, true);
+    const scheduled = await r.t.run(ctx => ctx.db.system.query("_scheduled_functions").collect());
+    expect(scheduled.some(job => job.name.includes("rateRound") && job.state.kind === "pending")).toBe(true);
+    await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
+    expect(mubit.feedback).toEqual([
+      { traceId: "trace-1", body: { rating: "up", comment: "Passed as human: 1 of 1 players voted human." }, authorization: "Bearer synthetic.admin.jwt" },
+      { traceId: "trace-2", body: { rating: "down", comment: "Found out: 1 of 1 players voted AI." }, authorization: "Bearer synthetic.admin.jwt" },
+    ]);
+    const rated = await r.t.run(ctx => ctx.db.query("botCalls").collect());
+    expect(rated.map(call => [call.mubitRating, call.servedBy])).toEqual([["sent", "provider"], ["sent", "provider"]]);
+    // Re-running sends nothing twice.
+    await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
+    expect(mubit.feedback).toHaveLength(2);
+
+    const report = await r.t.query(internal.ratings.progress, {});
+    expect(report.overall).toEqual({ seats: 2, votes: 2, fooledRate: 0.5 });
+    expect(report.byServedBy).toEqual([{ servedBy: "provider", seats: 2, votes: 2, fooledRate: 0.5 }]);
+    expect(report.byLessons).toEqual([{ lessons: "without", seats: 2, votes: 2, fooledRate: 0.5 }]);
+    expect(report.mubitRatings).toEqual({ sent: 2, failed: 0, notFound: 0, notSent: 0 });
+  });
+
+  test("a refused console login sends nothing and is retried, never exposing the cookie", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=wrong-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
+    const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { r } = await judgedRound(t, true);
+    await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 3 });
+    expect(mubit.feedback).toHaveLength(0);
+    const rows = await r.t.run(ctx => ctx.db.query("botCalls").collect());
+    expect(rows.map(call => call.mubitRating)).toEqual(["failed", "failed"]);
+    expect(JSON.stringify(errors.mock.calls)).not.toContain("wrong-cookie");
+  });
+});
+
+test("Mubit adapter reports each usable reply's request ID for later rating", async () => {
+  const seen: string[] = [];
+  const model = createMubitModel("mbt_synthetic_test_key", id => seen.push(id));
+  const reply = async (requestId: string) => new Response(await completion().text(), { status: 200, headers: { "x-middleware-request-id": requestId } });
+  vi.mocked(fetch).mockResolvedValueOnce(await reply("mreq_abc123")).mockResolvedValueOnce(await reply("not-a-mubit-id"));
+  await model.doGenerate({ prompt: [{ role: "system", content: "Test" }] });
+  await model.doGenerate({ prompt: [{ role: "system", content: "Test" }] });
+  expect(seen).toEqual(["mreq_abc123"]);
 });

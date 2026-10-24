@@ -5,6 +5,7 @@ import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
 import { messageAllowed } from "./lib";
 import { MAX_LOBBY } from "./botlogic";
+import { recentLessons } from "./ratings";
 
 export const MAX_BOT_TURNS = 10;
 const turnArgs = { roundId: v.id("rounds"), turn: v.number() };
@@ -12,6 +13,7 @@ export const botContextV = v.object({
   memberId: v.id("members"), alias: v.string(), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
   threadId: v.string(), topic: v.string(), aliases: v.array(v.string()),
   transcript: v.array(v.object({ alias: v.string(), text: v.string() })),
+  lessons: v.object({ passed: v.array(v.string()), caught: v.array(v.string()) }),
 });
 
 export const claim = internalMutation({
@@ -37,13 +39,14 @@ export const claim = internalMutation({
     // cannot issue another paid request for this turn.
     await ctx.db.patch(roundId, { botTurn: turn + 1, botPending: turn });
     await ctx.scheduler.runAfter(18_000, internal.botState.fail, { roundId, turn });
-    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), transcript };
+    const lessons = await recentLessons(ctx);
+    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), transcript, lessons };
   },
 });
 
 export const commit = internalMutation({
-  args: { ...turnArgs, text: v.string() }, returns: v.null(),
-  handler: async (ctx, { roundId, turn, text }) => {
+  args: { ...turnArgs, text: v.string(), mubitRequestId: v.optional(v.string()), lessonCount: v.optional(v.number()) }, returns: v.null(),
+  handler: async (ctx, { roundId, turn, text, mubitRequestId, lessonCount }) => {
     const round = await ctx.db.get(roundId);
     if (!round || round.botPending !== turn) return null;
     await ctx.db.patch(roundId, { botPending: undefined });
@@ -60,6 +63,7 @@ export const commit = internalMutation({
     await saveMessage(ctx, components.agent, {
       threadId: round.threadId, userId: bot._id, order: "next", message: { role: "assistant", content: trimmed },
     });
+    await ctx.db.insert("botCalls", { roundId, memberId: bot._id, text: trimmed, createdAt: now, lessonCount: lessonCount ?? 0, mubitRequestId });
     await ctx.db.patch(roundId, { messageCount: round.messageCount + 1, revision: round.revision + 1, updatedAt: now });
     if (turn + 1 < MAX_BOT_TURNS && now + 23_000 < round.chatEndsAt) {
       await ctx.scheduler.runAfter(7000 + Math.floor(Math.random() * 4000), internal.bots.takeTurn, { roundId, turn: turn + 1 });

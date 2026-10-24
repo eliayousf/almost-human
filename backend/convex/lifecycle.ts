@@ -6,6 +6,7 @@ import { recognition } from "./lib";
 import { MAX_LOBBY } from "./botlogic";
 import type { Infer } from "convex/values";
 import { roundResultV } from "./validators";
+import { judgeBots } from "./ratings";
 
 export async function cancelRound(ctx: MutationCtx, round: Doc<"rounds">, reason: NonNullable<Doc<"rounds">["cancelReason"]>) {
   // A delayed scheduler must not let a late Leave erase an already-finished
@@ -54,6 +55,7 @@ async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
       ...(player.activeRoundId === round._id ? { activeRoundId: undefined, activeQueueId: undefined } : {}),
     });
   }
+  await judgeBots(ctx, round, members, ballots);
   await ctx.db.patch(round._id, { phase: "reveal", settled: true, revision: round.revision + 1, updatedAt: now });
 }
 
