@@ -32,7 +32,7 @@ export function createMubitModel(apiKey: string): LanguageModelV4 {
           body: JSON.stringify({ model: "gpt-6-luna", messages, max_completion_tokens: Math.min(options.maxOutputTokens ?? 384, 384), reasoning_effort: "low" }),
           signal: controller.signal, redirect: "error",
         });
-        if (!response.ok) throw new Error("Mubit chat is unavailable.");
+        if (!response.ok) throw new Error(`Mubit chat is unavailable (upstream status ${response.status}).`);
         const data = record(await response.json());
         const choices = Array.isArray(data.choices) ? data.choices : [];
         const choice = record(choices[0]);

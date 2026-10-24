@@ -393,7 +393,7 @@ ui.voteForm.addEventListener("submit", (event) => {
   if (submittingVotes || round?.phase !== "voting") return;
   const others = round.participants.filter((seat) => seat.id !== round!.selfId);
   const votes: Guess[] = others.map((seat) => ({ participantId: seat.id, label: selectedVotes.get(seat.id)! }));
-  if (votes.length !== 2 || votes.some((vote) => !vote.label)) { notice("Choose a label for both participants."); return; }
+  if (votes.length !== round.participants.length - 1 || votes.some((vote) => !vote.label)) { notice("Choose a label for every other participant."); return; }
   const roundId = round.roundId;
   submittingVotes = true;
   void busy(ui.submitVotes, () => apply(game.submitVotes(roundId, { ...command(), votes: votes as unknown as Guess[] }), (value) => {

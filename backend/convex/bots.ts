@@ -26,14 +26,25 @@ export const takeTurn = internalAction({
         name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY),
         instructions: system.content,
       });
-      const result = await agent.generateText(ctx, { threadId: context.threadId }, {
-        prompt: user.content,
-        maxOutputTokens: 384, maxRetries: 0,
-      }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
+      let result;
+      try {
+        result = await agent.generateText(ctx, { threadId: context.threadId }, {
+          prompt: user.content,
+          maxOutputTokens: 384, maxRetries: 0,
+        }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
+      } catch (firstError) {
+        console.error("bot turn first attempt failed:", firstError instanceof Error ? firstError.message : String(firstError));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        result = await agent.generateText(ctx, { threadId: context.threadId }, {
+          prompt: user.content,
+          maxOutputTokens: 384, maxRetries: 0,
+        }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
+      }
       // Only the transactional commit can publish a moderated reply, and only
       // while the claimed turn still belongs to an active chat window.
       await ctx.runMutation(internal.botState.commit, { ...args, text: result.text });
-    } catch {
+    } catch (error) {
+      console.error("bot turn failed after retry:", error instanceof Error ? error.message : String(error));
       await ctx.runMutation(internal.botState.fail, args);
     }
     return null;
