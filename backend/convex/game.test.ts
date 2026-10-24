@@ -106,10 +106,12 @@ function assertPrivateFieldsAbsent(value: unknown): void {
 }
 
 beforeEach(() => {
+  vi.stubEnv("MUBIT_BOTS_ENABLED", "false");
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-24T04:00:00.000Z"));
 });
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.clearAllTimers();
   vi.useRealTimers();
 });

@@ -1,5 +1,13 @@
 # Almost Human: cloud agent handoff
 
+**Local continuation:** `codex/mubit-bots` adds server-side Mubit bot rooms to
+the backend base below. Read `backend/README.md` and the new milestone in
+`backend/VERIFICATION.md` for current behavior. Local development and a real
+two-bot browser round are verified; the earlier cloud runtime's unavailable
+proxy did not verify cloud model access. Mubit bot inference runs on Convex,
+whose server credential is separate from a Codex Cloud personal secret. The
+historical all-human baseline below remains useful but is not the latest scope.
+
 Repository: <https://github.com/eliayousf/almost-human>.
 Source branch: **codex/backend**, containing draft [PR 1](https://github.com/eliayousf/almost-human/pull/1).
 Verified implementation base: `6589ea6`; use the latest pushed branch, which also

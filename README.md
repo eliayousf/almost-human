@@ -20,12 +20,12 @@ Project brief, [MVP plan](PLAN.md), development environment, and a small
 through Mubit works. Ingestion of human training examples and application access
 to the resulting adapter remain unverified.
 
-The **all-human multiplayer backend is implemented with Convex**: anonymous
-sessions, three-person matchmaking, a 3-second countdown, 120-second chat,
+The **multiplayer backend is implemented with Convex**: anonymous
+sessions, three-seat matchmaking with 0–2 Mubit bots, a 3-second countdown, 120-second chat,
 15-second voting, server-scored results, and a public leaderboard. Cash owns the
 public frontend. [Backend setup and integration](backend/README.md) includes a
-local diagnostic client. AI players, comprehensive moderation, and the learning
-pipeline remain separate milestones.
+local diagnostic client. Server-paced bot turns use Mubit; comprehensive moderation
+and the learning pipeline remain separate milestones.
 
 ## The game
 

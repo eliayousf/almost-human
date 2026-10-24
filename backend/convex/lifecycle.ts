@@ -16,6 +16,7 @@ export async function cancelRound(ctx: MutationCtx, round: Doc<"rounds">, reason
   await ctx.db.patch(round._id, { phase: "cancelled", cancelReason: reason, revision: round.revision + 1, updatedAt: now });
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
   for (const member of members) {
+    if (member.kind !== "human") continue;
     const player = await ctx.db.get(member.playerId);
     if (player?.activeRoundId === round._id) await ctx.db.patch(player._id, { activeRoundId: undefined, activeQueueId: undefined, updatedAt: now });
   }
@@ -27,6 +28,7 @@ async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
   const ballots = await ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(3);
   for (const member of members) {
+    if (member.kind !== "human") continue;
     const player = await ctx.db.get(member.playerId);
     if (!player) throw new Error("Round participant missing");
     const ballot = ballots.find(b => b.playerId === member.playerId);
@@ -65,6 +67,10 @@ export async function advanceRound(ctx: MutationCtx, roundId: Id<"rounds">) {
   } else if (now >= round.chatStartsAt && round.phase === "countdown") {
     await ctx.db.patch(roundId, { phase: "chat", revision: round.revision + 1, updatedAt: now });
     await ctx.scheduler.runAt(round.chatEndsAt, internal.lifecycle.advance, { roundId });
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+    if (members.some(member => member.kind === "ai")) {
+      await ctx.scheduler.runAfter(2000 + Math.floor(Math.random() * 2000), internal.bots.takeTurn, { roundId, turn: 0 });
+    }
   }
 }
 

@@ -9,11 +9,15 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as botState from "../botState.js";
+import type * as bots from "../bots.js";
 import type * as connections from "../connections.js";
 import type * as game from "../game.js";
 import type * as http from "../http.js";
 import type * as lib from "../lib.js";
 import type * as lifecycle from "../lifecycle.js";
+import type * as matchmaking from "../matchmaking.js";
+import type * as mubitModel from "../mubitModel.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -24,11 +28,15 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  botState: typeof botState;
+  bots: typeof bots;
   connections: typeof connections;
   game: typeof game;
   http: typeof http;
   lib: typeof lib;
   lifecycle: typeof lifecycle;
+  matchmaking: typeof matchmaking;
+  mubitModel: typeof mubitModel;
   validators: typeof validators;
 }>;
 

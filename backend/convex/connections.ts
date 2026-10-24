@@ -28,6 +28,7 @@ export const checkRound = internalMutation({ args: { roundId: v.id("rounds") }, 
   if (!round || round.phase === "reveal" || round.phase === "cancelled") return null;
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
   for (const member of members) {
+    if (member.kind !== "human") continue;
     if (!await isOnline(ctx, member.playerId)) { await cancelRound(ctx, round, "connection_lost"); return null; }
   }
   await ctx.scheduler.runAfter(30000, internal.connections.checkRound, { roundId });

@@ -49,7 +49,7 @@ function App() {
 
   return <>
     <h1>Almost Human: React integration reference</h1>
-    <p><strong>All-human development test. Use synthetic text. No model training.</strong></p>
+    <p><strong>Development test: rooms may contain AI participants. Use synthetic text. Chat text is sent to AI services for bot replies. No training job is started.</strong></p>
     <p>Cash owns the public design. This example uses the reusable provider and hooks.</p>
     <button onClick={() => window.open(location.href, "_blank", "noopener,noreferrer")}>Open independent player tab</button>
     <p role="status">{notice || connection.error || (connection.status === "connecting" ? "Connecting anonymous player…" : "Connected")}</p>

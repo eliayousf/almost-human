@@ -1,12 +1,13 @@
 import { v, type Infer } from "convex/values";
-import { createThread, saveMessage, listMessages } from "@convex-dev/agent";
+import { saveMessage, listMessages } from "@convex-dev/agent";
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
 import { action, query, type QueryCtx, type MutationCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
-import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, TOPICS, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
+import type { Id } from "./_generated/dataModel";
+import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
 import { advanceRound, cancelRound } from "./lifecycle";
-import { presence, isOnline } from "./connections";
+import { presence } from "./connections";
+import { humanTargetForQueue, matchWaiting } from "./matchmaking";
 import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV } from "./validators";
 
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -39,48 +40,6 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
   const result = await ctx.db.query("results").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId).eq("playerId", playerId)).unique();
   if (!result) return fail("SERVICE_UNAVAILABLE", "The result is still being prepared.");
   return ok({ ...base, phase: "reveal" as const, topic: round.topic, messages, participants: members.map(m => ({ id: m._id, alias: m.alias, kind: m.kind })), yourResult: result.data });
-}
-
-async function blocked(ctx: MutationCtx, a: Id<"players">, b: Id<"players">) {
-  return Boolean(await ctx.db.query("blocks").withIndex("by_blockerId_and_blockedId", q => q.eq("blockerId", a).eq("blockedId", b)).unique()
-    || await ctx.db.query("blocks").withIndex("by_blockerId_and_blockedId", q => q.eq("blockerId", b).eq("blockedId", a)).unique());
-}
-
-async function match(ctx: MutationCtx) {
-  const waiting = await ctx.db.query("queue").withIndex("by_status_and_joinedAt", q => q.eq("status", "waiting")).take(30);
-  const candidates: Doc<"queue">[] = [];
-  for (const ticket of waiting) {
-    const player = await ctx.db.get(ticket.playerId);
-    if (player?.activeQueueId === ticket._id && !player.activeRoundId && await isOnline(ctx, player._id)) candidates.push(ticket);
-  }
-  let trio: Doc<"queue">[] | undefined;
-  const compatibility = new Map<string, boolean>();
-  async function incompatible(a: Id<"players">, b: Id<"players">) {
-    const key = [a, b].sort().join(":");
-    if (!compatibility.has(key)) compatibility.set(key, await blocked(ctx, a, b));
-    return compatibility.get(key)!;
-  }
-  // Bounded search avoids letting a blocked pair at the front stall everyone.
-  for (let a = 0; a < candidates.length && !trio; a++) {
-    for (let b = a + 1; b < candidates.length && !trio; b++) {
-      if (await incompatible(candidates[a].playerId, candidates[b].playerId)) continue;
-      for (let c = b + 1; c < candidates.length; c++) {
-        if (!(await incompatible(candidates[a].playerId, candidates[c].playerId)) && !(await incompatible(candidates[b].playerId, candidates[c].playerId))) { trio = [candidates[a], candidates[b], candidates[c]]; break; }
-      }
-    }
-  }
-  if (!trio) return;
-  const now = Date.now();
-  const threadId = await createThread(ctx, components.agent, {});
-  const roundId = await ctx.db.insert("rounds", { phase: "countdown", revision: 1, createdAt: now, updatedAt: now, chatStartsAt: now + 3000, chatEndsAt: now + 123000, votingEndsAt: now + 138000, topic: shuffled(TOPICS)[0], threadId, messageCount: 0, settled: false });
-  const aliases = shuffled(SEAT_NAMES);
-  for (const [index, ticket] of trio.entries()) {
-    await ctx.db.insert("members", { roundId, playerId: ticket.playerId, alias: aliases[index], kind: "human" });
-    await ctx.db.patch(ticket._id, { status: "assigned", roundId, updatedAt: now });
-    await ctx.db.patch(ticket.playerId, { activeRoundId: roundId, activeQueueId: ticket._id, updatedAt: now });
-  }
-  await ctx.scheduler.runAt(now + 3000, internal.lifecycle.advance, { roundId });
-  await ctx.scheduler.runAt(now + 30000, internal.connections.checkRound, { roundId });
 }
 
 export const getSession = playerQuery({ args: {}, returns: resultV(sessionV), handler: async ctx => ctx.player ? ok(sessionView(ctx.player)) : unauthenticated() });
@@ -119,11 +78,11 @@ export const joinQueue = playerMutation({ args: { input: commandV }, returns: re
     const rate = await limiter.limit(ctx, "queue", { key: player._id });
     if (!rate.ok) return fail("RATE_LIMITED", "Please wait before joining again.", rate.retryAfter);
     const now = Date.now();
-    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now });
+    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now, humanTarget: humanTargetForQueue() });
     await ctx.db.patch(player._id, { activeQueueId: queueId, updatedAt: now });
     await presence.heartbeat(ctx, "lobby", player._id, `queue-${queueId}`, 10000);
     await ctx.scheduler.runAfter(30000, internal.connections.expireQueue, { queueId });
-    await match(ctx);
+    await matchWaiting(ctx);
     return ok(queueView((await ctx.db.get(queueId))!));
   });
 } });
@@ -153,7 +112,7 @@ export const getRound = playerQuery({ args: { roundId: v.id("rounds") }, returns
 export const sendMessage = playerMutation({ args: { roundId: v.id("rounds"), input: sendMessageV }, returns: resultV(messageV), handler: async (ctx, { roundId, input }) => {
   if (!ctx.player) return unauthenticated();
   const self = await memberFor(ctx, ctx.player._id, roundId);
-  if (!self) return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
+  if (!self || self.kind !== "human") return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
   return idempotent(ctx, ctx.player._id, `sendMessage:${roundId}`, input, async () => {
     const round = await ctx.db.get(roundId);
     const now = Date.now();
@@ -201,10 +160,10 @@ export const reportParticipant = playerMutation({ args: { roundId: v.id("rounds"
   if (!await memberFor(ctx, player._id, roundId)) return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
   return idempotent(ctx, player._id, `report:${roundId}`, input, async () => {
     const target = await ctx.db.get(input.participantId);
-    if (!target || target.roundId !== roundId || target.playerId === player._id || (input.detail?.length ?? 0) > 500 || (input.messageId?.length ?? 0) > 200) return fail("INVALID_INPUT", "Please select another player in this round.");
+    if (!target || target.roundId !== roundId || (target.kind === "human" && target.playerId === player._id) || (input.detail?.length ?? 0) > 500 || (input.messageId?.length ?? 0) > 200) return fail("INVALID_INPUT", "Please select another player in this round.");
     const rate = await limiter.limit(ctx, "report", { key: player._id });
     if (!rate.ok) return fail("RATE_LIMITED", "Please wait before reporting again.", rate.retryAfter);
-    await ctx.db.insert("reports", { reporterId: player._id, targetPlayerId: target.playerId, roundId, reason: input.reason, ...(input.messageId ? { messageId: input.messageId } : {}), ...(input.detail ? { detail: input.detail } : {}), createdAt: Date.now(), status: "open" });
+    await ctx.db.insert("reports", { reporterId: player._id, targetMemberId: target._id, ...(target.kind === "human" ? { targetPlayerId: target.playerId } : {}), roundId, reason: input.reason, ...(input.messageId ? { messageId: input.messageId } : {}), ...(input.detail ? { detail: input.detail } : {}), createdAt: Date.now(), status: "open" });
     return ok({ recorded: true as const });
   });
 } });
@@ -214,9 +173,11 @@ export const blockParticipant = playerMutation({ args: { roundId: v.id("rounds")
   if (!await memberFor(ctx, player._id, roundId)) return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
   return idempotent(ctx, player._id, `block:${roundId}`, input, async () => {
     const target = await ctx.db.get(input.participantId);
-    if (!target || target.roundId !== roundId || target.playerId === player._id) return fail("INVALID_INPUT", "Please select another player in this round.");
-    const existing = await ctx.db.query("blocks").withIndex("by_blockerId_and_blockedId", q => q.eq("blockerId", player._id).eq("blockedId", target.playerId)).unique();
-    if (!existing) await ctx.db.insert("blocks", { blockerId: player._id, blockedId: target.playerId, createdAt: Date.now() });
+    if (!target || target.roundId !== roundId || (target.kind === "human" && target.playerId === player._id)) return fail("INVALID_INPUT", "Please select another player in this round.");
+    if (target.kind === "human") {
+      const existing = await ctx.db.query("blocks").withIndex("by_blockerId_and_blockedId", q => q.eq("blockerId", player._id).eq("blockedId", target.playerId)).unique();
+      if (!existing) await ctx.db.insert("blocks", { blockerId: player._id, blockedId: target.playerId, createdAt: Date.now() });
+    }
     const round = await ctx.db.get(roundId); if (round) await cancelRound(ctx, round, "participant_left");
     return ok({ left: true as const });
   });
