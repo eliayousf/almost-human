@@ -16,7 +16,8 @@ const rounds = Object.values(fixtures).filter(value => value && 'phase' in value
 assert(rounds.length >= 9);
 for (const round of rounds) {
   const ids = new Set(round.participants.map(seat => seat.id));
-  assert.equal(ids.size, GAME_DEFAULTS.participants);
+  assert.ok(ids.size >= GAME_DEFAULTS.minParticipants && ids.size <= GAME_DEFAULTS.maxParticipants, 'lobby size within 2-5');
+  assert.equal(ids.size, round.participants.length);
   assert(ids.has(round.selfId));
   assert(Number.isInteger(round.revision) && round.revision > 0);
   assert(!Number.isNaN(Date.parse(round.serverNow)));

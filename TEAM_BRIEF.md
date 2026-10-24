@@ -7,19 +7,23 @@ agreement. [PLAN.md](PLAN.md) has the fuller product and safety requirements.
 **Cash's implementation guide:** [CASH_HANDOFF.md](CASH_HANDOFF.md), including
 the Vite/iPhone path, ready-made React provider/hooks, and live reference screens.
 
-Status: the Convex backend supports three seats with zero, one, or two Mubit bots.
-Cash owns the public frontend. Bot inference uses Mubit; learning and trained
+Status: the all-human Convex backend and diagnostic test client are implemented.
+Cash owns the public frontend. Mubit provider chat works; learning and trained
 adapter use remain unverified. See [MUBIT_VERIFICATION.md](MUBIT_VERIFICATION.md).
 
 ## The game we are building
 
 1. Anyone can open the public site and join anonymous matchmaking. No invite
    code, real name, or sign-up form. A server-issued session preserves scores.
-2. A room has **three participants**, with **zero, one, or two bots** chosen
-   randomly. At least one participant is human. Do not reveal the composition.
+2. A room has **two to five participants**, with **zero, one, or two bots**
+   chosen randomly. At least one participant is human. Do not reveal the
+   composition. Matchmaking fills lobbies from the queue: five or more waiting
+   humans match at once (ten queued players become two five-player games),
+   three or four accumulate briefly, and a solo player is seated with bots
+   after a short honest wait so the game is always playable.
 3. A synchronised **3, 2, 1** countdown finishes, then a random topic is revealed.
 4. The group chats for **two minutes**.
-5. Each human guesses **Human or AI for each of the other two participants**.
+5. Each human guesses **Human or AI for every other participant** (one guess per seat).
 6. Lock guesses, reveal all roles, show points, and offer another round.
 7. A public leaderboard shows generated aliases and guessing points.
 

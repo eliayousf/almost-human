@@ -11,7 +11,7 @@ export default defineSchema({
     humanVotesReceived: v.number(), humanVotesRecognisingYou: v.number(), streak: v.number(), updatedAt: v.number(),
     activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),
   }).index("by_userId", ["userId"]).index("by_guessingPoints", ["guessingPoints"]),
-  queue: defineTable({ playerId: v.id("players"), status: v.union(v.literal("waiting"), v.literal("assigned"), v.literal("closed")), joinedAt: v.number(), updatedAt: v.number(), roundId: v.optional(v.id("rounds")), humanTarget: v.optional(v.union(v.literal(1), v.literal(2), v.literal(3))) })
+  queue: defineTable({ playerId: v.id("players"), status: v.union(v.literal("waiting"), v.literal("assigned"), v.literal("closed")), joinedAt: v.number(), updatedAt: v.number(), roundId: v.optional(v.id("rounds")) })
     .index("by_status_and_joinedAt", ["status", "joinedAt"]).index("by_playerId_and_status", ["playerId", "status"]),
   rounds: defineTable({
     phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
@@ -20,7 +20,7 @@ export default defineSchema({
   }).index("by_phase_and_createdAt", ["phase", "createdAt"]),
   members: defineTable(v.union(
     v.object({ roundId: v.id("rounds"), playerId: v.id("players"), alias: v.string(), kind: v.literal("human") }),
-    v.object({ roundId: v.id("rounds"), alias: v.string(), kind: v.literal("ai"), persona: v.number() }),
+    v.object({ roundId: v.id("rounds"), alias: v.string(), kind: v.literal("ai"), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")) }),
   ))
     .index("by_roundId", ["roundId"]).index("by_playerId_and_roundId", ["playerId", "roundId"]),
   ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number() })

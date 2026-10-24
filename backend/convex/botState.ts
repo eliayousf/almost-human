@@ -4,11 +4,13 @@ import { internalMutation } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
 import { messageAllowed } from "./lib";
+import { MAX_LOBBY } from "./botlogic";
 
 export const MAX_BOT_TURNS = 10;
 const turnArgs = { roundId: v.id("rounds"), turn: v.number() };
 export const botContextV = v.object({
-  memberId: v.id("members"), alias: v.string(), persona: v.number(), threadId: v.string(), topic: v.string(),
+  memberId: v.id("members"), alias: v.string(), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
+  threadId: v.string(), topic: v.string(), aliases: v.array(v.string()),
   transcript: v.array(v.object({ alias: v.string(), text: v.string() })),
 });
 
@@ -20,7 +22,7 @@ export const claim = internalMutation({
     if (!round || round.phase !== "chat" || now < round.chatStartsAt || now + 12_000 >= round.chatEndsAt
       || !Number.isInteger(turn) || turn < 0 || turn >= MAX_BOT_TURNS
       || (round.botTurn ?? 0) !== turn || round.botPending !== undefined || round.messageCount >= 240) return null;
-    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
     const bots = members.filter(member => member.kind === "ai");
     if (!bots.length) return null;
     const bot = bots[turn % bots.length];
@@ -35,7 +37,7 @@ export const claim = internalMutation({
     // cannot issue another paid request for this turn.
     await ctx.db.patch(roundId, { botTurn: turn + 1, botPending: turn });
     await ctx.scheduler.runAfter(18_000, internal.botState.fail, { roundId, turn });
-    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, threadId: round.threadId, topic: round.topic.text, transcript };
+    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), transcript };
   },
 });
 
@@ -51,7 +53,7 @@ export const commit = internalMutation({
     if (!trimmed || [...trimmed].length > 400 || !messageAllowed(trimmed)) {
       await cancelRound(ctx, round, "service_unavailable"); return null;
     }
-    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
     const bots = members.filter(member => member.kind === "ai");
     if (!bots.length) return null;
     const bot = bots[turn % bots.length];

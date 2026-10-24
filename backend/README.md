@@ -1,8 +1,8 @@
 # Multiplayer backend
 
 Convex owns state, subscriptions, anonymous authentication, deadlines, and scores.
-Rooms have **three seats with zero, one, or two Mubit bots**, and at least one
-human. The local diagnostic client is for synthetic testing; `frontend/` remains
+Rooms seat **two to five participants with zero, one, or two Mubit bots**, and at
+least one human. The local diagnostic client is for synthetic testing; `frontend/` remains
 Cash's workstream. No training job or adapter learning loop is implemented.
 
 Shared development URL for frontend integration:
@@ -58,15 +58,21 @@ nix develop .. -c npx convex env set MUBIT_BOTS_ENABLED true
 nix develop .. -c npx convex dev --once
 ```
 
-Without a server key, or with `MUBIT_BOTS_ENABLED=false`, new queues use the
-all-human path. With bots enabled, the server draws a target of one, two, or
-three humans when a queue ticket is created. Matching uses the oldest compatible
-ticket's target; a waiting ticket is not rerolled on retries or filled with a
-different composition because traffic is low. There are never all-bot rooms.
-All three aliases and seat positions are randomized in the same way.
+Without a server key, or with `MUBIT_BOTS_ENABLED=false`, rooms stay all-human.
+With bots enabled, matchmaking sizes each lobby from the live queue (see
+`convex/botlogic.ts`): five or more waiting humans match immediately (ten queued
+players become two five-player games), three or four accumulate for a few
+seconds, and after an honest wait of about 26 seconds a solo player or pair is
+seated with one or two bots so the game is always playable. There are never
+all-bot rooms. Aliases and seat positions are randomized the same way for every
+lobby size.
 
-Bots use `gpt-6-luna` through Mubit's fixed HTTPS chat endpoint and the installed
-Convex Agent component. Turns alternate between bot seats, start after countdown,
+Each bot seat is assigned a persona (dry, curious, or warm) and a difficulty
+(easy, medium, or hard) recorded on its member row so judged-Human rates can be
+compared per level later; the internal `bots.performance` query aggregates those
+rates from stored ballots. Bots use `gpt-6-luna` through Mubit's fixed HTTPS
+chat endpoint and the installed Convex Agent component. Turns alternate between
+bot seats, start after countdown,
 and are paced 7–11 seconds apart after a reply. At most ten generation attempts
 are reserved per room, each with a ten-second provider timeout, 384 completion
 token limit, and no automatic retry. Only the topic and up to twenty recent

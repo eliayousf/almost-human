@@ -7,7 +7,8 @@ import type { Id } from "./_generated/dataModel";
 import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
 import { advanceRound, cancelRound } from "./lifecycle";
 import { presence } from "./connections";
-import { humanTargetForQueue, matchWaiting } from "./matchmaking";
+import { matchWaiting } from "./matchmaking";
+import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
 import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV } from "./validators";
 
 const limiter = new RateLimiter(components.rateLimiter, {
@@ -23,7 +24,7 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
   if (!self) return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
   const round = await ctx.db.get(roundId);
   if (!round) return fail("NOT_FOUND", "This round could not be found.");
-  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
   const base = { roundId, revision: round.revision, serverNow: iso(round.updatedAt), selfId: self._id, participants: members.map(m => ({ id: m._id, alias: m.alias })) };
   if (round.phase === "countdown") return ok({ ...base, phase: "countdown" as const, chatStartsAt: iso(round.chatStartsAt), chatEndsAt: iso(round.chatEndsAt) });
   if (round.phase === "cancelled") return ok({ ...base, phase: "cancelled" as const, reason: round.cancelReason ?? "room_closed", message: "This round ended early. No points were awarded." });
@@ -78,10 +79,12 @@ export const joinQueue = playerMutation({ args: { input: commandV }, returns: re
     const rate = await limiter.limit(ctx, "queue", { key: player._id });
     if (!rate.ok) return fail("RATE_LIMITED", "Please wait before joining again.", rate.retryAfter);
     const now = Date.now();
-    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now, humanTarget: humanTargetForQueue() });
+    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now });
     await ctx.db.patch(player._id, { activeQueueId: queueId, updatedAt: now });
     await presence.heartbeat(ctx, "lobby", player._id, `queue-${queueId}`, 10000);
     await ctx.scheduler.runAfter(30000, internal.connections.expireQueue, { queueId });
+    await ctx.scheduler.runAfter(LOBBY_ACCUMULATE_WAIT_MS, internal.matchmaking.match, {});
+    await ctx.scheduler.runAfter(BOT_FALLBACK_WAIT_MS, internal.matchmaking.match, {});
     await matchWaiting(ctx);
     return ok(queueView((await ctx.db.get(queueId))!));
   });
@@ -137,9 +140,9 @@ export const submitVotes = playerMutation({ args: { roundId: v.id("rounds"), inp
     await advanceRound(ctx, roundId);
     const round = await ctx.db.get(roundId);
     if (!round || round.phase !== "voting" || Date.now() >= round.votingEndsAt) return fail("ROUND_CLOSED", "Voting is closed for this round.");
-    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(3);
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
     const others = members.filter(m => m._id !== self._id);
-    if (input.votes.length !== 2 || new Set(input.votes.map(vote => vote.participantId)).size !== 2 || input.votes.some(vote => !others.some(m => m._id === vote.participantId))) return fail("INVALID_INPUT", "Guess once for each of the other two players.");
+    if (input.votes.length !== others.length || new Set(input.votes.map(vote => vote.participantId)).size !== others.length || input.votes.some(vote => !others.some(m => m._id === vote.participantId))) return fail("INVALID_INPUT", "Guess once for each of the other players.");
     const existing = await ctx.db.query("ballots").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId).eq("playerId", player._id)).unique();
     if (existing) return fail("VOTES_LOCKED", "Your guesses are already locked in.");
     const now = Date.now();

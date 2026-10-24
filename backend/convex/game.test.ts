@@ -46,6 +46,9 @@ async function player(t: TestBackend, trainingOptIn = false): Promise<Player> {
 async function room(t: TestBackend) {
   const people = await Promise.all([player(t), player(t), player(t)]) as [Player, Player, Player];
   const tickets = await Promise.all(people.map((person) => person.client.mutation(api.game.joinQueue, { input: command() })));
+  // Trios accumulate briefly so busy queues can form five-player lobbies.
+  await vi.advanceTimersByTimeAsync(9_000);
+  await t.finishInProgressScheduledFunctions();
   const assigned = await Promise.all(people.map((person, index) => person.client.query(api.game.getQueue, {
     queueId: must(tickets[index]).queueId,
   })));
@@ -107,10 +110,14 @@ function assertPrivateFieldsAbsent(value: unknown): void {
 
 beforeEach(() => {
   vi.stubEnv("MUBIT_BOTS_ENABLED", "false");
+  // Pin the composition roll to zero bots: this suite exercises all-human
+  // rooms. bots.test.ts covers the bot compositions.
+  vi.spyOn(Math, "random").mockReturnValue(0);
   vi.useFakeTimers();
   vi.setSystemTime(new Date("2026-10-24T04:00:00.000Z"));
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.clearAllTimers();
   vi.useRealTimers();

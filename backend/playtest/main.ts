@@ -3,7 +3,7 @@ import { makeFunctionReference } from "convex/server";
 import { createConvexGameClient } from "../../shared/convex-client";
 import type {
   ApiResult, Guess, HumanOrAi, LeaderboardView, QueueTicket, ReportReason, RoundSnapshot,
-  SessionView, Two,
+  SessionView,
 } from "../../shared/game-contract";
 
 declare const __CONVEX_URL__: string;
@@ -396,7 +396,7 @@ ui.voteForm.addEventListener("submit", (event) => {
   if (votes.length !== 2 || votes.some((vote) => !vote.label)) { notice("Choose a label for both participants."); return; }
   const roundId = round.roundId;
   submittingVotes = true;
-  void busy(ui.submitVotes, () => apply(game.submitVotes(roundId, { ...command(), votes: votes as unknown as Two<Guess> }), (value) => {
+  void busy(ui.submitVotes, () => apply(game.submitVotes(roundId, { ...command(), votes: votes as unknown as Guess[] }), (value) => {
     votedRoundId = roundId; drawRound(value);
   })).finally(() => { submittingVotes = false; if (round) drawVotes(round); });
 });
