@@ -16,12 +16,15 @@ and receive server-scored results and a shared leaderboard.
 | Ballot → score → browser | Passed | Human/Human, Human/AI, and AI/AI ballots produced 200, 100, and 0 points against all-human truth. |
 | Score → leaderboard subscription | Passed | All three tabs showed the same ordering and one completed round per player. |
 
-Automated checks: **13 passing Convex tests**, TypeScript check, typed Convex
+Automated checks: **23 passing tests** (13 Convex game tests and 10 client
+transport tests), TypeScript check, typed Convex
 compilation/push, playtest bundle build, shared fixture checks, and zero reported
 production dependency vulnerabilities. The tests additionally exercise outsider
 denial, hidden topic/roles, private/immutable ballots, missing ballots,
 idempotency, duplicate settlement, late Leave at the deadline, cancellation,
 blocking/rematching, optional consent, abandoned queues, and dropped connections.
+Client tests cover native and React subscriptions, cached/updated results,
+sanitized errors, server-clock calibration, and heartbeat/unsubscribe cleanup.
 
 These were three automated browser sessions using synthetic text, not a usability
 test with three people. The diagnostic UI is backend-owned test tooling. Cash's

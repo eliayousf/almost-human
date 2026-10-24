@@ -1,4 +1,5 @@
 import type { ConvexClient } from "convex/browser";
+import type { ConvexReactClient } from "convex/react";
 import { makeFunctionReference, type FunctionReference } from "convex/server";
 import type {
   ApiErrorCode, ApiResult, BlockInput, ChatMessage, CommandInput, CreateSessionInput,
@@ -8,7 +9,8 @@ import type {
 
 type Empty = Record<string, never>;
 type Listener<T> = (result: ApiResult<T>) => void;
-type Sdk = Pick<ConvexClient, "query" | "mutation" | "action" | "onUpdate">;
+type Sdk = Pick<ConvexClient, "query" | "mutation" | "action" | "onUpdate">
+  | Pick<ConvexReactClient, "query" | "mutation" | "action" | "watchQuery">;
 type Query<Args extends Record<string, unknown>, T> = FunctionReference<"query", "public", Args, ApiResult<T>>;
 
 const refs = {
@@ -153,10 +155,26 @@ export function createConvexGameClient(
         if (syncClock) await refreshClock().catch(() => undefined);
         if (!active) return;
         if (syncClock) stopPresence = keepPresent();
-        stopQuery = convex.onUpdate(ref, args, (result) => {
+        const updated = (result: ApiResult<T>) => {
           latest = result;
           if (active) listener(stamp(result));
-        }, () => { if (active) listener(unavailable()); });
+        };
+        const failed = () => { if (active) listener(unavailable()); };
+        if ("onUpdate" in convex) {
+          stopQuery = convex.onUpdate(ref, args, updated, failed);
+        } else {
+          // Convex Auth's React provider owns a ConvexReactClient. Its native
+          // watch API differs from the framework-neutral ConvexClient API.
+          const queryWatch = convex.watchQuery(
+            ref as Query<Record<string, unknown>, T>, args,
+          );
+          const read = () => {
+            try { const result = queryWatch.localQueryResult(); if (result !== undefined) updated(result); }
+            catch { failed(); }
+          };
+          stopQuery = queryWatch.onUpdate(read);
+          read(); // A cached result need not trigger a new update callback.
+        }
         if (syncClock) {
           timer = setInterval(() => {
             void refreshClock().then(() => {

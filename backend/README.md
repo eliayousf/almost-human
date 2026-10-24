@@ -4,6 +4,11 @@ Convex owns state, subscriptions, anonymous authentication, deadlines, and score
 This milestone is **three human players only**. The local diagnostic client is
 for testing; `frontend/` remains Cash's workstream. No model is called or trained.
 
+Shared development URL for frontend integration:
+`https://original-buzzard-860.eu-west-1.convex.cloud`.
+Use synthetic text until the public-launch requirements below are complete.
+The [environment example](.env.example) contains public configuration only.
+
 ## Run
 
 From this directory:
@@ -45,11 +50,13 @@ Use synthetic text. Consent is optional; no training export exists.
    frontend's own package manifest. Use Convex Auth's official React provider and
    anonymous sign-in integration; no sign-up form is required. The diagnostic
    client's token bootstrap is temporary test code, not the production auth UI.
-2. Create an authenticated `ConvexClient` for the public deployment URL. That URL
+2. Use the authenticated `ConvexReactClient` owned by the Auth provider, or an
+   authenticated framework-neutral `ConvexClient`, for the deployment URL. That URL
    is public configuration; JWT signing keys and deploy keys never reach browsers.
 3. Import `createConvexGameClient` from `shared/convex-client.ts`. Pass the SDK
    client and an `ensureAnonymous` callback which finishes official anonymous
-   sign-in. The returned object implements every method of `GameClient`.
+   sign-in and waits until the SDK is authenticated. The returned object
+   implements every method of `GameClient` and supports both SDK watch APIs.
 4. Use `watchQueue`, `watchRound`, and `watchLeaderboard` for native live updates;
    unsubscribe on unmount/exit. Queue/round subscriptions send 10-second
    heartbeats. Keep the adapter instance stable across renders.
