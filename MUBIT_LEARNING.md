@@ -38,6 +38,17 @@ npx convex env set MUBIT_RATINGS_ENABLED true
 
 Mubit's project settings must also allow training (Settings → Training) for ratings to turn into adapter versions.
 
+## Mubit trains only on the 👍 lines
+
+Confirmed in Mubit's console code and on a live task: a task's "kept examples", the calls Mubit trains on (first training at 25), are exactly its `rated_up` calls. So "passed as human" lines (👍) are kept and trained on, and "found out" lines (👎) are not. Ratings work as latest entry wins, and Mubit's own automatic rater (`adapters.rate.max_per_day`, 200 a day by default) could otherwise add or overwrite ratings. Set it to 0 so that only players' verdicts decide what is kept:
+
+```
+PATCH https://app.mubit.ai/mapi/engine/v2/loop/policy?project=<slug>&env=production
+{"adapters.rate.max_per_day": 0}
+```
+
+Leave Grading (`evals.judge`) off as well.
+
 ## Is it getting more human?
 
 ```
@@ -52,4 +63,4 @@ The fooled rate is the share of opted-in votes on bot seats that said "human". T
 - `byLessons`: seats that had lessons in their prompt versus those that didn't.
 - `mubitRatings`: how many verdicts reached Mubit.
 
-Still unverified with Mubit: whether Good/Bad ratings decide which calls become kept examples for training. Ask Max before relying on the slow loop in the demo. The fast loop works on its own.
+Validated on a local Convex backend against real Mubit across three rounds: every verdict reached Mubit as the matching rating, later prompts carried earlier lessons, all calls landed in one Mubit task, and the task's kept-example count rose with each 👍.
