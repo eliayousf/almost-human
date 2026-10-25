@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { safariDocument } from './safari-document.mjs';
+const input = '<head><meta name="viewport" content="width=device-width, initial-scale=1" /><style>body{overflow:hidden}</style></head><body><script src="/app-hash.js"></script></body>';
+const html = safariDocument(input);
+assert(html.includes('viewport-fit=cover'));
+assert(html.includes('name="theme-color"'));
+assert(html.indexOf('overflow-y: auto !important') > html.indexOf('body{overflow:hidden}'));
+assert(html.includes('/app-hash.js'));
+assert(html.includes('height: 100svh'));
+assert.equal(safariDocument(html), html);
+assert.throws(() => safariDocument('<head></head>'));
+console.log('Safari document passed: safe viewport, scrolling before hydration, theme, stable asset links.');
