@@ -106,7 +106,7 @@
 .room[data-seats="2"] .tiles--room { width: min(100%, 262px); margin: 6px auto 0; }
 .tile { border-radius: 13px; box-shadow: 0 0 0 1px var(--line); }
 .tile--room { aspect-ratio: 123 / 143; }
-.tiles--air { flex: none; width: 350px; margin-left: auto; margin-right: auto; gap: 11px; }
+.tiles--air { flex: none; width: min(100%, 350px); margin-left: auto; margin-right: auto; gap: 11px; }
 .tile--air { height: 164px; }
 .tile--thumb { flex: none; width: 64px; height: 64px; border-radius: 11px; }
 .tile--thumb::after { display: none; }
