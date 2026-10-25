@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-25T03:33:50.597378+00:00",
+  "checked_at": "2026-10-25T03:37:12.757549+00:00",
   "status": "passed",
-  "source_commit": "61ca56e6dd74a90cbc7f0beef748cb94dbd64c23",
-  "source_fingerprint_sha256": "b6a78faae06d790f96eacc9c412e13dc4908665f0120073b942c5568f872c16b",
+  "source_commit": "5560e67d16cd67146dbd4246bb5541ddba6f6847",
+  "source_fingerprint_sha256": "cced9b2e33bd4205c37e40efec59b15545fe90393aa51d561b79ff532f7cb66d",
   "fingerprint_scope": "Git-listed and nonignored files, excluding this public checks receipt; file names and content hashes in sorted order.",
   "nix_shell": true,
   "scope": "Local code, fixtures, builds and sanitised summary consistency. Does not verify current deployment, remote Mubit state, user demand or live demo success.",
@@ -71,8 +71,8 @@
     "python": "3.13.13"
   },
   "backend_tests": {
-    "numTotalTests": 138,
-    "numPassedTests": 138,
+    "numTotalTests": 139,
+    "numPassedTests": 139,
     "numFailedTests": 0,
     "numPendingTests": 0
   },
