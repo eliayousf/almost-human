@@ -2,9 +2,6 @@
   "framework": null,
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/api/:path*", "destination": "https://almost-human-game.onrender.com/api/:path*" }
-  ],
   "headers": [
     { "source": "/assets/:path*", "headers": [
       { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
