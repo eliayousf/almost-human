@@ -24,7 +24,7 @@ and handoff sections retain their historical scope and test counts.
    three or four accumulate briefly, and a solo player is seated with bots
    after a short honest wait so the game is always playable.
 3. A synchronised **3, 2, 1** countdown finishes, then a random topic is revealed.
-4. The group chats for **two minutes**.
+4. The group chats for **one minute**.
 5. Each human guesses **Human or AI for every other participant** (one guess per seat).
 6. Lock guesses, reveal all roles, show points, and offer another round.
 7. A public leaderboard shows generated aliases and guessing points.
@@ -88,7 +88,7 @@ All dates are UTC ISO 8601 strings. Raw query snapshots have cached timestamps;
 the adapter calibrates a fresh server action and supplies current `serverNow`.
 Use `estimatedServerNow()` for ticking countdown displays.
 Use `chatStartsAt`, `chatEndsAt`, and `votingEndsAt` supplied by the server.
-Do not give each browser its own authoritative two-minute clock.
+Do not give each browser its own authoritative one-minute clock.
 
 Snapshots have a monotonic per-round `revision`. Ignore older responses that
 arrive late. Use `watchQueue`, `watchRound`, and `watchLeaderboard` from the
@@ -134,12 +134,12 @@ Commands carry a fresh `clientRequestId`, reused when retrying that same action.
 The server makes retries idempotent. It validates membership, deadlines, message
 limits, moderation, and votes. UI disabling is convenience, not enforcement.
 
-Voting is one atomic submission containing exactly two distinct other-seat IDs.
-Both labels must be present. Submitted ballots cannot change. Return the saved
+Voting is one atomic submission containing one guess for every other seat.
+All labels must be present. Submitted ballots cannot change. Return the saved
 result for a repeated identical command; reject a new attempt to edit a locked
-ballot. Reveal after the fixed voting window closes; do not expose which seats
-are waiting to vote. Defaults: 3-second countdown, 120-second chat, 30-second vote
-window, 400-character messages. These defaults are enforced by the backend.
+ballot. Reveal when every human has voted or the deadline closes; do not expose
+which seats are waiting to vote. Defaults: 3-second countdown, 60-second chat,
+at most a 10-second vote window, 400-character messages. These defaults are enforced by the backend.
 
 Leaving or blocking ends the caller's active round without awarding new points.
 Heartbeat timeout is 25 seconds, checked every 30 seconds. A disconnected human

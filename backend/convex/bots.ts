@@ -5,7 +5,7 @@ import { components, internal } from "./_generated/api";
 import { botContextV } from "./botState";
 import { createMubitModel, isTransientMubitError } from "./mubitModel";
 import { BOT_PERSONAS, MAX_LOBBY, buildBotMessages } from "./botlogic";
-import { BOT_RETRY_DELAY_MS } from "./botTiming";
+import { BOT_RETRY_DELAY_MS, MUBIT_TIMEOUT_MS, BOT_MIN_TYPING_MS } from "./botTiming";
 
 export const takeTurn = internalAction({
   args: { roundId: v.id("rounds"), turn: v.number() }, returns: v.null(),
@@ -36,7 +36,8 @@ export const takeTurn = internalAction({
           maxOutputTokens: 384, maxRetries: 0,
         }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
       } catch (firstError) {
-        if (!isTransientMubitError(firstError)) throw firstError;
+        if (!isTransientMubitError(firstError)
+          || Date.now() + BOT_RETRY_DELAY_MS + MUBIT_TIMEOUT_MS + BOT_MIN_TYPING_MS >= context.chatEndsAt) throw firstError;
         console.error("bot turn first attempt failed:", firstError instanceof Error ? firstError.message : String(firstError));
         await new Promise((resolve) => setTimeout(resolve, BOT_RETRY_DELAY_MS));
         result = await agent.generateText(ctx, { threadId: context.threadId }, {

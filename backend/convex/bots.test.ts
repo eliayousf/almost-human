@@ -378,14 +378,29 @@ describe("Mubit turns and lifecycle", () => {
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [expect.objectContaining({ text })] });
   });
 
-  test("a new turn is not claimed without enough time for both attempts", async () => {
+  test("a late turn can answer with time for one attempt rather than reserving both", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 1); await chat(r);
     const round = await t.run(ctx => ctx.db.get(r.roundId));
     vi.setSystemTime(round!.chatEndsAt - 20_000);
     await takeTurn(r, 0);
-    expect(fetch).not.toHaveBeenCalled();
-    expect((await r.get()).phase).toBe("chat");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(await r.get()).toMatchObject({ phase: "chat", messages: [expect.objectContaining({ text: "Moon shop idea: emergency cheese." })] });
+    expect(Date.now()).toBeLessThan(round!.chatEndsAt);
+  });
+
+  test("a late failure does not start a retry that would overrun the chat deadline", async () => {
+    const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
+    const r = await room(t, 1); await chat(r);
+    const round = await t.run(ctx => ctx.db.get(r.roundId));
+    vi.setSystemTime(round!.chatEndsAt - 20_000);
+    vi.mocked(fetch).mockImplementation(async () => {
+      vi.setSystemTime(Date.now() + 9000);
+      return new Response("temporary failure", { status: 503 });
+    });
+    await r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(await r.get()).toMatchObject({ phase: "cancelled", reason: "service_unavailable" });
   });
 
   test("a timed-out provider call is retried once, then cancels the room", async () => {
@@ -597,12 +612,26 @@ describe("typing-paced publication and texting style", () => {
     expect((await r.t.run(ctx => ctx.db.get(r.roundId)))?.messageCount).toBe(0);
   });
 
-  test("a reply that cannot finish typing before chat ends is dropped without cancelling", async () => {
+  test("a completed late reply shortens typing but still publishes before the deadline", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
     const r = await room(t, 1); await chat(r);
     await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
     const round = await t.run(ctx => ctx.db.get(r.roundId));
-    vi.setSystemTime(round!.chatEndsAt - 3000);
+    vi.setSystemTime(round!.chatEndsAt - 6000);
+    await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 0, text: "x".repeat(100) });
+    expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
+    await publishReply(r);
+    const view = await r.get();
+    expect(view).toMatchObject({ phase: "chat", messages: [{ text: "x".repeat(100) }] });
+    expect(Date.now()).toBeLessThan(round!.chatEndsAt);
+  });
+
+  test("a reply that cannot finish minimum typing before chat ends is dropped without cancelling", async () => {
+    const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
+    const r = await room(t, 1); await chat(r);
+    await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
+    const round = await t.run(ctx => ctx.db.get(r.roundId));
+    vi.setSystemTime(round!.chatEndsAt - 1500);
     await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 0, text: "x".repeat(100) });
     expect((await t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBeUndefined();
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
@@ -631,7 +660,7 @@ describe("typing-paced publication and texting style", () => {
     });
     const unanswered = must(await r.people[0].mutation(api.game.sendMessage, { roundId: r.roundId, input: { ...command(), text: "It could sell red cheese." } }));
     expect(await followups()).toHaveLength(0); // sendMessage sees the reserved turn.
-    vi.setSystemTime(round!.chatEndsAt - 6_000);
+    vi.setSystemTime(round!.chatEndsAt - 1500);
     await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 1, text: "x".repeat(100) }); // Needs 9s typing.
     expect((await t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBeUndefined();
     expect(await followups()).toHaveLength(0); // No publication means no follow-up.
@@ -681,22 +710,25 @@ describe("typing-paced publication and texting style", () => {
 });
 
 describe("human ballots and bot safety controls", () => {
-  test("the owner's 30-second window accepts a solo ballot at 20 seconds and reveals at 30", async () => {
+  test("a one-minute bot round reveals on the vote and scores once", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
     const r = await room(t, 1); await chat(r);
     const round = await t.run(ctx => ctx.db.get(r.roundId));
     expect(round!.chatStartsAt - round!.createdAt).toBe(3000);
-    expect(round!.chatEndsAt - round!.chatStartsAt).toBe(120_000);
-    expect(round!.votingEndsAt - round!.chatEndsAt).toBe(30_000);
+    expect(round!.chatEndsAt - round!.chatStartsAt).toBe(60_000);
+    expect(round!.votingEndsAt - round!.chatEndsAt).toBe(10_000);
     vi.setSystemTime(round!.chatEndsAt); await t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
     const view = await r.get();
+    noPrivateFields(view);
     const votes = view.participants.filter(seat => seat.id !== view.selfId).map(seat => ({ participantId: seat.id, label: "ai" as const }));
-    vi.setSystemTime(round!.chatEndsAt + 20_000);
-    expect(must(await r.people[0].mutation(api.game.submitVotes, { roundId: r.roundId, input: { ...command(), votes } })).phase).toBe("voting");
-    vi.setSystemTime(round!.votingEndsAt - 1); await t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
-    expect((await r.get()).phase).toBe("voting");
+    vi.setSystemTime(round!.chatEndsAt + 1000);
+    const input = { ...command(), votes };
+    const revealed = must(await r.people[0].mutation(api.game.submitVotes, { roundId: r.roundId, input }));
+    expect(revealed).toMatchObject({ phase: "reveal", yourResult: { correctGuessCount: 1, guessingPointsEarned: 100 } });
+    expect(await r.people[0].mutation(api.game.submitVotes, { roundId: r.roundId, input })).toEqual({ ok: true, data: revealed });
     vi.setSystemTime(round!.votingEndsAt); await t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
-    expect(await r.get()).toMatchObject({ phase: "reveal", yourResult: { correctGuessCount: 1, guessingPointsEarned: 100 } });
+    expect(must(await r.people[0].query(api.game.getSession, {})).totalGuessingPoints).toBe(100);
+    expect(await t.run(ctx => ctx.db.query("results").withIndex("by_roundId_and_playerId", q => q.eq("roundId", r.roundId)).take(5))).toHaveLength(1);
   });
 
   test("a one-bot room scores human and AI guesses against their actual roles", async () => {
@@ -909,14 +941,14 @@ function fakeMubit() {
   return { fn, feedback, consoleCalls: () => fn.mock.calls.filter(([url]) => !String(url).startsWith("https://api.mubit.ai/")).length };
 }
 
-// One solo human (two bots) round: each bot speaks once, the human votes the
-// first speaker human and the second AI, then the round settles.
+// Each bot speaks once; the first human votes one human and one AI. Tests
+// changing preferences after a vote keep a second human unvoted until timeout.
 async function judgedRound(t: Backend, trainingOptIn: boolean, hooks: {
   beforeVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
   afterVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
 } = {}) {
   vi.spyOn(Math, "random").mockReturnValue(0.99);
-  const r = await room(t, 1, trainingOptIn); await chat(r);
+  const r = await room(t, hooks.afterVote ? 2 : 1, trainingOptIn); await chat(r);
   await takeTurn(r, 0);
   await takeTurn(r, 1);
   const round = await r.t.run(ctx => ctx.db.get(r.roundId));
@@ -924,9 +956,11 @@ async function judgedRound(t: Backend, trainingOptIn: boolean, hooks: {
   const spoken = await r.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).collect());
   expect(spoken).toHaveLength(2);
   await hooks.beforeVote?.(r);
+  const view = await r.get();
+  const otherHumans = view.participants.filter(seat => seat.id !== view.selfId && !spoken.some(call => call.memberId === seat.id)).map(seat => ({ participantId: seat.id, label: "human" as const }));
   must(await r.people[0].mutation(api.game.submitVotes, {
     roundId: r.roundId,
-    input: { ...command(), votes: [{ participantId: spoken[0].memberId, label: "human" as const }, { participantId: spoken[1].memberId, label: "ai" as const }] },
+    input: { ...command(), votes: [{ participantId: spoken[0].memberId, label: "human" as const }, { participantId: spoken[1].memberId, label: "ai" as const }, ...otherHumans] },
   }));
   await hooks.afterVote?.(r);
   vi.setSystemTime(round!.votingEndsAt); await r.t.mutation(internal.lifecycle.advance, { roundId: r.roundId });

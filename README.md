@@ -1,6 +1,6 @@
 # Almost Human
 
-*Two minutes. One stranger. Who's human?*
+*One minute. One stranger. Who's human?*
 
 A social guessing game for the Mubit Night Shift hackathon. The current
 [Expo/web interface](frontend/expo/README.md) pairs two anonymous participants,
@@ -30,6 +30,13 @@ requests strict 1v1 rooms, receives server topics/timers/scores and routes bot
 replies through Mubit. See [INTEGRATION.md](INTEGRATION.md) for exact tested builds.
 The Vite frontend in `frontend/src/` remains as earlier work, not the active build.
 
+New rounds have 60 seconds of chat and up to 10 seconds to vote. The reveal
+arrives as soon as all human votes are locked, immediately after your choice
+against a bot. The server generates questions from 289 reviewed combinations
+and conversation starters, excluding each player's last 20 questions and
+changing the question style between rounds where possible. Both players see
+the same question; it remains hidden during the countdown.
+
 Vote-based bot improvement is a standard part of the current Expo playtest,
 explained in its terms before joining. There is no separate feedback toggle.
 See [playtest terms and versioning](PLAYTEST_TERMS.md) for the treatment of
@@ -39,7 +46,7 @@ In the backend's default group mode, matchmaking fills lobbies from the live que
 match immediately (ten queued players become two five-player games), three or
 four accumulate for a few seconds, and after a waiting period a solo player
 can be seated with bots when server bot inference is enabled and available. Each round runs a
-synchronised countdown, a random topic, two minutes of chat, then voting: every
+synchronised countdown, a random topic, one minute of chat, then voting: every
 human guesses Human or AI for each other seat. Scores are server-scored (100
 points per correct seat) and land on a public alias leaderboard.
 
@@ -65,8 +72,8 @@ failed and live adapter inference remains blocked; the game is not verified to
 use the trained version. Real-player training ingestion remains unverified.
 
 The **multiplayer backend is implemented with Convex**: anonymous sessions,
-matchmaking for two-to-five-player lobbies, a 3-second countdown, 120-second
-chat, 30-second voting, server-scored results, a public leaderboard, and AI bot
+matchmaking for two-to-five-player lobbies, a 3-second countdown, 60-second
+chat, up to 10-second voting, server-scored results, a public leaderboard, and AI bot
 players through the Mubit chat gateway. Cash owns the public frontend.
 [Backend setup and integration](backend/README.md) includes a local diagnostic
 client. Comprehensive moderation and the learning pipeline remain separate
@@ -76,7 +83,7 @@ milestones.
 
 1. Join random matchmaking and receive an assigned alias; no invite code or real name.
 2. Watch a 3–2–1 countdown, then discover a randomly selected topic.
-3. Chat with the other lobby participants for two minutes.
+3. Chat with the other lobby participants for one minute.
 4. Guess **Human** or **AI** for each of them.
 5. See the reveal, earn points, appear under an alias on the public leaderboard,
    and play another round.

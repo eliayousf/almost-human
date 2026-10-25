@@ -41,7 +41,7 @@ function Welcome({ busy, onAccept, updating = false, onTerms }: { busy: boolean;
     <Text style={s.brand}>Almost{'\n'}Human<Text style={{ color: C.gold }}>.</Text></Text>
     <Text style={s.tagline}>Every voice has a tell.</Text>
     <View style={s.singlePortrait}><Portrait faceId={face} name="Human or machine?" /></View>
-    <Text style={[s.body, { marginVertical: 20 }]}>One stranger. Two minutes. A conversation that might be a little too convincing.</Text>
+    <Text style={[s.body, { marginVertical: 20 }]}>One stranger. One minute. A conversation that might be a little too convincing.</Text>
     <Text style={s.disclosure}>{consentCopy.aiDisclosure.text} {consentCopy.processingNotice.text}</Text>
     <Text style={s.disclosure}>{consentCopy.conductRules.text}</Text>
     {updating && <Text style={[s.body, { color: C.gold, marginTop: 16 }]}>Please review the updated playtest terms. Your alias and score stay the same.</Text>}

@@ -104,7 +104,7 @@ async function elapseWithHeartbeats(t: TestBackend, people: readonly Player[], d
 function assertPrivateFieldsAbsent(value: unknown): void {
   if (!value || typeof value !== "object") return;
   for (const [key, nested] of Object.entries(value)) {
-    expect(["kind", "role", "botCount", "model", "provider", "threadId", "userId", "trainingOptIn", "feedbackEligible", "voteFeedbackSince", "termsAcceptedAt", "systemPrompt"]).not.toContain(key);
+    expect(["kind", "role", "botCount", "model", "provider", "threadId", "userId", "trainingOptIn", "feedbackEligible", "recentTopicIds", "voteFeedbackSince", "termsAcceptedAt", "systemPrompt"]).not.toContain(key);
     assertPrivateFieldsAbsent(nested);
   }
 }
@@ -242,14 +242,14 @@ describe("round authorization, messages, and server deadlines", () => {
     expect(must(await a.client.mutation(api.game.sendMessage, { roundId, input })).id).toBe(accepted.id);
   });
 
-  test("scheduled lifecycle follows 3 seconds, 2 minutes, then the voting window", async () => {
+  test("scheduled lifecycle follows 3 seconds, 1 minute, then at most 10 seconds to vote", async () => {
     const t = init();
     const { people, roundId } = await room(t);
     const [a] = people;
     const countdown = await snapshot(a, roundId);
     if (countdown.phase !== "countdown") throw new Error("Expected countdown");
     expect(Date.parse(countdown.chatStartsAt) - Date.parse(countdown.serverNow)).toBe(3_000);
-    expect(Date.parse(countdown.chatEndsAt) - Date.parse(countdown.chatStartsAt)).toBe(120_000);
+    expect(Date.parse(countdown.chatEndsAt) - Date.parse(countdown.chatStartsAt)).toBe(60_000);
     // convex-test's commit clock can move a few milliseconds beyond the frozen
     // wall clock while setup transactions commit. Use the actual server deadline.
     await elapseWithHeartbeats(t, people, Date.parse(countdown.chatStartsAt) - 1);
@@ -263,9 +263,9 @@ describe("round authorization, messages, and server deadlines", () => {
     expect((await snapshot(a, roundId)).phase).toBe("voting");
     const voting = await snapshot(a, roundId);
     if (voting.phase !== "voting") throw new Error("Expected voting");
-    expect(Date.parse(voting.votingEndsAt) - Date.parse(countdown.chatEndsAt)).toBe(30_000);
-    // Product-owner decision: the old 15-second cutoff must still allow voting.
-    await elapseWithHeartbeats(t, people, Date.parse(countdown.chatEndsAt) + 15_000);
+    expect(Date.parse(voting.votingEndsAt) - Date.parse(countdown.chatEndsAt)).toBe(10_000);
+    // A missing human ballot keeps roles private until the short voting deadline.
+    await elapseWithHeartbeats(t, people, Date.parse(countdown.chatEndsAt) + 5_000);
     expect((await snapshot(a, roundId)).phase).toBe("voting");
     must(await a.client.mutation(api.game.submitVotes, { roundId, input: { ...command(), votes: guesses(voting) } }));
     await elapseWithHeartbeats(t, people, Date.parse(voting.votingEndsAt) - 1);
@@ -277,6 +277,24 @@ describe("round authorization, messages, and server deadlines", () => {
 });
 
 describe("private ballots, scoring, and public leaderboard", () => {
+  test("concurrent final human votes reveal early and the later deadline cannot score twice", async () => {
+    const t = init();
+    const { people: [a, b, c], roundId } = await room(t);
+    await advance(t, a, roundId);
+    const voting = await advance(t, a, roundId);
+    must(await a.client.mutation(api.game.submitVotes, { roundId, input: { ...command(), votes: guesses(voting) } }));
+    const views = await Promise.all([b, c].map(person => snapshot(person, roundId)));
+    views.forEach(view => { expect(view.phase).toBe("voting"); assertPrivateFieldsAbsent(view); });
+    await Promise.all([b, c].map((person, i) => person.client.mutation(api.game.submitVotes, { roundId, input: { ...command(), votes: guesses(views[i]) } })));
+    for (const person of [a, b, c]) expect(await snapshot(person, roundId)).toMatchObject({ phase: "reveal", yourResult: { totalGuessingPoints: 200 } });
+    if (voting.phase !== "voting") throw new Error("Expected voting");
+    expect(Date.now()).toBeLessThan(Date.parse(voting.votingEndsAt));
+    vi.setSystemTime(Date.parse(voting.votingEndsAt));
+    await t.mutation(internal.lifecycle.advance, { roundId });
+    expect(await t.run(ctx => ctx.db.query("results").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId)).take(5))).toHaveLength(3);
+    expect(must(await a.client.query(api.game.getSession, {})).totalGuessingPoints).toBe(200);
+  });
+
   test("requires two distinct other seats, locks the ballot, and keeps it private", async () => {
     const t = init();
     const { people: [a, b, c], roundId } = await room(t);
@@ -310,7 +328,7 @@ describe("private ballots, scoring, and public leaderboard", () => {
     for (const person of [b, c]) {
       must(await person.client.mutation(api.game.submitVotes, { roundId, input: { ...command(), votes: guesses(await snapshot(person, roundId)) } }));
     }
-    expect((await snapshot(a, roundId)).phase).toBe("voting");
+    expect((await snapshot(a, roundId)).phase).toBe("reveal");
   });
 
   test("all-human truth produces 200/100/0 points, recognition, and one finalization", async () => {
@@ -355,6 +373,29 @@ describe("private ballots, scoring, and public leaderboard", () => {
 });
 
 describe("leave, block, and safe rematching", () => {
+  test("replay generates a different shared question and privately remembers recent questions", async () => {
+    const t = init();
+    const people = [await player(t), await player(t)];
+    const topics: string[] = [];
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const first = must(await people[0].client.mutation(api.game.joinQueue, { input: { ...command(), strictPair: true } }));
+      must(await people[1].client.mutation(api.game.joinQueue, { input: { ...command(), strictPair: true } }));
+      const ticket = must(await people[0].client.query(api.game.getQueue, { queueId: first.queueId }));
+      if (ticket.status !== "assigned") throw new Error("Expected assigned pair");
+      const round = await t.run(ctx => ctx.db.get(ticket.roundId));
+      topics.push(round!.topic.id);
+      for (const person of people) {
+        const view = must(await person.client.query(api.game.getRound, { roundId: ticket.roundId }));
+        expect(view).not.toHaveProperty("topic");
+        assertPrivateFieldsAbsent(view);
+        const stored = await t.run(ctx => ctx.db.get(person.session.leaderboardEntryId as Id<"players">));
+        expect(stored!.recentTopicIds).toEqual(topics);
+      }
+      must(await people[0].client.mutation(api.game.leaveRound, { roundId: ticket.roundId, input: command() }));
+    }
+    expect(topics[0]).not.toBe(topics[1]);
+  });
+
   test("leaving at the voting deadline settles earned points instead of cancelling them", async () => {
     const t = init();
     const { people: [a, b], roundId } = await room(t);

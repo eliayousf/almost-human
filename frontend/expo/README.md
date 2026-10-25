@@ -35,7 +35,11 @@ providers. No root npm-workspace restructuring is required.
   excluded. See [terms behavior](../../PLAYTEST_TERMS.md).
   Aliases are assigned by the server, not supplied as identity.
 - Strict 1v1 matchmaking; honest queue waiting, server countdown and random topic.
-- Server-calibrated two-minute chat and 30-second voting. Reaching zero never
+- Fresh server-generated questions from reviewed combinations, excluding each
+  player's last 20 questions. The live UI never falls back to a fixed demo question.
+- Server-calibrated one-minute chat and at most 10 seconds for voting. The server
+  reveals as soon as all human ballots are locked, immediately against a bot.
+  Reaching zero never
   submits an unselected vote or invents a reveal.
 - Immutable server votes and 100 points per correct classification. Recognition
   is based on human ballots; bot opponents never invent a reciprocal vote/bonus.

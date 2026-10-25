@@ -59,6 +59,17 @@ async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
   await ctx.db.patch(round._id, { phase: "reveal", settled: true, revision: round.revision + 1, updatedAt: now });
 }
 
+/** A locked ballot may reveal immediately once every human has voted. Roles
+ * remain private while anyone can still vote; bots never cast fake ballots. */
+export async function revealIfReady(ctx: MutationCtx, roundId: Id<"rounds">) {
+  const round = await ctx.db.get(roundId);
+  if (!round || round.phase !== "voting" || round.settled) return;
+  const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+  const ballots = await ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+  const humans = members.filter(member => member.kind === "human");
+  if (humans.length && humans.every(member => ballots.some(ballot => ballot.playerId === member.playerId))) await settle(ctx, round);
+}
+
 export async function advanceRound(ctx: MutationCtx, roundId: Id<"rounds">) {
   const round = await ctx.db.get(roundId);
   if (!round || round.phase === "reveal" || round.phase === "cancelled") return;

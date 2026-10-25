@@ -28,7 +28,7 @@ export function Lobby({ game, session, leaderboard, joining, notice, onPlay }: {
   return <main className="screen screen--scroll lobby">
     <header className="lobby__head">
       <p className="wordmark">ALMOST HUMAN</p>
-      <p className="lobby__pitch">One stranger. Two minutes.<br />Convince them you're human, and decide what <em>they</em> are.</p>
+      <p className="lobby__pitch">One stranger. One minute.<br />Convince them you're human, and decide what <em>they</em> are.</p>
     </header>
 
     <section className="lobby__me" aria-label="Your player">

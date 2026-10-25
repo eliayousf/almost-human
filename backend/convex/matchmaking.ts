@@ -4,7 +4,8 @@ import { internalMutation, type MutationCtx } from "./_generated/server";
 import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { isOnline } from "./connections";
-import { SEAT_NAMES, TOPICS, shuffled } from "./lib";
+import { SEAT_NAMES, shuffled } from "./lib";
+import { chooseQuestion, RECENT_TOPIC_LIMIT } from "./topics";
 import { BOT_DIFFICULTIES, BOT_FALLBACK_WAIT_MS, BOT_PERSONAS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY, chooseLobby } from "./botlogic";
 import { GAME_DEFAULTS } from "../../shared/game-contract";
 
@@ -46,13 +47,15 @@ async function findGroup(ctx: MutationCtx, candidates: Doc<"queue">[], size: num
 // Seats one lobby: creates the round and its members and schedules the
 // lifecycle. Returns the number of humans seated.
 async function seatLobby(ctx: MutationCtx, now: number, group: Doc<"queue">[], bots: number): Promise<number> {
+  const players = await Promise.all(group.map(ticket => ctx.db.get(ticket.playerId)));
+  const topic = chooseQuestion(players.map(player => player?.recentTopicIds ?? []));
   const threadId = await createThread(ctx, components.agent, {});
   const chatStartsAt = now + GAME_DEFAULTS.countdownMs;
   const chatEndsAt = chatStartsAt + GAME_DEFAULTS.chatMs;
   const roundId = await ctx.db.insert("rounds", {
     phase: "countdown", revision: 1, createdAt: now, updatedAt: now,
     chatStartsAt, chatEndsAt, votingEndsAt: chatEndsAt + GAME_DEFAULTS.votingMs,
-    topic: shuffled(TOPICS)[0], threadId, messageCount: 0, settled: false, botTurn: 0,
+    topic, threadId, messageCount: 0, settled: false, botTurn: 0,
   });
   const seats = shuffled([
     ...group.map(ticket => ({ kind: "human" as const, ticket })),
@@ -69,7 +72,9 @@ async function seatLobby(ctx: MutationCtx, now: number, group: Doc<"queue">[], b
     } else {
       await ctx.db.insert("members", { roundId, playerId: seat.ticket.playerId, alias: aliases[index], kind: "human" });
       await ctx.db.patch(seat.ticket._id, { status: "assigned", roundId, updatedAt: now });
-      await ctx.db.patch(seat.ticket.playerId, { activeRoundId: roundId, activeQueueId: seat.ticket._id, updatedAt: now });
+      const player = players.find(player => player?._id === seat.ticket.playerId);
+      await ctx.db.patch(seat.ticket.playerId, { activeRoundId: roundId, activeQueueId: seat.ticket._id,
+        recentTopicIds: [...(player?.recentTopicIds ?? []), topic.id].slice(-RECENT_TOPIC_LIMIT), updatedAt: now });
     }
   }
   await ctx.scheduler.runAt(chatStartsAt, internal.lifecycle.advance, { roundId });

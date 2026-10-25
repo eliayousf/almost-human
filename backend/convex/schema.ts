@@ -9,6 +9,7 @@ export default defineSchema({
     userId: v.id("users"), alias: v.string(), trainingOptIn: v.boolean(), policyVersion: v.string(),
     // Versioned terms acceptance and prospective vote eligibility; no bulk opt-in migration.
     termsAcceptedAt: v.optional(v.number()), voteFeedbackSince: v.optional(v.number()),
+    recentTopicIds: v.optional(v.array(v.string())),
     guessingPoints: v.number(), roundsPlayed: v.number(), guessesSubmitted: v.number(), correctGuesses: v.number(),
     humanVotesReceived: v.number(), humanVotesRecognisingYou: v.number(), streak: v.number(), updatedAt: v.number(),
     activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),

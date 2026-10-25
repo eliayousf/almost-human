@@ -40,20 +40,20 @@ export const assignedFixture: QueueTicket = {
 
 export const countdownFixture: CountdownRound = {
   ...base, phase: "countdown", revision: 1, serverNow: "2026-10-24T12:00:00.000Z",
-  chatStartsAt: "2026-10-24T12:00:03.000Z", chatEndsAt: "2026-10-24T12:02:03.000Z",
+  chatStartsAt: "2026-10-24T12:00:03.000Z", chatEndsAt: "2026-10-24T12:01:03.000Z",
 };
 export const chatFixture: ChatRound = {
   ...base, phase: "chat", revision: 2, serverNow: "2026-10-24T12:00:30.000Z",
-  topic, messages, chatEndsAt: "2026-10-24T12:02:03.000Z",
+  topic, messages, chatEndsAt: "2026-10-24T12:01:03.000Z",
 };
 export const votingFixture: VotingRound = {
-  ...base, phase: "voting", revision: 3, serverNow: "2026-10-24T12:02:03.000Z",
-  topic, messages, votingEndsAt: "2026-10-24T12:02:33.000Z", ownBallot: { status: "open" },
+  ...base, phase: "voting", revision: 3, serverNow: "2026-10-24T12:01:03.000Z",
+  topic, messages, votingEndsAt: "2026-10-24T12:01:13.000Z", ownBallot: { status: "open" },
 };
 export const submittedFixture: VotingRound = {
-  ...votingFixture, revision: 4, serverNow: "2026-10-24T12:02:10.000Z",
+  ...votingFixture, revision: 4, serverNow: "2026-10-24T12:01:08.000Z",
   ownBallot: {
-    status: "submitted", submittedAt: "2026-10-24T12:02:10.000Z",
+    status: "submitted", submittedAt: "2026-10-24T12:01:08.000Z",
     votes: [
       { participantId: "demo-seat-2", label: "ai" },
       { participantId: "demo-seat-3", label: "human" },
@@ -61,7 +61,7 @@ export const submittedFixture: VotingRound = {
   },
 };
 export const revealFixture: RevealRound = {
-  ...base, phase: "reveal", revision: 5, serverNow: "2026-10-24T12:02:33.000Z",
+  ...base, phase: "reveal", revision: 5, serverNow: "2026-10-24T12:01:13.000Z",
   participants: [
     { ...participants[0], kind: "human" },
     { ...participants[1], kind: "ai" },

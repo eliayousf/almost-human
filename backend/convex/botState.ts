@@ -6,7 +6,7 @@ import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
 import { messageAllowed } from "./lib";
 import { MAX_LOBBY, botTypingDelayMs } from "./botlogic";
-import { BOT_MIN_TYPING_MS, BOT_TURN_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
+import { BOT_MIN_TYPING_MS, BOT_START_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
 import { recentLessons } from "./ratings";
 
 export const MAX_BOT_TURNS = 10;
@@ -14,7 +14,7 @@ export async function scheduleBotTurn(ctx: MutationCtx, round: Doc<"rounds">, tu
   // Two-seat replies start generating on human input; publication supplies the
   // typing delay. Larger rooms retain their existing gap between bot turns.
   const wait = immediate ? 0 : 7000 + Math.floor(Math.random() * 4000);
-  if (turn < MAX_BOT_TURNS && Date.now() + wait + BOT_TURN_BUDGET_MS + BOT_MIN_TYPING_MS < round.chatEndsAt) {
+  if (turn < MAX_BOT_TURNS && Date.now() + wait + BOT_START_BUDGET_MS < round.chatEndsAt) {
     await ctx.scheduler.runAfter(wait, internal.bots.takeTurn, { roundId: round._id, turn });
   }
 }
@@ -22,7 +22,7 @@ export async function scheduleBotTurn(ctx: MutationCtx, round: Doc<"rounds">, tu
 const turnArgs = { roundId: v.id("rounds"), turn: v.number() };
 export const botContextV = v.object({
   memberId: v.id("members"), alias: v.string(), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
-  threadId: v.string(), topic: v.string(), aliases: v.array(v.string()),
+  threadId: v.string(), topic: v.string(), aliases: v.array(v.string()), chatEndsAt: v.number(),
   transcript: v.array(v.object({ alias: v.string(), text: v.string() })),
   lessons: v.object({ passed: v.array(v.string()), caught: v.array(v.string()) }),
 });
@@ -32,7 +32,7 @@ export const claim = internalMutation({
   handler: async (ctx, { roundId, turn }) => {
     const round = await ctx.db.get(roundId);
     const now = Date.now();
-    if (!round || round.phase !== "chat" || now < round.chatStartsAt || now + BOT_TURN_BUDGET_MS + BOT_MIN_TYPING_MS >= round.chatEndsAt
+    if (!round || round.phase !== "chat" || now < round.chatStartsAt || now + BOT_START_BUDGET_MS >= round.chatEndsAt
       || !Number.isInteger(turn) || turn < 0 || turn >= MAX_BOT_TURNS
       || (round.botTurn ?? 0) !== turn || round.botPending !== undefined || round.messageCount >= 240) return null;
     const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
@@ -59,7 +59,7 @@ export const claim = internalMutation({
     await ctx.db.patch(roundId, { botTurn: turn + 1, botPending: turn, ...(duel ? { botLastHumanMessageId: latestHumanId } : {}) });
     await ctx.scheduler.runAfter(BOT_WATCHDOG_MS, internal.botState.fail, { roundId, turn });
     const lessons = await recentLessons(ctx);
-    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), transcript, lessons };
+    return { memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), chatEndsAt: round.chatEndsAt, transcript, lessons };
   },
 });
 
@@ -79,9 +79,9 @@ export const prepareReply = internalMutation({
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
-    const delay = botTypingDelayMs(trimmed);
+    const delay = Math.min(botTypingDelayMs(trimmed), Math.max(BOT_MIN_TYPING_MS, round.chatEndsAt - now - 1000));
     if (now + delay >= round.chatEndsAt) {
-      // Never rush a reply or publish it into voting to beat the deadline.
+      // Keep at least the minimum typing delay and never publish into voting.
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }

@@ -163,8 +163,8 @@ resume cannot revive a round the server has already cancelled.
 The transport is Convex RPC/subscriptions, replacing the earlier proposed REST
 and cookie implementation. Public data and GameClient methods are preserved.
 The only added SessionView fields are optional own `activeRoundId` and
-`activeQueueId` for recovery. Current policyVersion is `playtest-v1`; public launch
-needs a reviewed replacement data notice. Commands use a fresh UUID; reuse it
+`activeQueueId` for recovery. Current Expo policyVersion is `playtest-v2-vote-feedback`; legacy
+`playtest-v1` clients remain compatible. See [playtest terms](../PLAYTEST_TERMS.md). Commands use a fresh UUID; reuse it
 for retrying the same action. Changed payload + same command ID is rejected.
 
 `client/game-client.ts` lives here so its SDK imports resolve against backend
@@ -174,10 +174,11 @@ There is no `/api/v1` HTTP service to proxy.
 
 ## Rules enforced on the server
 
-- Exactly three seats, at least one authenticated human; human pairs respect blocks.
-- Topic hidden for the 3-second countdown; chat lasts exactly 120 seconds.
+- Two to five seats (two for strictPair), at least one authenticated human; human pairs respect blocks.
+- Topic hidden for the 3-second countdown; chat lasts exactly 60 seconds.
 - At most 400 characters per message; burst/per-player rate and room limits.
-- One guess per other seat, one immutable ballot, a fixed 30-second window.
+- One guess per other seat, one immutable ballot, at most a 10-second window;
+  reveal immediately when every human has voted.
 - 100 points per correct guess; atomic, single settlement, no client score input.
 - Private round membership, own ballot only, roles shown only at reveal.
 - Leave/block cancels the round with no new score; reports remain private.

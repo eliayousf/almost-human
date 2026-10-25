@@ -6,9 +6,10 @@ import { cast } from './cast';
 import { animationDelay, nextAnimation, randomCharacterId, type AnimationMode } from './random';
 
 import type { Phase, Verdict, State } from './game-state';
+import { GAME_DEFAULTS } from '../../../shared/game-contract';
 export const C = { bg: '#0b0a08', screen: '#14130f', surface: '#1c1a15', border: '#363229', gold: '#cfaf68', ivory: '#eee9dc', text: '#cec9bb', muted: '#a09a8c', green: '#95b69c', red: '#d26753' };
 const mono = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
-const topic = 'Invent a terrible name for a very good restaurant.';
+const previewTopic = 'Invent a terrible name for a very good restaurant.';
 
 export function Label({ children, gold = false }: { children: React.ReactNode; gold?: boolean }) {
   return <Text style={[s.label, gold && { color: C.gold }]}>{children}</Text>;
@@ -42,8 +43,8 @@ export function Portrait({ faceId, name, mode = 'idle', small = false, autoSwitc
     {!small && !!name && activeMode === 'talk' && <Text style={s.wave}>▂▅▃▇▂▆▄▅▂▇▃▅</Text>}
   </View>;
 }
-export function Topic({ waiting = false, text = topic }: { waiting?: boolean; text?: string }) {
-  return <View style={s.topic}><Label gold>TONIGHT'S TOPIC</Label><Text style={s.topicText}>{waiting ? 'Revealed when the timer starts' : text}</Text></View>;
+export function Topic({ waiting = false, text }: { waiting?: boolean; text?: string }) {
+  return <View style={s.topic}><Label gold>THIS ROUND'S QUESTION</Label><Text style={s.topicText}>{waiting ? 'A fresh question when the timer starts' : text ?? 'Loading this round’s question…'}</Text></View>;
 }
 export function Frame({ title, children, onMenu }: { title: string; children: React.ReactNode; onMenu?: () => void }) {
   const compact = useWindowDimensions().height < 640;
@@ -67,9 +68,9 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
       <Topic waiting /><View style={{ height: 18 }} />{phase === 'idle' && <Button title="Enter room" onPress={onPlay} disabled={busy} />}
     </>}
     {phase === 'chat' && <>
-      <View accessibilityLabel={`${Math.ceil(left)} seconds remaining`} style={s.track}><View style={[s.progress, { width: `${Math.min(100, left * 1000 / (state.roundMs || 120000) * 100)}%` }]} /></View>
+      <View accessibilityLabel={`${Math.ceil(left)} seconds remaining`} style={s.track}><View style={[s.progress, { width: `${Math.min(100, left * 1000 / (state.roundMs || GAME_DEFAULTS.chatMs) * 100)}%` }]} /></View>
       <View style={[s.singlePortrait, compact && { maxWidth: 88, marginBottom: 8 }]}><Portrait faceId={partner?.faceId} name={partner?.name || 'Stranger'} mode={state.messages?.at(-1)?.me === false ? 'talk' : 'idle'} /></View>
-      <Topic text={state.topic ?? topic} />
+      <Topic text={state.topic} />
       <ScrollView ref={messages} style={[s.messages, compact && { minHeight: 40, marginTop: 8 }]} contentContainerStyle={{ gap: 15, paddingBottom: 20 }} onContentSizeChange={() => messages.current?.scrollToEnd({ animated: false })}>
         {!state.messages?.length && <Text style={s.subtitle}>Break the silence. Ask them anything.</Text>}
         {state.messages?.map((m, i) => <View key={i} accessible accessibilityLabel={`${m.me ? 'You' : partner?.name}: ${m.text}`}><Label>{m.me ? 'YOU' : partner?.name.toUpperCase()}</Label><Text style={[s.body, m.me && { fontWeight: '600' }]}>{m.text}</Text></View>)}
@@ -78,10 +79,10 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
     </>}
     {phase === 'guess' && <>
       <Text style={s.heading}>Who's human?</Text><Text style={s.subtitle}>Human or machine? Choose before the timer ends.</Text>
-      <View style={s.ticks}>{Array.from({ length: 8 }, (_, i) => <View key={i} style={[s.tick, { opacity: i < left / ((state.voteMs ?? 30000) / 1000) * 8 ? 1 : .2 }]} />)}</View>
+      <View style={s.ticks}>{Array.from({ length: 8 }, (_, i) => <View key={i} style={[s.tick, { opacity: i < left / ((state.voteMs ?? GAME_DEFAULTS.votingMs) / 1000) * 8 ? 1 : .2 }]} />)}</View>
       <View style={s.voteCard}><Portrait small faceId={partner?.faceId} name={partner?.name || 'Stranger'} /><View style={{ flex: 1, gap: 6 }}><Text style={s.name}>{partner?.name}</Text><Label>{state.guessed ? 'VOTE LOCKED' : 'YOUR CALL'}</Label></View></View>
       <View accessibilityRole="radiogroup" style={s.voteButtons}>{(['human', 'ai'] as const).map(v => <Pressable key={v} accessibilityRole="radio" accessibilityLabel={v === 'ai' ? 'Machine' : 'Human'} accessibilityState={{ checked: state.guessed === v, disabled: !!state.guessed || busy }} disabled={!!state.guessed || busy} onPress={() => onVote(v)} style={[s.voteButton, state.guessed === v && { backgroundColor: v === 'human' ? C.green : C.red }]}><Text style={[s.voteText, state.guessed === v && { color: C.bg }]}>{v === 'ai' ? 'MACHINE' : 'HUMAN'}</Text></Pressable>)}</View>
-      <Text style={s.footnote}>{state.guessed ? 'LOCKED IN. WAITING FOR THE REVEAL…' : 'CHOOSE BEFORE THE TIMER ENDS. NO VOTE SCORES ZERO.'}</Text>
+      <Text style={s.footnote}>{state.guessed ? 'LOCKED IN. REVEALING WHEN VOTING FINISHES…' : 'CHOOSE BEFORE THE TIMER ENDS. NO VOTE SCORES ZERO.'}</Text>
     </>}
     {phase === 'reveal' && state.reveal && <>
       <Text style={s.heading}>Who was real?</Text><Text style={s.subtitle}>{state.reveal.yourGuess === undefined ? 'No call was submitted this round.' : state.reveal.correct ? 'You called it. But did they believe you?' : 'Some voices are harder to read.'}</Text>
@@ -114,7 +115,7 @@ export function CastGallery() {
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { item: typeof cast[number] }[] }) => setVisible(new Set(viewableItems.map(item => item.item.id))));
   return <FlatList key={columns} data={cast} numColumns={columns} keyExtractor={face => String(face.id)} extraData={visible} initialNumToRender={columns * 2} windowSize={3} maxToRenderPerBatch={columns} viewabilityConfig={viewability.current} onViewableItemsChanged={onViewableItemsChanged.current} contentContainerStyle={{ padding: 24, alignSelf: 'center', gap: 16 }} columnWrapperStyle={columns > 1 ? { gap: 16 } : undefined} ListHeaderComponent={<><Text style={[s.previewTitle, { textAlign: 'center' }]}>Almost Human</Text><Text style={s.subtitle}>25 characters · Idle / Talk / Smile</Text></>} renderItem={({ item }) => <CastCard face={item} visible={visible.has(item.id)} />} />;
 }
-export const previewState: State = { phase: 'chat', name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 12, right: 9, played: 11, now: 0, endsAt: 67000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, score: 12, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
+export const previewState: State = { phase: 'chat', topic: previewTopic, roundMs: GAME_DEFAULTS.chatMs, voteMs: GAME_DEFAULTS.votingMs, name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 12, right: 9, played: 11, now: 0, endsAt: 57000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, score: 12, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
 export const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg }, appColumn: { width: '100%', maxWidth: 420, flex: 1, alignSelf: 'center', paddingTop: Platform.OS === 'ios' ? 54 : 24, paddingBottom: Platform.OS === 'ios' ? 30 : 20 },
   phone: { backgroundColor: C.screen, flex: 1, padding: 24, borderWidth: 1, borderColor: '#28251e', borderRadius: 30, minHeight: 0 }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25, minHeight: 20 }, live: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#a34532' }, label: { fontFamily: mono, color: C.muted, fontSize: 8, letterSpacing: 1.4, lineHeight: 13 }, heading: { fontSize: 22, fontWeight: '600', color: C.ivory, textAlign: 'center', letterSpacing: .2 }, subtitle: { color: C.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 8, marginBottom: 16 },

@@ -5,7 +5,7 @@ import { action, query, type QueryCtx, type MutationCtx } from "./_generated/ser
 import { components, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
-import { advanceRound, cancelRound } from "./lifecycle";
+import { advanceRound, cancelRound, revealIfReady } from "./lifecycle";
 import { scheduleBotTurn } from "./botState";
 import { presence } from "./connections";
 import { matchWaiting } from "./matchmaking";
@@ -176,6 +176,7 @@ export const submitVotes = playerMutation({ args: { roundId: v.id("rounds"), inp
     const now = Date.now();
     await ctx.db.insert("ballots", { roundId, playerId: player._id, votes: input.votes, submittedAt: now, feedbackEligible: player.trainingOptIn });
     await ctx.db.patch(roundId, { revision: round.revision + 1, updatedAt: now });
+    await revealIfReady(ctx, roundId);
     return roundView(ctx, player._id, roundId);
   });
 } });

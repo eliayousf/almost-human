@@ -38,8 +38,8 @@ off for the game demonstration. Send only invented, nonpersonal text.
 
 In normal matchmaking, a solo player can receive bot partners after the waiting
 period when server bot inference is enabled and available. With bots disabled,
-human matching may wait. Do not promise an instant match. The optional strict
-pair backend path is covered by component tests, not asserted as deployed here.
+human matching may wait. Do not promise an instant match. The active Expo preview requests strict pairs; its hosted integration evidence
+is recorded in INTEGRATION.md.
 
 Verify visible behavior: a shared countdown/topic, a real reply, server timer,
 one vote per other seat, reveal and server-scored points, then refresh/replay.
@@ -48,11 +48,11 @@ cancellation as failures, not as successful replies.
 
 ## A proposed 2:20 walkthrough
 
-Normal timing is 3 seconds countdown + 120 seconds chat + 30 seconds voting,
-before queueing and reveal. A complete fresh round cannot fit in 2:20.
-Start the real round beforehand and state that it is already in progress.
-Begin speaking with about 70 seconds of chat remaining; do not change the
-server clock. Rehearse and adjust to the organiser's actual time limit.
+New rounds use 3 seconds countdown + 60 seconds chat + at most 10 seconds
+voting, plus queue time. The server reveals as soon as all humans vote; a
+bot round reveals immediately on your vote. Start matchmaking during the
+introduction, allow time for service delays, and rehearse against the organiser's
+actual time limit. Do not change the server clock to fit the presentation.
 
 | Time | Show and say | Evidence boundary |
 | --- | --- | --- |
