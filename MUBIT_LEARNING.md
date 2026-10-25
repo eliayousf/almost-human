@@ -1,6 +1,6 @@
 # How the bots learn from each round
 
-**Training status: unverified.** The local test described below demonstrated ratings and a rising kept-example count. It did not demonstrate an accepted replacement reply, a completed training job, or a trained adapter answering the game. External ratings are disabled by default. See [the learning-proof runner and dashboard verification steps](scripts/learning-proof/README.md) for the current experiment and demo requirements.
+**Synthetic training completed; live adapter inference is blocked.** A reviewed conversational correction and 35 other approved synthetic examples produced a completed Qwen3-4B training job. Version 1 failed its literal-string evaluation and is unavailable in Try models. This does not establish improved dialogue or a trained adapter answering the game. [The training run report](MUBIT_TRAINING_RUN.md) records the evidence and remaining service blocker. External game ratings remain disabled by default; the historical local test below is separate.
 
 At the end of every round, the votes decide whether each bot passed as human or got found out. That verdict can feed two loops; only the prompt-lesson loop is enabled by default.
 

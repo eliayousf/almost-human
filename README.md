@@ -32,8 +32,10 @@ iPhone acceptance checklist.
 
 Project brief, [MVP plan](PLAN.md), development environment, and a small
 [Mubit connectivity probe](MUBIT_VERIFICATION.md). Server-side provider chat
-through Mubit works. Ingestion of human training examples and application access
-to the resulting adapter remain unverified.
+through Mubit works. A [reviewed synthetic conversational correction and training
+batch](MUBIT_TRAINING_RUN.md) produced a completed adapter job. Its evaluation
+failed and live adapter inference remains blocked; the game is not verified to
+use the trained version. Real-player training ingestion remains unverified.
 
 The **multiplayer backend is implemented with Convex**: anonymous sessions,
 matchmaking for two-to-five-player lobbies, a 3-second countdown, 120-second

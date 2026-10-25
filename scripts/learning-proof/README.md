@@ -2,7 +2,11 @@
 
 Track: **Recurring tasks**. Almost Human repeatedly generates short NPC dialogue. Players expose awkward replies, a reviewer supplies a better reply, and the intended Mubit loop trains a reusable model for that task. The game is the feedback environment; better dialogue for game developers is the proposed benefit. A user study or measured quality comparison is still needed to substantiate that benefit.
 
-The runner currently verifies inference and prepares local corrections. It **does not submit corrections, start training, select an adapter, or prove improvement**. Those stages require a verified Mubit interface. Do not present this preparation as a finished learning loop.
+The runner captures inference and conversational corrections; console review has
+now produced a completed synthetic training run. **Live adapter inference and
+quality improvement remain unverified.** See [the run report](../../MUBIT_TRAINING_RUN.md)
+for its failed evaluation and serving blocker. The runner itself does not call a
+replacement-target API, rate examples, start jobs or select adapters.
 
 ## Conversational-correction experiment
 
@@ -93,13 +97,17 @@ The discovery experiment has a persistent three-attempt limit, counts failures, 
 
 The generated report includes original/replacement text, request IDs, prompt hashes, timings, and the demo outline. `correction-review.json` is a **local review format, not a supported Mubit upload payload**. All training and adapter status fields remain unverified until a future implementation records service evidence. Editing local status fields cannot prove training.
 
-## Current evidence and access blocker
+## Earlier discovery experiment and access blocker
 
-On 2026-10-25, two live Mubit calls succeeded: one recorded synthetic candidate and one evaluation request with recording disabled. One reviewed correction is saved locally and has not been submitted. Receipts, response text, timings, and the correction are in the ignored report directory; no model data or player conversations are committed here.
+The earlier managed-environment experiment on 2026-10-25 made two live calls:
+one recorded synthetic candidate and one evaluation request with recording
+disabled. Its local replacement correction was not submitted. The later local
+conversational-correction experiment and completed training are documented above
+and in the run report; they do not retroactively prove a replacement-target API.
 
 The managed environment permits `api.mubit.ai`, but excludes `app.mubit.ai`. A request to the dashboard failed at the network proxy with HTTP 403 before reaching the application. This task has no attached signed-in browser-control session. Its configured inference credential is scoped to `api.mubit.ai`; it is not a dashboard/admin credential. Dashboard inspection therefore remains blocked. Do not copy login cookies into chat or repurpose the inference key against an admin endpoint.
 
-## Finish verification in the signed-in dashboard
+## Replacement-target API verification (still separate)
 
 Once dashboard access is available:
 
@@ -116,10 +124,10 @@ Official references: [first adapter](https://docs.mubit.ai/guides/first-adapter)
 
 | Criterion | Demo evidence | Current gap |
 | --- | --- | --- |
-| Use of Mubit | Exact accepted correction → completed version → fresh answer from that version | All three service stages unverified |
+| Use of Mubit | Accepted conversational correction → completed version → fresh live answer from that version | Correction accepted and job completed; live adapter serving blocked |
 | Usefulness | Repeated NPC dialogue; show how developer review improves a recurring player experience | Quality/user-benefit measurement pending |
-| Technical execution | Real game prompts, durable request receipts, consent rules, separate evaluation cases, visible failures | Submission and trained-model serving pending |
-| Demo | One clear game exchange, correction, completed version and fresh live answer | Rehearsal waits on the working training path |
+| Technical execution | Real game prompts, durable receipts, reviewed synthetic data, separate evaluation cases, visible failures | Dialogue grading and trained-model serving need repair |
+| Demo | One clear game exchange, correction, completed version and fresh live answer | Live inference remains blocked; do not substitute a provider reply |
 
 Compare provider and adapter on the **same** held-out inputs. Blindly score each for relevance, naturalness, and the game's short-reply constraints. Report the number of examples, wins/ties/losses, failures, latency and measured cost when available. A small sample is exploratory; do not claim a statistically established improvement. Existing player votes with prompt lessons enabled cannot isolate the effect of adapter training.
 
