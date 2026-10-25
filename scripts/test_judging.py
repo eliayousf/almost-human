@@ -55,7 +55,9 @@ const assert = require('node:assert/strict');
 const assert = require('node:assert/strict');
 const net = require('node:net');
 const path = require('node:path');
-const socket = path.join(require('node:os').tmpdir(), `event-log-${process.pid}-qa.sock`);
+const fs = require('node:fs');
+const socket = path.join(require('node:os').tmpdir(), `event-log-${process.getuid?.() ?? 0}`, `${process.pid}-qa`, 'ipc.sock');
+fs.mkdirSync(path.dirname(socket), {recursive:true});
 process.env.__eventLogIpc = socket;
 assert.throws(() => net.connect(path.join(require('node:os').tmpdir(), 'unrelated.sock')), /forbid network/);
 assert.throws(() => net.connect({path:socket, host:'example.invalid', port:443}), /forbid network/);
@@ -64,7 +66,7 @@ server.listen(socket, () => {
   let text = '';
   const client = net.connect(socket);
   client.on('data', data => text += data);
-  client.on('end', () => { assert.equal(text, 'local IPC only'); server.close(); });
+  client.on('end', () => { assert.equal(text, 'local IPC only'); server.close(() => fs.rmSync(path.dirname(socket), {recursive:true,force:true})); });
   client.on('error', () => process.exit(1));
 });
 """

@@ -18,9 +18,10 @@ const loggerIpc = args => {
   const first = Array.isArray(args[0]) ? args[0][0] : args[0];
   if (first && typeof first === 'object' && ('host' in first || 'port' in first)) return false;
   const target = typeof first === 'string' ? first : first?.path;
-  return typeof target === 'string' && target === process.env.__eventLogIpc
-    && path.dirname(target) === os.tmpdir()
-    && /^event-log-[A-Za-z0-9-]+\.sock$/.test(path.basename(target));
+  if (typeof target !== 'string' || target !== process.env.__eventLogIpc) return false;
+  const relative = path.relative(os.tmpdir(), target);
+  return /^event-log-[A-Za-z0-9-]+\.sock$/.test(relative)
+    || /^event-log-\d+\/[A-Za-z0-9-]+\/ipc\.sock$/.test(relative);
 };
 net.connect = net.createConnection = function (...args) {
   if (!loggerIpc(args)) return deny();
