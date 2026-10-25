@@ -22,7 +22,7 @@ const tokens = (value: unknown): number | undefined => typeof value === "number"
  * bodies never enter errors, telemetry, or the public game transcript.
  * `onRequestId` receives Mubit's call ID (mreq_...) for each usable reply, so
  * the round's verdict can later be sent to Mubit as a rating for that call. */
-export function createMubitModel(apiKey: string, onRequestId?: (requestId: string) => void): LanguageModelV4 {
+export function createMubitModel(apiKey: string, onRequestId?: (requestId: string) => void, recording: { mode: "full" | "metadata"; sessionId: string } = { mode: "metadata", sessionId: "unassigned" }): LanguageModelV4 {
   return {
     specificationVersion: "v4", provider: "mubit", modelId: "gpt-6-luna", supportedUrls: {},
     async doGenerate(options): Promise<LanguageModelV4GenerateResult> {
@@ -42,8 +42,8 @@ export function createMubitModel(apiKey: string, onRequestId?: (requestId: strin
       const timeout = setTimeout(() => { timedOut = true; abort(); }, MUBIT_TIMEOUT_MS);
       try {
         const response = await fetch("https://api.mubit.ai/openai/v1/chat/completions", {
-          method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
-          body: JSON.stringify({ model: "gpt-6-luna", messages, max_completion_tokens: Math.min(options.maxOutputTokens ?? 384, 384), reasoning_effort: "low" }),
+          method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", "x-middleware-record": recording.mode },
+          body: JSON.stringify({ model: "gpt-6-luna", messages, metadata: { session_id: recording.sessionId }, max_completion_tokens: Math.min(options.maxOutputTokens ?? 384, 384), reasoning_effort: "low" }),
           signal: controller.signal, redirect: "error",
         });
         receivedResponse = true;

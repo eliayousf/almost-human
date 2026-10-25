@@ -2,6 +2,16 @@
 
 **Synthetic training completed; live adapter inference is blocked.** A reviewed conversational correction and 35 other approved synthetic examples produced a completed Qwen3-4B training job. Version 1 failed its literal-string evaluation and is unavailable in Try models. This does not establish improved dialogue or a trained adapter answering the game. [The training run report](MUBIT_TRAINING_RUN.md) records the evidence and remaining service blocker. External game ratings remain disabled by default; the historical local test below is separate.
 
+## Consent-gated model-update implementation (not activated)
+
+The reviewable implementation now separates optional full-chat training permission
+from standard vote feedback, defaults inference recording to metadata, and sends
+external ratings only for calls eligible under every human's pre-round grant.
+Grant revisions prevent withdrawal/re-enabling from reviving old uploads.
+It still needs Elias's authorised backend/account activation, enough kept
+examples, a passing adapter and fresh serving evidence. See
+[MODEL_LEARNING_ACTIVATION.md](MODEL_LEARNING_ACTIVATION.md).
+
 At the end of every round, the votes decide whether each bot passed as human or got found out. That verdict can feed two loops; only the prompt-lesson loop is enabled by default.
 
 ```

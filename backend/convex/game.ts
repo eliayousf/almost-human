@@ -1,3 +1,5 @@
+import { chatTrainingAllowed } from "./learningConsent";
+import { CHAT_TRAINING_POLICY_VERSION } from "../../shared/playtest-policy";
 import { v, type Infer } from "convex/values";
 import { saveMessage, listMessages } from "@convex-dev/agent";
 import { RateLimiter, MINUTE } from "@convex-dev/rate-limiter";
@@ -12,7 +14,7 @@ import { matchWaiting } from "./matchmaking";
 import { castFaceIds } from "./cast";
 import { LEGACY_PLAYTEST_POLICY } from "../../shared/playtest-policy";
 import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
-import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV, joinQueueV } from "./validators";
+import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV, joinQueueV, chatTrainingConsentV } from "./validators";
 
 const limiter = new RateLimiter(components.rateLimiter, {
   chat: { kind: "token bucket", rate: 45, period: MINUTE, capacity: 3 },
@@ -92,6 +94,21 @@ export const setTrainingConsent = playerMutation({ args: { input: consentV }, re
     return ok(sessionView((await ctx.db.get(player._id))!));
   });
 } });
+export const setChatTrainingConsent = playerMutation({
+  args: { input: chatTrainingConsentV }, returns: resultV(sessionV), handler: async (ctx, { input }) => {
+    if (!ctx.player) return unauthenticated();
+    const player = ctx.player;
+    return idempotent(ctx, player._id, "chatTrainingConsent", input, async () => {
+      if (input.policyVersion !== CHAT_TRAINING_POLICY_VERSION) return fail("INVALID_INPUT", "Please read the current optional chat-training notice.");
+      if (input.allowed && (player.activeRoundId || player.activeQueueId)) return fail("ALREADY_IN_ROUND", "Enable chat training in the lobby before joining a new room.");
+      const changed = input.allowed !== chatTrainingAllowed(player);
+      await ctx.db.patch(player._id, { chatTrainingConsentRevision: changed ? (player.chatTrainingConsentRevision ?? 0) + 1 : player.chatTrainingConsentRevision ?? 0, chatTrainingOptIn: input.allowed, chatTrainingPolicyVersion: CHAT_TRAINING_POLICY_VERSION,
+        ...(input.allowed && changed ? { chatTrainingAcceptedAt: Date.now() } : {}), updatedAt: Date.now() });
+      return ok(sessionView((await ctx.db.get(player._id))!));
+    });
+  },
+});
+
 export const heartbeat = playerMutation({ args: { sessionId: v.string() }, returns: resultV(v.null()), handler: async (ctx, { sessionId }) => {
   if (!ctx.player) return unauthenticated();
   if (!validRequestId(sessionId)) return fail("INVALID_INPUT", "Invalid connection identifier.");

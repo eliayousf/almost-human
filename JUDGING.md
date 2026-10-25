@@ -7,10 +7,18 @@ multiplayer game backend plus a verified synthetic Mubit training experiment.
 **The trained adapter cannot currently serve a fresh live answer.** This package
 documents that blocker; it does not claim all four criteria are satisfied.
 
-Almost Human is a disclosed human-or-AI guessing game. Its proposed recurring
-task is generating short, natural NPC dialogue for game developers, with play
-testing providing feedback. That developer benefit is a hypothesis, not a
-validated customer result.
+Almost Human is a disclosed human-or-AI guessing game used as a text-based
+conversation and feedback collection prototype. Its intended users are
+**voice-agent builders**: natural-sounding audio can still be paired with
+awkward wording. The recurring task is generating short, contextual dialogue;
+the goal is to train models that produce better wording with lower latency.
+The current product has no voice integration, and neither quality gains nor
+speed gains have been demonstrated.
+
+A Human vote measures perceived human-likeness of the conversation, not the
+correctness or quality of every line. Human-authored training targets remain
+future work requiring a separate permission and review workflow; the existing
+terms and completed synthetic experiment do not establish that capability.
 
 The released Expo interface includes 25 animated characters, 60-second chat,
 up to 10 seconds to vote, immediate reveal when all humans have voted, and
@@ -53,7 +61,7 @@ The [organizer's event page](https://luma.com/nightshift-london), checked on
 | Criterion | Evidence available now | What is not established |
 | --- | --- | --- |
 | **Use of Mubit — 25%** | Real gateway calls; a reviewed conversational correction; 36 kept synthetic examples from 36 sessions; completed Qwen3-4B training job and v1 evaluation. [Snapshot](judging/evidence/mubit-run.json), [run report](MUBIT_TRAINING_RUN.md), [runner](scripts/mubit-learning-proof.py). | Fresh live trained-adapter answer; improved quality; automatic learning from real players; a replacement-target API. |
-| **Usefulness — 25%** | Implemented recurring dialogue generation and game feedback collection. [User/job rationale and validation protocol](judging/USEFULNESS.md), [bot behavior](backend/BOTS.md). | Customer demand, retention, willingness to pay, or measured improvement in the player experience. |
+| **Usefulness — 25%** | Implemented text-dialogue generation and believability-feedback collection, aimed at improving voice-agent wording. [User/job rationale and validation protocol](judging/USEFULNESS.md), [bot behavior](backend/BOTS.md). | Voice-agent deployment, customer demand, spoken-dialogue improvement, latency gains or human-authored training-target ingestion. |
 | **Technical execution — 25%** | Released Expo game, all 100 WebP assets checked, verified hosted chat/vote/reveal and replay, plus reproducible backend/client tests and builds. [Check receipt](judging/evidence/checks.json), [integration evidence](INTEGRATION.md), [responsive layout and concurrency checks](frontend/expo/MOBILE_MULTIPLAYER.md). | Comprehensive moderation, public-launch hardening, measured live concurrency capacity or physical-iPhone verification. |
 | **Demo — 25%** | Public main playtest, earlier verified live rounds, diagnostic clients, labelled fixtures, a proposed timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal or a live learned-model demo. |
 

@@ -1,3 +1,4 @@
+import { chatTrainingAllowed } from "./learningConsent";
 import { createThread } from "@convex-dev/agent";
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx } from "./_generated/server";
@@ -55,6 +56,8 @@ async function seatLobby(ctx: MutationCtx, now: number, group: Doc<"queue">[], b
   const roundId = await ctx.db.insert("rounds", {
     phase: "countdown", revision: 1, createdAt: now, updatedAt: now,
     chatStartsAt, chatEndsAt, votingEndsAt: chatEndsAt + GAME_DEFAULTS.votingMs,
+    chatTrainingAllowed: players.every(chatTrainingAllowed),
+    ...(players.every(chatTrainingAllowed) ? { chatTrainingConsents: players.map(player => ({ playerId: player!._id, revision: player!.chatTrainingConsentRevision! })) } : {}),
     topic, threadId, messageCount: 0, settled: false, botTurn: 0,
   });
   const seats = shuffled([

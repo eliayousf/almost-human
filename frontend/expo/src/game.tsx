@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { CHAT_TRAINING_POLICY_VERSION } from "../../../shared/playtest-policy";
 import { ConvexReactClient } from 'convex/react';
 import { AlmostHumanProvider, useAlmostHuman, useGameSession, useGameQueue, useGameRound, useRoundSeconds } from '../../../shared/react-game';
 import type { ApiResult, ReportReason } from '../../../shared/game-contract';
@@ -90,6 +91,8 @@ export function useLiveGame() {
     if (!adult || !rules) return;
     await command('terms', VOTE_FEEDBACK_TERMS_VERSION, id => game!.createSession({ clientRequestId: id, adultConfirmed: true, rulesAccepted: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true }));
   };
+  const chatTraining = async (allowed: boolean) => Boolean((await command('chatTraining', allowed,
+    id => game!.setChatTrainingConsent({ clientRequestId: id, allowed, policyVersion: CHAT_TRAINING_POLICY_VERSION })))?.ok);
   let state: State | undefined;
   let mappingError = '';
   if (session) {
@@ -104,5 +107,5 @@ export function useLiveGame() {
     needsAcceptance: Boolean(game && ((sessionResult && !sessionResult.ok && sessionResult.error.code === 'UNAUTHENTICATED') || (needsCurrentTerms(session) && !roundId && !queueId))),
     updatingTerms: needsCurrentTerms(session),
     queueing: Boolean(queueId), queueClosed: Boolean(queue && !queue.ok && queue.error.code === 'QUEUE_CLOSED'),
-    roundId, partner, play, send, typing: typingReporter.update, vote, accept, cancelQueue, leave, report, block, toLobby };
+    roundId, partner, play, send, typing: typingReporter.update, vote, accept, chatTraining, cancelQueue, leave, report, block, toLobby };
 }

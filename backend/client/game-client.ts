@@ -2,7 +2,7 @@ import type { ConvexClient } from "convex/browser";
 import type { ConvexReactClient } from "convex/react";
 import { makeFunctionReference, type FunctionReference } from "convex/server";
 import type {
-  ApiErrorCode, ApiResult, BlockInput, ChatMessage, CommandInput, CreateSessionInput,
+  ApiErrorCode, ApiResult, ChatTrainingConsentInput, BlockInput, ChatMessage, CommandInput, CreateSessionInput,
   GameClient, LeaderboardView, LeftResult, QueueTicket, RecordedResult, ReportInput,
   RoundSnapshot, SendMessageInput, SessionView, SubmitVotesInput, TrainingConsentInput,
 } from "../../shared/game-contract";
@@ -20,6 +20,7 @@ const refs = {
   leaderboard: makeFunctionReference<"query", Empty, ApiResult<LeaderboardView>>("game:getLeaderboard"),
   createSession: makeFunctionReference<"mutation", { input: CreateSessionInput }, ApiResult<SessionView>>("game:createSession"),
   consent: makeFunctionReference<"mutation", { input: TrainingConsentInput }, ApiResult<SessionView>>("game:setTrainingConsent"),
+  chatConsent: makeFunctionReference<"mutation", { input: ChatTrainingConsentInput }, ApiResult<SessionView>>("game:setChatTrainingConsent"),
   joinQueue: makeFunctionReference<"mutation", { input: CommandInput }, ApiResult<QueueTicket>>("game:joinQueue"),
   leaveQueue: makeFunctionReference<"mutation", { queueId: string; input: CommandInput }, ApiResult<LeftResult>>("game:leaveQueue"),
   setTyping: makeFunctionReference<"mutation", { roundId: string; typing: boolean }, ApiResult<null>>("game:setTyping"),
@@ -233,6 +234,7 @@ export function createConvexGameClient(
       if (result.ok) await heartbeat();
       return result;
     }),
+    setChatTrainingConsent: (input) => call(() => convex.mutation(refs.chatConsent, { input })),
     setTrainingConsent: (input) => call(() => convex.mutation(refs.consent, { input })),
     joinQueue: (input) => call(() => convex.mutation(refs.joinQueue, { input })),
     getQueue: (queueId) => call(() => convex.query(refs.queue, { queueId }), true),

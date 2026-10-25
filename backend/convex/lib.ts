@@ -1,3 +1,4 @@
+import { chatTrainingAllowed } from "./learningConsent";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { customCtx, customMutation, customQuery } from "convex-helpers/server/customFunctions";
 import { query, mutation, type QueryCtx, type MutationCtx } from "./_generated/server";
@@ -26,7 +27,7 @@ export async function memberFor(ctx: QueryCtx | MutationCtx, playerId: Id<"playe
 }
 export const recognition = (received: number, recognised: number) => ({ humanVotesReceived: received, humanVotesRecognisingYou: recognised, fraction: received === 0 ? null : recognised / received });
 export function sessionView(player: Doc<"players">) {
-  return { serverNow: iso(player.updatedAt), leaderboardEntryId: player._id, leaderboardAlias: player.alias, totalGuessingPoints: player.guessingPoints, trainingOptIn: player.trainingOptIn, policyVersion: player.policyVersion,
+  return { serverNow: iso(player.updatedAt), leaderboardEntryId: player._id, leaderboardAlias: player.alias, totalGuessingPoints: player.guessingPoints, trainingOptIn: player.trainingOptIn, chatTrainingOptIn: chatTrainingAllowed(player), policyVersion: player.policyVersion,
     ...(player.activeRoundId ? { activeRoundId: player.activeRoundId } : {}), ...(player.activeQueueId ? { activeQueueId: player.activeQueueId } : {}) };
 }
 export function queueView(ticket: Doc<"queue">) {

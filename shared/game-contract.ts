@@ -123,6 +123,8 @@ export interface SessionView {
   totalGuessingPoints: number;
   /** Legacy field name: vote/bot-reply feedback eligibility, not human-chat training permission. */
   trainingOptIn: boolean;
+  /** Separate, voluntary permission for full chat training records. */
+  chatTrainingOptIn?: boolean;
   /** Accepted terms version; older deployed clients may omit this field. */
   policyVersion?: string;
   /** Optional resume pointers for this player only. */
@@ -179,6 +181,8 @@ export interface TrainingConsentInput extends CommandInput {
   trainingOptIn: boolean;
 }
 
+export interface ChatTrainingConsentInput extends CommandInput { allowed: boolean; policyVersion: string }
+
 export interface SendMessageInput extends CommandInput { text: string }
 /** One guess for each of the other seats (1-4 votes depending on lobby size). */
 export interface SubmitVotesInput extends CommandInput { votes: readonly Guess[] }
@@ -207,6 +211,7 @@ export interface GameClient {
   getSession(): Promise<ApiResult<SessionView>>;
   createSession(input: CreateSessionInput): Promise<ApiResult<SessionView>>;
   setTrainingConsent(input: TrainingConsentInput): Promise<ApiResult<SessionView>>;
+  setChatTrainingConsent(input: ChatTrainingConsentInput): Promise<ApiResult<SessionView>>;
   joinQueue(input: JoinQueueInput): Promise<ApiResult<QueueTicket>>;
   getQueue(queueId: string): Promise<ApiResult<QueueTicket>>;
   leaveQueue(queueId: string, input: CommandInput): Promise<ApiResult<LeftResult>>;

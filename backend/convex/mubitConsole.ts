@@ -48,15 +48,14 @@ async function mapi(token: string, path: string, body?: Json): Promise<Json> {
 export const rateRound = internalAction({
   args: { roundId: v.id("rounds"), attempt: v.number() }, returns: v.null(),
   handler: async (ctx, { roundId, attempt }) => {
-    if (env.MUBIT_RATINGS_ENABLED !== "true" || !env.MUBIT_CONSOLE_COOKIE) return null;
+    if (env.MUBIT_RATINGS_ENABLED !== "true" || !env.MUBIT_CONSOLE_COOKIE || !env.MUBIT_PROJECT?.trim()) return null;
     const calls = await ctx.runQuery(internal.ratings.pending, { roundId });
     if (!calls.length) return null;
     const retry = attempt + 1 < MAX_ATTEMPTS;
     try {
       const token = await adminToken(env.MUBIT_CONSOLE_COOKIE);
-      const projects = env.MUBIT_PROJECT ? null : await mapi(token, "/engine/v2/projects?limit=1000");
-      const project = env.MUBIT_PROJECT ?? String(record((projects?.projects as unknown[] | undefined)?.[0]).slug ?? "");
-      if (!project) throw new Error("No Mubit project found for the console login");
+      // Never pick an arbitrary project from a broad console login.
+      const project = env.MUBIT_PROJECT.trim();
       // Find each call's trace by its request ID among the project's newest traces.
       const traces = new Map<string, Json>();
       let cursor = "";
@@ -76,6 +75,9 @@ export const rateRound = internalAction({
         const routing = record(trace.routing);
         const adapter = record(routing.adapter);
         const servedBy = `${String(routing.served_by ?? "unknown")}${routing.adapter ? `:${String(adapter.version ?? adapter.id ?? "adapter")}` : ""}`;
+        // Trace lookup/authentication can take time; honour a withdrawal before each upload.
+        const eligible = await ctx.runQuery(internal.ratings.pending, { roundId });
+        if (!eligible.some(candidate => candidate.id === call.id)) continue;
         try {
           await mapi(token, `/engine/v2/traces/${encodeURIComponent(String(trace.trace_id))}/feedback`, { rating: call.rating, comment: call.comment });
           results.push({ id: call.id, status: "sent" as const, servedBy });

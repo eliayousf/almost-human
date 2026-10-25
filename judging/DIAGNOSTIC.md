@@ -63,6 +63,11 @@ must be tested against that deadline and the one-minute round, including cold
 starts. The contract tests establish neither real adapter latency nor successful
 warm-up. See [botTiming.ts](../backend/convex/botTiming.ts).
 
+The proposed downstream use is improving voice-agent dialogue. These tests cover
+the text-game response path, not speech recognition, speech synthesis, turn-taking
+or time to first audio. The 6–12-second game display pause is not an inference
+benchmark, and the ten-second timeout is not a claimed voice-performance target.
+
 The existing v1 also had a real quality weakness: only 2 of its 12 held-out
 answers met the short-reply constraints. Its literal-answer grading problem
 does not establish that the model was otherwise good. See the

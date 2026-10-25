@@ -26,14 +26,15 @@ file limit and leave roughly ten seconds of duration headroom.
 
 | Video time | Show | Say |
 | --- | --- | --- |
-| 0:00–0:12 | The live game, already in a round | Almost Human is a one-minute human-or-AI guessing game, designed as a repeatable testbed for short NPC dialogue. |
-| 0:12–0:35 | Send a message and show the actual reply | This round is already in progress. Players' guesses supply a believability signal. All game-model calls go through Mubit. |
+| 0:00–0:12 | The live game, already in a round | Natural-sounding speech still needs natural conversation. Almost Human collects dialogue feedback through a one-minute game, aiming to improve the words voice agents say. |
+| 0:12–0:35 | Send a message and show the actual reply | This is our text-based collection prototype, already in a round. Guesses measure perceived human-likeness, not guaranteed response quality. All game-model calls go through Mubit. |
 | 0:35–0:52 | Vote and show the actual reveal/score | The server locks the vote, reveals the role and awards points. React to the actual outcome; don't promise a correct guess. |
 | 0:52–1:20 | The real original/corrected synthetic example and completed-v1 receipt | We supplied editorial feedback and approved the corrected conversation. Mubit kept 36 synthetic examples and completed adapter v1. Training happened earlier. |
 | 1:20–1:35 | Current adapter status, briefly | The version did not pass evaluation and is not serving. Live game replies are still provider inference through Mubit. We have added reviewed examples, but do not claim a fresh adapter answer. |
 | 1:35–1:45 | Main README and proof/check links | The game and reproducible checks are available on GitHub main. The next acceptance gate is a version-verified adapter answer on an unseen question. |
 
-A bot reply deliberately pauses 6–12 seconds after generation. Narrate while
+A bot reply deliberately pauses 6–12 seconds after generation; that is a game
+display effect, not a voice-latency benchmark. Narrate while
 waiting; don't spend the video watching a silent timer. If the live round fails,
 record another take. If editing out downtime, make the cut apparent and keep the
 normal one-minute duration clear. Do not manufacture a result or splice a provider
@@ -46,8 +47,12 @@ refresh corrections are accepted-data evidence, not a completed new version.
 
 ## Essential claims
 
-- **Usefulness:** repeated short NPC-dialogue generation and evaluation. Developer
-  demand and actual quality gains have not been measured.
+- **Usefulness:** repeated conversational-response generation for voice-agent
+  builders. The game collects text and believability feedback; actual voice
+  integration, customer demand, spoken-response quality and speed gains are unverified.
+- **Future data:** reviewed human-written responses could provide targets with
+  separate permission and personal-data filtering. This is not implemented or
+  authorized by the current playtest terms.
 - **Mubit:** real gateway calls, a reviewed synthetic conversational correction,
   completed v1 training, and an explicit serving limitation.
 - **Execution:** actual game behavior plus reproducible code checks. Mocked contract

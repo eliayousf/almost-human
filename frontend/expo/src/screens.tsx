@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Animated, Easing, FlatList, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Image as AnimatedImage } from 'expo-image';
 import { cast } from './cast';
 import { animationDelay, nextAnimation, randomCharacterId, type AnimationMode } from './random';
 
 import type { Phase, Verdict, State } from './game-state';
+import { roundResult } from './round-result';
 import { useVisibleHeight } from './viewport';
 import { GAME_DEFAULTS } from '../../../shared/game-contract';
 export const C = { bg: '#0b0a08', screen: '#14130f', surface: '#1c1a15', border: '#363229', gold: '#cfaf68', ivory: '#eee9dc', text: '#cec9bb', muted: '#a09a8c', green: '#95b69c', red: '#d26753' };
@@ -18,6 +19,53 @@ export function Label({ children, gold = false }: { children: React.ReactNode; g
 export function Button({ title, onPress, disabled = false }: { title: string; onPress: () => void; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" disabled={disabled} onPress={onPress} style={({ pressed }) => [s.button, pressed && { backgroundColor: '#322c1f' }, disabled && { opacity: .5 }]}><Text style={s.buttonText}>{title}</Text></Pressable>;
 }
+const RESULT_LOOK = {
+  win: { color: C.green, background: '#1a241c', glyph: '✓' },
+  loss: { color: C.red, background: '#2a1915', glyph: '×' },
+  missed: { color: C.gold, background: '#242016', glyph: '—' },
+} as const;
+
+function ResultFeedback({ result, total, streak, compact }: { result: ReturnType<typeof roundResult>; total: number; streak?: number; compact: boolean }) {
+  const { color, background, glyph } = RESULT_LOOK[result.kind];
+  const [reduced, setReduced] = useState<boolean | null>(null);
+  const progress = useRef(new Animated.Value(0)).current;
+  const shake = useRef(new Animated.Value(0)).current;
+  const played = useRef(false);
+  useEffect(() => {
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled().then(value => { if (active) setReduced(value); }, () => { if (active) setReduced(true); });
+    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduced);
+    return () => { active = false; subscription.remove(); };
+  }, []);
+  useEffect(() => {
+    if (reduced === null) return;
+    if (reduced || played.current) { progress.setValue(1); shake.setValue(0); played.current = true; return; }
+    played.current = true;
+    const useNativeDriver = Platform.OS !== 'web';
+    const animation = result.kind === 'win'
+      ? Animated.spring(progress, { toValue: 1, friction: 6, tension: 70, useNativeDriver })
+      : result.kind === 'loss'
+        ? Animated.sequence([
+          Animated.timing(progress, { toValue: 1, duration: 200, easing: Easing.in(Easing.cubic), useNativeDriver }),
+          ...[8, -6, 4, -2, 0].map(toValue => Animated.timing(shake, { toValue, duration: 50, useNativeDriver })),
+        ])
+        : Animated.timing(progress, { toValue: 1, duration: 350, useNativeDriver });
+    animation.start();
+    return () => { animation.stop(); progress.setValue(1); shake.setValue(0); };
+  }, [reduced, result.kind, progress, shake]);
+  const opacity = progress.interpolate({ inputRange: [0, result.kind === 'missed' ? 1 : .3], outputRange: [0, 1], extrapolate: 'clamp' });
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [result.kind === 'loss' ? 1.15 : result.kind === 'win' ? .9 : 1, 1] });
+  return <View style={[s.resultArea, compact && { paddingVertical: 16 }]} accessible accessibilityLiveRegion="polite" accessibilityLabel={`${result.label}. ${result.points} points this round. Total ${total}${streak !== undefined ? `, streak ${streak}` : ''}.`}>
+    <Animated.View testID={`result-${result.kind}`} style={[s.resultBadge, { borderColor: color, backgroundColor: background, opacity, transform: [{ translateX: shake }, { scale }, { rotate: result.kind === 'loss' ? '-3deg' : '0deg' }] }]}>
+      {result.kind === 'win' && <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, s.resultRing, { borderColor: color, opacity: progress.interpolate({ inputRange: [0, .2, 1], outputRange: [0, .5, 0], extrapolate: 'clamp' }), transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [1, 1.3] }) }] }]} />}
+      <View style={[s.resultMark, { borderColor: color }]}><Text style={{ color, fontSize: 24, fontWeight: '700' }}>{glyph}</Text></View>
+      <Text style={[s.score, { color: result.kind === 'missed' ? C.muted : color, marginBottom: 0, fontSize: 48 }]}>{result.points}</Text>
+    </Animated.View>
+    <Text style={[s.label, { color, textAlign: 'center' }]}>{result.label}</Text>
+    <Text style={[s.footnote, { marginTop: 8 }]}>TOTAL {total}{streak !== undefined ? ` · STREAK ${streak}` : ''}</Text>
+  </View>;
+}
+
 function MotionPortrait({ faceId, mode }: { faceId: number; mode: AnimationMode }) {
   const face = cast.find(f => f.id === faceId) || cast[0];
   const [failed, setFailed] = useState(false);
@@ -62,6 +110,7 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
   const left = Math.max(0, Math.ceil((((phase === 'guess' ? state.guessEndsAt : state.endsAt) || 0) - (state.now || 0)) / 1000));
   const timer = `${Math.floor(left / 60)}:${String(Math.ceil(left % 60)).padStart(2, '0')}`;
   const submit = async () => { if (text.trim() && await onSend(text.trim())) { setText(''); onTyping?.(false); } };
+  const result = state.reveal ? roundResult(state.reveal) : undefined;
   const title = phase === 'chat' ? `ROUND · ${timer}` : phase === 'guess' ? `VERDICT · ${timer}` : phase === 'reveal' ? 'ROUND OVER' : 'YOUR ROOM';
   return <Frame title={title} onMenu={onMenu}>
     {(phase === 'idle' || phase === 'waiting') && <>
@@ -94,10 +143,10 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
       <Text style={s.footnote}>{state.guessed ? 'LOCKED IN. REVEALING WHEN VOTING FINISHES…' : 'CHOOSE BEFORE THE TIMER ENDS. NO VOTE SCORES ZERO.'}</Text>
     </>}
     {phase === 'reveal' && state.reveal && <>
-      <Text style={s.heading}>Who was real?</Text><Text style={s.subtitle}>{state.reveal.yourGuess === undefined ? 'No call was submitted this round.' : state.reveal.correct ? 'You called it. But did they believe you?' : 'Some voices are harder to read.'}</Text>
-      <View style={s.voteCard}><Portrait small faceId={partner?.faceId} name={partner?.name || 'Stranger'} mode="smile" /><View style={{ flex: 1, gap: 7 }}><Text style={s.name}>{partner?.name}</Text><Label>YOU SAID {state.reveal.yourGuess === 'human' ? 'HUMAN' : state.reveal.yourGuess === 'ai' ? 'MACHINE' : 'NOTHING'}</Label></View><Text style={[s.stamp, { color: state.reveal.truth === 'human' ? C.green : C.red, borderColor: state.reveal.truth === 'human' ? C.green : C.red }]}>{state.reveal.truth === 'human' ? 'HUMAN' : 'MACHINE'}</Text></View>
+      <Text style={[s.heading, { color: RESULT_LOOK[result!.kind].color }]}>{result!.title}</Text><Text style={s.subtitle}>{result!.detail}</Text>
+      <View style={[s.voteCard, { borderColor: RESULT_LOOK[result!.kind].color + '66' }]}><Portrait small faceId={partner?.faceId} name={partner?.name || 'Stranger'} mode={result!.kind === 'win' ? 'smile' : 'idle'} autoSwitch={false} /><View style={{ flex: 1, gap: 7 }}><Text style={s.name}>{partner?.name}</Text><Label>YOU SAID {state.reveal.yourGuess === 'human' ? 'HUMAN' : state.reveal.yourGuess === 'ai' ? 'MACHINE' : 'NOTHING'}</Label></View><Text style={[s.stamp, { color: state.reveal.truth === 'human' ? C.green : C.red, borderColor: state.reveal.truth === 'human' ? C.green : C.red }]}>{state.reveal.truth === 'human' ? 'HUMAN' : 'MACHINE'}</Text></View>
       <Text style={[s.body, { marginTop: 20 }]}>{state.reveal.judgeOnPartner?.tell || (state.reveal.truth === 'ai' ? 'A machine was behind that voice.' : 'A real person was on the other side.')}</Text>
-      <View style={s.scoreArea}><Text style={s.score}>{`+${state.reveal.earnedPoints ?? (state.reveal.correct ? 1 : 0)}`}</Text><Label gold>{state.reveal.yourGuess === undefined ? 'NO CALL SUBMITTED' : state.reveal.correct ? 'GOOD READ' : 'THEY FOOLED YOU'}</Label><Text style={s.footnote}>TOTAL {state.score}{state.reveal.streak !== undefined ? ` · STREAK ${state.reveal.streak}` : ''}</Text></View>
+      <ResultFeedback key={state.roomId} result={result!} total={state.score} streak={state.reveal.streak} compact={compact} />
       <Label>RECOGNITION · HUMANS WHO CALLED YOU HUMAN</Label><View style={[s.track, { marginTop: 8, marginBottom: 20 }]}><View style={[s.progress, { backgroundColor: C.green, width: `${(state.reveal.recognition?.fraction ?? 0) * 100}%` }]} /></View>
       {state.reveal.recognition?.fraction == null && <Text style={s.subtitle}>Unrated. No human judged you this round.</Text>}
       <Button title="Next room" onPress={onPlay} disabled={busy} />
@@ -124,11 +173,15 @@ export function CastGallery() {
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { item: typeof cast[number] }[] }) => setVisible(new Set(viewableItems.map(item => item.item.id))));
   return <FlatList key={columns} data={cast} numColumns={columns} keyExtractor={face => String(face.id)} extraData={visible} initialNumToRender={columns * 2} windowSize={3} maxToRenderPerBatch={columns} viewabilityConfig={viewability.current} onViewableItemsChanged={onViewableItemsChanged.current} contentContainerStyle={{ padding: 24, alignSelf: 'center', gap: 16 }} columnWrapperStyle={columns > 1 ? { gap: 16 } : undefined} ListHeaderComponent={<><Text style={[s.previewTitle, { textAlign: 'center' }]}>Almost Human</Text><Text style={s.subtitle}>25 characters · Idle / Talk / Smile</Text></>} renderItem={({ item }) => <CastCard face={item} visible={visible.has(item.id)} />} />;
 }
-export const previewState: State = { phase: 'chat', partnerTyping: true, topic: previewTopic, roundMs: GAME_DEFAULTS.chatMs, voteMs: GAME_DEFAULTS.votingMs, name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 12, right: 9, played: 11, now: 0, endsAt: 57000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, score: 12, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
+export const previewState: State = { phase: 'chat', partnerTyping: true, topic: previewTopic, roundMs: GAME_DEFAULTS.chatMs, voteMs: GAME_DEFAULTS.votingMs, name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 300, right: 9, played: 11, now: 0, endsAt: 57000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, earnedPoints: 100, score: 300, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
 export const s = StyleSheet.create({
+  resultArea: { alignItems: 'center', paddingVertical: 24, gap: 8 },
+  resultBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, borderWidth: 1, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10, minWidth: 180, marginBottom: 6 },
+  resultMark: { width: 40, height: 40, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  resultRing: { borderWidth: 1, borderRadius: 12 },
   root: { flex: 1, backgroundColor: C.bg }, appColumn: { minHeight: 0, width: '100%', maxWidth: 420, flex: 1, alignSelf: 'center', paddingTop: Platform.OS === 'ios' ? 54 : 24, paddingBottom: Platform.OS === 'ios' ? 30 : 20 },
   phone: { backgroundColor: C.screen, flex: 1, padding: 24, borderWidth: 1, borderColor: '#28251e', borderRadius: 30, minHeight: 0 }, header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25, minHeight: 20 }, live: { width: 5, height: 5, borderRadius: 3, backgroundColor: '#a34532' }, label: { fontFamily: mono, color: C.muted, fontSize: 10, letterSpacing: 1.2, lineHeight: 15 }, heading: { fontSize: 22, fontWeight: '600', color: C.ivory, textAlign: 'center', letterSpacing: .2 }, subtitle: { color: C.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 8, marginBottom: 16 },
   singlePortrait: { width: '62%', maxWidth: 190, alignSelf: 'center', flexDirection: 'row', marginBottom: 16 }, portraitRow: { flexDirection: 'row', gap: 10, marginBottom: 16 }, portrait: { flex: 1, aspectRatio: 1, borderRadius: 8, overflow: 'hidden', backgroundColor: '#1c1b16', borderWidth: 1, borderColor: '#4c4430' }, thumb: { flex: 0, flexBasis: 48, flexShrink: 0, width: 48, height: 54, aspectRatio: undefined, borderRadius: 5 }, fill: { width: '100%', height: '100%' }, nameTag: { position: 'absolute', left: 6, right: 4, bottom: 6, backgroundColor: '#0b0a08b0', paddingHorizontal: 4 }, wave: { position: 'absolute', right: 8, bottom: 21, color: C.ivory, letterSpacing: 1, fontSize: 22 },
   countArea: { flex: 1, minHeight: 190, justifyContent: 'center', alignItems: 'center' }, count: { fontSize: 120, lineHeight: 140, color: C.ivory, fontWeight: '700', letterSpacing: -8 }, topic: { backgroundColor: '#282313', borderColor: '#66522a', borderWidth: 1, borderRadius: 10, padding: 12, gap: 5 }, topicText: { color: '#e1c37d', fontSize: 13, lineHeight: 18 }, track: { height: 3, backgroundColor: '#353229', overflow: 'hidden', marginBottom: 12 }, progress: { height: '100%', backgroundColor: C.gold }, messages: { flex: 1, marginTop: 20, minHeight: 160 }, body: { color: C.text, fontSize: 13, lineHeight: 20, marginTop: 4 }, composer: { flexDirection: 'row', minHeight: 46, borderColor: C.border, borderWidth: 1, borderRadius: 10, backgroundColor: '#11100c' }, input: { flex: 1, color: C.ivory, padding: 12, fontSize: 16 }, send: { minWidth: 54, minHeight: 44, justifyContent: 'center', alignItems: 'center', borderLeftWidth: 1, borderColor: C.border },
-  ticks: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginBottom: 24 }, tick: { width: 18, height: 3, backgroundColor: C.gold }, voteCard: { backgroundColor: C.surface, borderRadius: 12, padding: 10, borderColor: '#2d2920', borderWidth: 1, flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 78, marginTop: 10 }, name: { color: C.ivory, fontWeight: '600', fontSize: 13 }, voteButtons: { flexDirection: 'row', gap: 8, marginTop: 12 }, voteButton: { flex: 1, minHeight: 46, justifyContent: 'center', alignItems: 'center', borderRadius: 7, borderWidth: 1, borderColor: C.border }, voteText: { fontFamily: mono, fontSize: 11, color: C.ivory, letterSpacing: 1 }, footnote: { color: C.muted, fontFamily: mono, fontSize: 8, letterSpacing: 1.1, textAlign: 'center', lineHeight: 15, marginTop: 16 }, stamp: { fontFamily: mono, fontSize: 9, letterSpacing: 1, paddingVertical: 4, paddingHorizontal: 6, borderWidth: 1, borderRadius: 2, transform: [{ rotate: '-6deg' }] }, scoreArea: { alignItems: 'center', marginVertical: 32 }, score: { color: C.gold, fontSize: 40, fontWeight: '700', marginBottom: 6 }, button: { borderWidth: 1, borderColor: '#403a2d', borderRadius: 9, backgroundColor: '#24211a', minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }, buttonText: { color: C.ivory, fontWeight: '600', fontSize: 13, letterSpacing: 1 }, brand: { color: C.ivory, fontSize: 54, fontWeight: '700', letterSpacing: -3, lineHeight: 57, marginTop: 10 }, tagline: { color: C.gold, fontSize: 15, marginTop: 14, marginBottom: 28 }, joinInput: { color: C.ivory, borderBottomWidth: 1, borderColor: C.border, paddingVertical: 14, marginBottom: 22, fontSize: 14 }, disclosure: { color: C.muted, fontSize: 11, lineHeight: 17, marginTop: 20 }, error: { color: '#ef9b86', padding: 12, fontSize: 12 }, preview: { padding: 32, alignItems: 'center', gap: 24 }, previewIntro: { alignItems: 'center' }, previewTitle: { color: C.ivory, fontSize: 28, fontWeight: '600', marginTop: 10 }, previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, justifyContent: 'center' }, previewColumn: { width: 290, height: 730 }, caption: { color: C.muted, textAlign: 'center', fontFamily: mono, fontSize: 10, paddingTop: 14 },
+  ticks: { flexDirection: 'row', justifyContent: 'center', gap: 5, marginBottom: 24 }, tick: { width: 18, height: 3, backgroundColor: C.gold }, voteCard: { backgroundColor: C.surface, borderRadius: 12, padding: 10, borderColor: '#2d2920', borderWidth: 1, flexDirection: 'row', gap: 10, alignItems: 'center', minHeight: 78, marginTop: 10 }, name: { color: C.ivory, fontWeight: '600', fontSize: 13 }, voteButtons: { flexDirection: 'row', gap: 8, marginTop: 12 }, voteButton: { flex: 1, minHeight: 46, justifyContent: 'center', alignItems: 'center', borderRadius: 7, borderWidth: 1, borderColor: C.border }, voteText: { fontFamily: mono, fontSize: 11, color: C.ivory, letterSpacing: 1 }, footnote: { color: C.muted, fontFamily: mono, fontSize: 8, letterSpacing: 1.1, textAlign: 'center', lineHeight: 15, marginTop: 16 }, stamp: { fontFamily: mono, fontSize: 9, letterSpacing: 1, paddingVertical: 4, paddingHorizontal: 6, borderWidth: 1, borderRadius: 2, transform: [{ rotate: '-6deg' }] }, score: { color: C.gold, fontSize: 40, fontWeight: '700', marginBottom: 6 }, button: { borderWidth: 1, borderColor: '#403a2d', borderRadius: 9, backgroundColor: '#24211a', minHeight: 48, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }, buttonText: { color: C.ivory, fontWeight: '600', fontSize: 13, letterSpacing: 1 }, brand: { color: C.ivory, fontSize: 54, fontWeight: '700', letterSpacing: -3, lineHeight: 57, marginTop: 10 }, tagline: { color: C.gold, fontSize: 15, marginTop: 14, marginBottom: 28 }, joinInput: { color: C.ivory, borderBottomWidth: 1, borderColor: C.border, paddingVertical: 14, marginBottom: 22, fontSize: 14 }, disclosure: { color: C.muted, fontSize: 11, lineHeight: 17, marginTop: 20 }, error: { color: '#ef9b86', padding: 12, fontSize: 12 }, preview: { padding: 32, alignItems: 'center', gap: 24 }, previewIntro: { alignItems: 'center' }, previewTitle: { color: C.ivory, fontSize: 28, fontWeight: '600', marginTop: 10 }, previewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 18, justifyContent: 'center' }, previewColumn: { width: 290, height: 730 }, caption: { color: C.muted, textAlign: 'center', fontFamily: mono, fontSize: 10, paddingTop: 14 },
 });

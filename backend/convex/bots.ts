@@ -25,30 +25,32 @@ export const takeTurn = internalAction({
         lessons: context.lessons,
       });
       let mubitRequestId: string | undefined;
-      const agent = new Agent<object, Record<string, never>>(components.agent, {
-        name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY, id => { mubitRequestId = id; }),
-        instructions: system.content,
-      });
-      let result;
-      try {
-        result = await agent.generateText(ctx, { threadId: context.threadId }, {
+      let trainingEligible = false;
+      const generate = async () => {
+        trainingEligible = context.trainingEligible && await ctx.runQuery(internal.botState.trainingEligibility, args);
+        const agent = new Agent<object, Record<string, never>>(components.agent, {
+          name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY!, id => { mubitRequestId = id; }, { mode: trainingEligible ? "full" : "metadata", sessionId: String(args.roundId) }),
+          instructions: system.content,
+        });
+        return agent.generateText(ctx, { threadId: context.threadId }, {
           prompt: user.content,
           maxOutputTokens: 384, maxRetries: 0,
         }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
+      };
+      let result;
+      try {
+        result = await generate();
       } catch (firstError) {
         if (!isTransientMubitError(firstError)
           || Date.now() + BOT_RETRY_DELAY_MS + MUBIT_TIMEOUT_MS + BOT_MIN_TYPING_MS >= context.chatEndsAt) throw firstError;
         console.error("bot turn first attempt failed:", firstError instanceof Error ? firstError.message : String(firstError));
         await new Promise((resolve) => setTimeout(resolve, BOT_RETRY_DELAY_MS));
-        result = await agent.generateText(ctx, { threadId: context.threadId }, {
-          prompt: user.content,
-          maxOutputTokens: 384, maxRetries: 0,
-        }, { contextOptions: { recentMessages: 0, searchOtherThreads: false }, storageOptions: { saveMessages: "none" } });
+        result = await generate();
       }
       // Only the transactional commit can publish a moderated reply, and only
       // while the claimed turn still belongs to an active chat window.
       await ctx.runMutation(internal.botState.prepareReply, {
-        ...args, text: result.text, mubitRequestId, lessonCount: context.lessons.passed.length + context.lessons.caught.length,
+        ...args, text: result.text, mubitRequestId, trainingEligible, lessonCount: context.lessons.passed.length + context.lessons.caught.length,
       });
     } catch (error) {
       console.error("bot turn failed:", error instanceof Error ? error.message : String(error));
