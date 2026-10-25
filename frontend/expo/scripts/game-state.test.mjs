@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import { displayState } from '../src/game-state.ts';
+import { needsCurrentTerms, VOTE_FEEDBACK_TERMS_VERSION } from '../../../shared/playtest-policy.ts';
+
+assert.equal(needsCurrentTerms(null), false);
+assert.equal(needsCurrentTerms({ policyVersion: 'playtest-v1' }), true);
+assert.equal(needsCurrentTerms({}), true);
+assert.equal(needsCurrentTerms({ policyVersion: VOTE_FEEDBACK_TERMS_VERSION }), false);
+
+const session = { leaderboardAlias: 'Synthetic', totalGuessingPoints: 0 };
+const participants = [{ id: 'self', alias: 'Mango', faceId: 4 }, { id: 'other', alias: 'Pebble', faceId: 9 }];
+const base = { roundId: 'round', selfId: 'self', participants, revision: 1, serverNow: '2026-10-25T00:00:00Z' };
+const countdown = displayState(session, { ...base, phase: 'countdown', chatStartsAt: '2026-10-25T00:00:03Z' }, 0);
+assert.equal(countdown.phase, 'waiting');
+assert.equal(countdown.topic, undefined);
+assert.equal(countdown.reveal, undefined);
+assert.equal(countdown.partner.faceId, 9);
+const chat = { ...base, phase: 'chat', topic: { text: 'Actual server topic' }, chatEndsAt: '2026-10-25T00:01:03Z', messages: [{ senderId: 'self', text: 'synthetic hello' }] };
+assert.equal(displayState(session, chat, 0).topic, 'Actual server topic');
+assert.equal(displayState(session, chat, 0).roundMs, 60000);
+assert.deepEqual(displayState(session, chat, 0).messages, [{ me: true, text: 'synthetic hello' }]);
+const voting = { ...chat, phase: 'voting', votingEndsAt: '2026-10-25T00:01:13Z', ownBallot: { status: 'submitted', votes: [{ participantId: 'other', label: 'ai' }] } };
+const guessed = displayState(session, voting, 0);
+assert.equal(guessed.guessed, 'ai');
+assert.equal(guessed.voteMs, 10000);
+assert.equal(guessed.reveal, undefined);
+const reveal = { ...chat, phase: 'reveal', participants: participants.map((p, i) => ({ ...p, kind: i ? 'ai' : 'human' })), yourResult: { totalGuessingPoints: 100, guessingPointsEarned: 100, correctGuessCount: 1, streak: 1, votes: [{ participantId: 'other', label: 'ai' }], recognition: { fraction: null, humanVotesReceived: 0, humanVotesRecognisingYou: 0 } } };
+const result = displayState(session, reveal, 0);
+assert.equal(result.score, 100);
+assert.equal(result.reveal.earnedPoints, 100);
+assert.equal(result.reveal.truth, 'ai');
+assert.equal(result.reveal.judgeOnYou, undefined);
+assert.equal(result.reveal.recognition.fraction, null);
+assert.throws(() => displayState(session, { ...chat, participants: [...participants, { id: 'extra' }] }, 0), /two-seat/);
+assert.equal(displayState(session, { ...base, phase: 'cancelled', message: 'No points awarded.' }, 0).cancellation, 'No points awarded.');
+console.log('Convex presentation mapping passed: phases, hidden roles, topic, ballots, scores, recognition and old-room rejection.');

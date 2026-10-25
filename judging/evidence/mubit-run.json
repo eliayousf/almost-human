@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "maintainer_observed_service_snapshot",
+  "observed_on": "2026-10-25",
+  "independent_service_attestation": false,
+  "sanitisation": "Allowlisted identifiers, counts, states and content hashes only; no account identity, cookies, keys, prompts, replies, transcripts or raw service records.",
+  "correction": {
+    "mode": "conversational_followup_then_reviewed_good_rating",
+    "origin": "synthetic",
+    "reviewer": "assistant_for_project_owner",
+    "original_request_id": "mreq_01a170a5417b77e28545fb9ca8498b4b",
+    "revised_request_id": "mreq_01a170a621d27751bccab72c683e385d",
+    "trace_id": "01a170a6-21e6-74e0-b002-5073e43c47bc",
+    "system_sha256": "40daedf3f603cbcce92bae6f6b44f817c48f8888700ac94e337fae4ca3e5ba31",
+    "original_reply_sha256": "38777b45a77cf23804ad8e517dc77911b9a71efe231165328f9bff09833b6a73",
+    "revised_reply_sha256": "51afca953262bf97467fa9e67c2812f1c6c7e2f211ca1d23492a10a86eb2b944",
+    "saved_rating": "up",
+    "separate_replacement_field": null,
+    "in_internal_holdout": false,
+    "exact_training_row_membership": "inferred_not_directly_read"
+  },
+  "dataset": {
+    "id": "ds_lane_50a5b7cc",
+    "task_id": "ln_e39d1394f50cee0a22baa0e9",
+    "accepted_examples": 36,
+    "accepted_sessions": 36,
+    "rejected_examples": 5,
+    "full_row_manifest_public": false
+  },
+  "training": {
+    "job_id": "ftjob_e8f8c638",
+    "status": "completed",
+    "error": "",
+    "adapter_id": "ad_lane_b5f70965",
+    "version": 1,
+    "base_model": "Qwen/Qwen3-4B-Instruct-2507",
+    "version_created_at": "2026-10-25T01:36:31.311278296+00:00"
+  },
+  "evaluation": {
+    "dataset_id": "ds_lane_50a5b7cc",
+    "held_out_cases": 12,
+    "check_kinds": {
+      "contains": 12
+    },
+    "semantic_judgements": 0,
+    "passed": {
+      "adapter": 0,
+      "base": 0,
+      "frontier": 12
+    },
+    "length_compliant": {
+      "adapter": 2,
+      "base": 3,
+      "frontier": 12
+    },
+    "quality_improvement_established": false
+  },
+  "serving": {
+    "status": "rules_only",
+    "serving": null,
+    "rollout_percent": 0,
+    "fresh_live_answer_verified": false,
+    "console_message": "Not in Try models: prompt only"
+  },
+  "source_sha256": {
+    "receipts/candidate-01.json": "49e09d77d68f08d1f1077fd49ae0504347d7701a63c3818c9fcec4e021cbfb5a",
+    "receipts/candidate-01-revised.json": "6b9ee76d6bf7af6046678b9bf37edec15e2050e9b148faf164eefd1007579616",
+    "service-traces/candidate-01-revised.json": "574165ffa837fcf76a77336608c559c0f22d5edad449c19b765c251a13bf0992",
+    "verified-service-ratings.json": "1713f9594f6d133a5cb45a48e401591dcf9563c21c54eff9ce72a88af5e16bee",
+    "task-training-started.json": "df8f22eec8853efa9ff106b64614a99c3a0fc1f61970ab3eac5949aea4a4999a",
+    "jobs-latest.json": "1589a360eb5c48eb212c3b3498af8032dd457639f5f22d851adc96a1ec9f32db",
+    "trained-adapter.json": "739ac0fb4f2343420d0e8b9142bf5a9b8ca4b222f05875069256a97815d9dd04",
+    "evaluation-v1.json": "35938e363fdd1dac993bbb371da0b3ce48a12b25b85cdbf900b2f38b25e2535a",
+    "evaluation-v1-results.json": "8feda684f754b04fe1b51ca4a21fa39d49ee1deaa702344d74cec2f96675661d"
+  }
+}

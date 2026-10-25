@@ -1,0 +1,7 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm --prefix backend ci --ignore-scripts --no-audit --no-fund && npm --prefix frontend/expo ci --ignore-scripts --no-audit --no-fund",
+  "buildCommand": "node frontend/expo/scripts/vercel-build.mjs",
+  "outputDirectory": "frontend/expo/dist"
+}

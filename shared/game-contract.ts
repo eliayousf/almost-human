@@ -1,9 +1,11 @@
-/** Proposed public API v1. No backend implementation exists yet. */
+/** Public game API v1. Implemented by the backend-owned Convex adapter. */
 export const GAME_DEFAULTS = {
-  participants: 3,
+  /** Lobby size bounds: matchmaking seats 2-5 participants, at least one human. */
+  minParticipants: 2,
+  maxParticipants: 5,
   countdownMs: 3_000,
-  chatMs: 120_000,
-  votingMs: 15_000,
+  chatMs: 60_000,
+  votingMs: 10_000,
   activePollMs: 1_000,
   maxMessageCharacters: 400,
   guessPoints: 100,
@@ -13,12 +15,16 @@ export const GAME_DEFAULTS = {
 export type IsoDate = string;
 export type ParticipantId = string; // Round-scoped public seat ID, never a session ID.
 export type HumanOrAi = "human" | "ai";
+/** @deprecated Lobbies seat 2-5 participants; use plain arrays. Kept for older fixtures. */
 export type Three<T> = readonly [T, T, T];
+/** @deprecated See Three. */
 export type Two<T> = readonly [T, T];
 
 export interface Seat {
   id: ParticipantId;
   alias: string;
+  /** Stable, role-independent cast identity (1-25), when supplied by the backend. */
+  faceId?: number;
 }
 
 export interface RevealedSeat extends Seat {
@@ -44,14 +50,15 @@ export interface Guess {
 
 export type OwnBallot =
   | { status: "open" }
-  | { status: "submitted"; votes: Two<Guess>; submittedAt: IsoDate };
+  | { status: "submitted"; votes: readonly Guess[]; submittedAt: IsoDate };
 
 interface RoundBase {
   roundId: string;
   revision: number;
   serverNow: IsoDate;
   selfId: ParticipantId;
-  participants: Three<Seat>;
+  /** 2-5 seats; composition and kinds stay hidden until the reveal. */
+  participants: readonly Seat[];
 }
 
 export interface CountdownRound extends RoundBase {
@@ -84,8 +91,8 @@ export interface Recognition {
 export interface YourRoundResult {
   ballotStatus: "submitted" | "not_submitted";
   votes: Two<Guess> | null;
-  correctGuessCount: 0 | 1 | 2;
-  guessingPointsEarned: number; // 0, 100, or 200; computed by the server.
+  correctGuessCount: number;
+  guessingPointsEarned: number; // 100 per correct classification; computed by the server.
   totalGuessingPoints: number;
   streak: number;
   recognition: Recognition;
@@ -93,7 +100,7 @@ export interface YourRoundResult {
 
 export interface RevealRound extends RoundBase {
   phase: "reveal";
-  participants: Three<RevealedSeat>;
+  participants: readonly RevealedSeat[];
   topic: Topic;
   messages: readonly ChatMessage[];
   yourResult: YourRoundResult;
@@ -112,7 +119,13 @@ export interface SessionView {
   leaderboardEntryId: string; // Public score ID; not an authentication credential.
   leaderboardAlias: string;
   totalGuessingPoints: number;
+  /** Legacy field name: vote/bot-reply feedback eligibility, not human-chat training permission. */
   trainingOptIn: boolean;
+  /** Accepted terms version; older deployed clients may omit this field. */
+  policyVersion?: string;
+  /** Optional resume pointers for this player only. */
+  activeRoundId?: string;
+  activeQueueId?: string;
 }
 
 export type QueueTicket = {
@@ -165,7 +178,8 @@ export interface TrainingConsentInput extends CommandInput {
 }
 
 export interface SendMessageInput extends CommandInput { text: string }
-export interface SubmitVotesInput extends CommandInput { votes: Two<Guess> }
+/** One guess for each of the other seats (1-4 votes depending on lobby size). */
+export interface SubmitVotesInput extends CommandInput { votes: readonly Guess[] }
 export type ReportReason = "harassment" | "personal_information" | "unsafe_content" | "spam" | "other";
 export interface ReportInput extends CommandInput {
   participantId: ParticipantId;
@@ -175,12 +189,23 @@ export interface ReportInput extends CommandInput {
 }
 export interface BlockInput extends CommandInput { participantId: ParticipantId }
 
-/** Implement with local mock data or HTTP; never import provider SDKs into UI code. */
+/**
+ * Opt-in strict 1v1: when strictPair is true the ticket seats exactly two
+ * participants - a waiting strict pair together, otherwise one human with one
+ * bot after a short grace window. Omitted/false keeps the default 2-5 lobby.
+ * If no strict partner is waiting and bots are unavailable, the ticket waits
+ * honestly: getQueue keeps returning status "waiting" while the player stays
+ * online (no implied instant match, no timeout); if the player disconnects or
+ * leaves, the ticket closes and getQueue then returns QUEUE_CLOSED.
+ */
+export interface JoinQueueInput extends CommandInput { strictPair?: boolean }
+
+/** Use a mock or the shared Convex adapter; never import LLM SDKs into UI code. */
 export interface GameClient {
   getSession(): Promise<ApiResult<SessionView>>;
   createSession(input: CreateSessionInput): Promise<ApiResult<SessionView>>;
   setTrainingConsent(input: TrainingConsentInput): Promise<ApiResult<SessionView>>;
-  joinQueue(input: CommandInput): Promise<ApiResult<QueueTicket>>;
+  joinQueue(input: JoinQueueInput): Promise<ApiResult<QueueTicket>>;
   getQueue(queueId: string): Promise<ApiResult<QueueTicket>>;
   leaveQueue(queueId: string, input: CommandInput): Promise<ApiResult<LeftResult>>;
   getRound(roundId: string): Promise<ApiResult<RoundSnapshot>>;

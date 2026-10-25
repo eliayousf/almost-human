@@ -1,0 +1,85 @@
+/* eslint-disable */
+/**
+ * Generated `api` utility.
+ *
+ * THIS CODE IS AUTOMATICALLY GENERATED.
+ *
+ * To regenerate, run `npx convex dev`.
+ * @module
+ */
+
+import type * as auth from "../auth.js";
+import type * as botState from "../botState.js";
+import type * as botTiming from "../botTiming.js";
+import type * as botlogic from "../botlogic.js";
+import type * as bots from "../bots.js";
+import type * as cast from "../cast.js";
+import type * as connections from "../connections.js";
+import type * as game from "../game.js";
+import type * as http from "../http.js";
+import type * as lib from "../lib.js";
+import type * as lifecycle from "../lifecycle.js";
+import type * as matchmaking from "../matchmaking.js";
+import type * as mubitConsole from "../mubitConsole.js";
+import type * as mubitModel from "../mubitModel.js";
+import type * as ratings from "../ratings.js";
+import type * as topics from "../topics.js";
+import type * as validators from "../validators.js";
+
+import type {
+  ApiFromModules,
+  FilterApi,
+  FunctionReference,
+} from "convex/server";
+
+declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
+  botState: typeof botState;
+  botTiming: typeof botTiming;
+  botlogic: typeof botlogic;
+  bots: typeof bots;
+  cast: typeof cast;
+  connections: typeof connections;
+  game: typeof game;
+  http: typeof http;
+  lib: typeof lib;
+  lifecycle: typeof lifecycle;
+  matchmaking: typeof matchmaking;
+  mubitConsole: typeof mubitConsole;
+  mubitModel: typeof mubitModel;
+  ratings: typeof ratings;
+  topics: typeof topics;
+  validators: typeof validators;
+}>;
+
+/**
+ * A utility for referencing Convex functions in your app's public API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = api.myModule.myFunction;
+ * ```
+ */
+export declare const api: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "public">
+>;
+
+/**
+ * A utility for referencing Convex functions in your app's internal API.
+ *
+ * Usage:
+ * ```js
+ * const myFunctionReference = internal.myModule.myFunction;
+ * ```
+ */
+export declare const internal: FilterApi<
+  typeof fullApi,
+  FunctionReference<any, "internal">
+>;
+
+export declare const components: {
+  agent: import("@convex-dev/agent/_generated/component.js").ComponentApi<"agent">;
+  rateLimiter: import("@convex-dev/rate-limiter/_generated/component.js").ComponentApi<"rateLimiter">;
+  presence: import("@convex-dev/presence/_generated/component.js").ComponentApi<"presence">;
+};
