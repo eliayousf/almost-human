@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import type { ReportReason } from '../../../shared/game-contract';
 import { consentCopy } from '../../src/copy/consent';
 import { useLiveGame } from './game';
@@ -55,6 +55,7 @@ function Safety({ controller, close }: { controller: ReturnType<typeof useLiveGa
 
 export function LiveGame() {
   const controller = useLiveGame();
+  const compact = useWindowDimensions().height < 640;
   const [menu, setMenu] = useState(false);
   const { connection, session, state, busy, error } = controller;
   let content: React.ReactNode;
@@ -80,7 +81,10 @@ export function LiveGame() {
         onMenu={controller.roundId && state.phase !== 'reveal' ? () => setMenu(true) : undefined} />
     </>;
   }
-  return <View style={s.appColumn}>
+  if (state?.phase === 'idle' && !controller.queueing && !controller.needsConsent) {
+    content = <ScrollView contentContainerStyle={{ flexGrow: 1 }}>{content}</ScrollView>;
+  }
+  return <View style={[s.appColumn, compact && { paddingTop: 8, paddingBottom: 8 }]}>
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     {content}
     {menu && <Safety controller={controller} close={() => setMenu(false)} />}
