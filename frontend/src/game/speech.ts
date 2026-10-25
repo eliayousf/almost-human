@@ -66,3 +66,4 @@ export function useCounterpartSpeech(
 export function showsReadingYou(lastSenderId: string | null, selfId: string, counterpartTalking: boolean): boolean {
   return REMOTE_SIGNAL !== null && lastSenderId === selfId && !counterpartTalking;
 }
+// END speech.ts

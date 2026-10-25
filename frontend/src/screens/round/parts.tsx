@@ -34,11 +34,11 @@ export interface SeatVisuals {
 }
 
 /**
- * One cast tile per seat. Your seat gets the hatched treatment and a YOU tag;
- * the focused counterpart carries the Talk signal and the burst. The face
- * comes from the cast bind point and never encodes a role. Loop state: smile
- * on the verdict/reveal screens, otherwise talk while the seat's signal is on,
- * else idle.
+ * One cast tile per seat. Your seat gets an amber edge and a YOU tag; the
+ * focused counterpart carries the Talk signal and the burst. The face comes
+ * from the cast bind point and never encodes a role. Loop state: smile on the
+ * verdict/reveal screens, otherwise talk while the seat's signal is on, else
+ * idle.
  */
 export function SeatTile({ seat, visuals, variant, mirrored = false, label, status, live = false, smile = false }: {
   seat: Seat;
@@ -59,13 +59,17 @@ export function SeatTile({ seat, visuals, variant, mirrored = false, label, stat
   return <Portrait
     faceId={visuals.faces.get(seat.id) ?? null}
     state={smile ? "smile" : talking ? "talk" : "idle"}
-    className={`tile tile--${variant}${self ? " tile--you" : ""}${live ? " tile--live" : ""}`}
+    className={`tile tile--${variant}${self ? " tile--you" : ""}${live ? " tile--live" : ""}${talking ? " is-speaking" : ""}`}
     label={self ? "Your seat" : `${seat.alias}'s portrait`}
     burst={focus ? visuals.burst : undefined}
-    mirrored={mirrored}
-    hatched={self}>
+    mirrored={mirrored}>
     {self && variant !== "thumb" && <span className="tile__you mono">You</span>}
     {placement !== "none" && <span className={`tile__name tile__name--${placement} mono`}>{seat.alias}</span>}
+    {/* Equalizer: shown only while this seat's Talk signal is on (the same
+        signal as its talk loop). It represents no audio; none exists. */}
+    {(self || focus) && variant === "air" && <span className="eq" aria-hidden="true">
+      {Array.from({ length: 12 }, (_, index) => <i key={index} style={{ animationDelay: `${(index * 53) % 240}ms` }} />)}
+    </span>}
     {status && <span className="tile__status mono">{status}</span>}
   </Portrait>;
 }

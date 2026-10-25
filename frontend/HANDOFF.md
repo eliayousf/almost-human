@@ -162,7 +162,7 @@ air / Verdict / Reveal), adapted to 1v1. Every screen has a header strip with
 a red on-air dot, a centred mono label, and MENU (Report / Block / Leave).
 
 1. **Room** (`countdown`): "Your room", portrait tiles facing each other
-   (stranger, then your hatched, amber-edged seat), a big 3-2-1, and the
+   (stranger, then your amber-edged seat with a YOU tag; name chips bottom-left inside), a big 3-2-1, and the
    tonight's-topic card sealed until start.
 2. **On air** (`chat`): "ROUND n · m:ss" with an amber progress bar,
    portrait tiles, the amber topic card, the transcript (mono speaker label
@@ -175,13 +175,17 @@ a red on-air dot, a centred mono label, and MENU (Report / Block / Leave).
 4. **Reveal** (`reveal`): "Who was real?", a card per seat with "You said X
    ✓/✗" and an outline stamp from the server-provided `kind`, one
    reciprocal line, +points (100 per correct call), streak, total, a
-   recognition bar, and Next room. With `fraction === null` the line reads
+   recognition bar captioned "Recognition · humans who called you human" (human
+   judgments only; bot ballots never enter it), and Play again. With `fraction === null` the line reads
    "Unrated. No human judged you this round." and the bar is empty and
    marked "Not rated" (never a verdict).
 
 Deliberate deviations from the reference sheet, required by the brief:
 - No "is typing…" line (no typing API; blocker 2).
-- No audio waveform (no audio exists).
+- White equalizer bars at the card bottom show only while that seat's mouth
+  driver runs (your real typing; the counterpart's fixture-only fallback). They
+  represent no audio, since none exists, and never move in live mode for the
+  counterpart.
 - No per-person attribution ("X voted you the machine"); only the aggregate.
 - No TELL flags (not in the API).
 - No "all votes lock when the timer hits zero" footnote: it would be false
@@ -195,7 +199,8 @@ Deliberate deviations from the reference sheet, required by the brief:
 - Your "read on you" card always shows "? ? ?" before the reveal. After the
   reveal, a bot counterpart yields exactly "Unrated. No human judged you this
   round."; a bot ballot is never shown as a read, a score, or "believed you".
-- Your seat keeps a face under the hatching so own-typing Talk feedback shows.
+- YOU shows its assigned cast face (amber edge + YOU tag), not the sheet's
+  faceless "Hollow" plate, per owner direction.
 - Round numbers are a display-only, per-browser-session counter; the API
   has none.
 - Rooms with 3+ seats render one tile/card per seat, the sheet's multi-seat
@@ -250,6 +255,16 @@ When the backend adds a per-participant `faceId`, declare it in the shared
 contract; `cast.ts` already reads it and no component changes. Media is served
 from `/cast/loops/face25-NN-{idle,talk,smile}.mp4` and `-poster.jpg` (512²,
 H.264, silent), filled into the existing frames with `object-fit: cover`.
+
+## Sizing provenance
+
+Round-screen geometry was matched by overlay on the owner's 4-screen sheet:
+the sheet's 196px content width maps to our 358 CSS px content width (x1.83).
+On air cards are ~173x166 with a 12px gap. Type: header 10px mono; topic
+label 8px, topic text 17px; transcript names 10px mono, body 16px; stage
+titles 27px, subtitles 15.5px; composer 44px tall, SEND 12px mono. Where the
+owner's written list disagreed with the overlay, the sheet won. The composer
+input stays at 16px because smaller inputs trigger iOS focus zoom.
 
 ## Performance
 

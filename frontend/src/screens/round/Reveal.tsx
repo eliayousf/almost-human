@@ -62,8 +62,9 @@ export function RevealScreen({ round, visuals, others, busy, onPlayAgain, onLobb
       </div>
 
       <div className="recog">
-        <p className="recog__label mono">Recognition — how often they read you right</p>
-        <div className="recog__bar" role="meter" aria-label="Recognition this round"
+        {/* Human judgments only: bot ballots never enter this metric (API aggregate). */}
+        <p className="recog__label mono">Recognition · humans who called you human</p>
+        <div className="recog__bar" role="meter" aria-label="Share of human counterparts who read you as human"
           aria-valuemin={0} aria-valuemax={1} aria-valuenow={fraction ?? undefined}
           aria-valuetext={fraction === null ? "Not rated" : `${Math.round(fraction * 100)}%`}>
           <span className="recog__fill" style={{ transform: `scaleX(${fraction ?? 0})` }} />
