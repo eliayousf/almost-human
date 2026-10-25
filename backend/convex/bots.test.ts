@@ -632,16 +632,22 @@ describe("typing-paced publication and texting style", () => {
     const opponent = before.participants.find(seat => seat.id !== before.selfId)!;
     expect(before.typing).toHaveLength(1);
     expect(before.typing?.[0].participantId).toBe(opponent.id);
-    expect(Date.parse(before.typing![0].until)).toBeLessThanOrEqual(at);
+    expect(Date.parse(before.typing![0].until) - Date.now()).toBeLessThanOrEqual(4002);
+    expect(Date.parse(before.typing![0].until) - Date.now()).toBeGreaterThanOrEqual(3999);
     // convex-test may advance the transaction clock by a millisecond on commit.
     expect(at - Date.now()).toBeGreaterThanOrEqual(botTypingDelayMs(text));
     await vi.advanceTimersByTimeAsync(at - Date.now() - 1); await r.t.finishInProgressScheduledFunctions();
-    expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
+    const stillTyping = await r.get();
+    expect(stillTyping).toMatchObject({ phase: "chat", messages: [] });
+    if (stillTyping.phase !== "chat") throw new Error("Expected chat");
+    expect(Date.parse(stillTyping.typing![0].until)).toBeGreaterThan(Date.now());
     expect((await r.t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBe(0);
     await vi.advanceTimersByTimeAsync(1); await r.t.finishInProgressScheduledFunctions();
     const after = await r.get(); if (after.phase !== "chat") throw new Error("Expected chat");
     expect(after.messages).toHaveLength(1);
     expect(after.typing).toEqual([]);
+    await r.t.mutation(internal.botState.refreshTyping, { roundId: r.roundId, turn: 0, memberId: opponent.id });
+    expect(await r.get()).toMatchObject({ typing: [] });
     expect(after.messages[0].text).toBe(text);
     expect(Date.parse(after.messages[0].sentAt)).toBeGreaterThanOrEqual(at);
     expect(after.chatEndsAt).toBe(before.chatEndsAt);

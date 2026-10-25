@@ -222,7 +222,8 @@ room members can call `game.setTyping({ roundId, typing })`; identity comes from
 Convex Auth. Draft content is never sent. Clients throttle activity to once per
 1.5 seconds, stop after 2.5 seconds of inactivity, and hide expired signals using
 the calibrated server clock (four-second server expiry). Sending clears activity
-atomically. Human and prepared AI replies share the same role-free shape.
+atomically. Human and prepared AI replies share the same role-free shape and four-second
+lease; bots renew their lease without exposing the planned send timestamp.
 
 AI publication waits 125–175 ms per Unicode character, bounded to 1–12 seconds.
 A reply that cannot finish its full delay before chat closes is dropped. Presence

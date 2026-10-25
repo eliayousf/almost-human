@@ -91,10 +91,26 @@ export const prepareReply = internalMutation({
     const bots = members.filter(member => member.kind === "ai");
     const bot = bots[turn % bots.length];
     if (!bot) return null;
-    await setTypingPresence(ctx, round, bot._id, now + delay);
+    // Renew the same four-second lease humans use; never expose the planned send time.
+    await setTypingPresence(ctx, round, bot._id, Math.min(now + 4000, round.chatEndsAt));
+    if (delay > 2500) await ctx.scheduler.runAfter(2500, internal.botState.refreshTyping, { roundId, turn, memberId: bot._id });
     // Keep the claim reserved through typing. The durable callback rechecks
     // membership, moderation and phase before exposing text to the transcript.
     await ctx.scheduler.runAfter(delay, internal.botState.commit, { roundId, turn, text: trimmed, mubitRequestId, lessonCount });
+    return null;
+  },
+});
+
+export const refreshTyping = internalMutation({
+  args: { ...turnArgs, memberId: v.id("members") }, returns: v.null(),
+  handler: async (ctx, { roundId, turn, memberId }) => {
+    const round = await ctx.db.get(roundId);
+    const member = await ctx.db.get(memberId);
+    const now = Date.now();
+    if (!round || round.phase !== "chat" || round.botPending !== turn || now >= round.chatEndsAt
+      || member?.roundId !== roundId || member.kind !== "ai") return null;
+    await setTypingPresence(ctx, round, memberId, Math.min(now + 4000, round.chatEndsAt));
+    await ctx.scheduler.runAfter(2500, internal.botState.refreshTyping, { roundId, turn, memberId });
     return null;
   },
 });
