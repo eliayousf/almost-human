@@ -1,6 +1,6 @@
 # Prove a correction becomes a model update
 
-Track: **Recurring tasks**. Almost Human repeatedly generates short NPC dialogue. Players expose awkward replies, a reviewer supplies a better reply, and the intended Mubit loop trains a reusable model for that task. The game is the feedback environment; better dialogue for game developers is the proposed benefit. A user study or measured quality comparison is still needed to substantiate that benefit.
+Track: **Recurring tasks**. The intended downstream job is generating concise, natural dialogue for voice-agent builders. Almost Human supplies a text-game collection and evaluation prototype. The existing experiment trains on reviewed synthetic game conversations; it does not establish spoken-dialogue quality, voice integration or lower latency. The proposed voice-data pipeline and validation plan are in [USEFULNESS.md](../../judging/USEFULNESS.md).
 
 The runner captures inference and conversational corrections; console review has
 now produced a completed synthetic training run. **Live adapter inference and
@@ -127,7 +127,7 @@ Official references: [first adapter](https://docs.mubit.ai/guides/first-adapter)
 | Criterion | Demo evidence | Current gap |
 | --- | --- | --- |
 | Use of Mubit | Accepted conversational correction → completed version → fresh live answer from that version | Correction accepted and job completed; live adapter serving blocked |
-| Usefulness | Repeated NPC dialogue; show how developer review improves a recurring player experience | Quality/user-benefit measurement pending |
+| Usefulness | Text-game feedback aimed at better voice-agent wording; describe the intended recurring job | Voice integration, quality/user-benefit and latency measurement pending |
 | Technical execution | Real game prompts, durable receipts, reviewed synthetic data, separate evaluation cases, visible failures | Dialogue grading and trained-model serving need repair |
 | Demo | One clear game exchange, correction, completed version and fresh live answer | Live inference remains blocked; do not substitute a provider reply |
 
