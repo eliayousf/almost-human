@@ -17,12 +17,15 @@ speed gains have been demonstrated.
 
 A Human vote measures perceived human-likeness of the conversation, not the
 correctness or quality of every line. Human-authored training targets remain
-future work requiring a separate permission and review workflow; the existing
-terms and completed synthetic experiment do not establish that capability.
+future work requiring filtering and editorial review. Separate optional
+transcript-training permission is implemented, but external captures/ratings
+remain disabled; the synthetic experiment does not establish that capability.
 
 The released Expo interface includes 25 animated characters, 60-second chat,
 up to 10 seconds to vote, immediate reveal when all humans have voted, and
-6–12 second bot reply pauses after generation. Each round gets one shared
+6–12 second bot reply pauses after generation, with private typing indicators.
+[Release checks and canonical links](RELEASE.md) cover PRs #8 and #11.
+Each round gets one shared
 question from 289 starters/combinations, excluding each player's last 20.
 Vote feedback is included in the [versioned playtest terms](PLAYTEST_TERMS.md).
 The live game's replies use provider inference through Mubit.
