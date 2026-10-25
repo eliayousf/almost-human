@@ -6,6 +6,12 @@ through Mubit from the server.
 
 ## How it works
 
+- Bot replies have a server-enforced 6–12 second reading/typing pause after
+  generation. Longer text takes longer, with up to two seconds of variation.
+  The deadline can shorten a longer pause, but never below six seconds; if that
+  cannot fit, the reply is dropped rather than rushed into the voting phase.
+  Generation time is additional. Two-seat bots still wait for new human input
+  after their opener instead of sending a stream of unsolicited messages.
 - `convex/botlogic.ts` - pure, unit-tested logic. `chooseLobby` sizes a lobby
   (two to five seats) from the live queue: five or more waiting humans match
   immediately (ten queued players become two five-player games); three or four

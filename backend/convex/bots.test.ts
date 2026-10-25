@@ -11,7 +11,7 @@ import type { ApiResult, HumanOrAi, RoundSnapshot } from "../../shared/game-cont
 import { BOT_DIFFICULTIES, BOT_FALLBACK_WAIT_MS, BOT_PERSONAS, LOBBY_ACCUMULATE_WAIT_MS, botTypingDelayMs, buildBotMessages, chooseLobby } from "./botlogic";
 import { createMubitModel } from "./mubitModel";
 import { getFunctionName } from "convex/server";
-import { BOT_WATCHDOG_MS, BOT_MAX_TYPING_MS, MUBIT_TIMEOUT_MS, BOT_RETRY_DELAY_MS } from "./botTiming";
+import { BOT_WATCHDOG_MS, BOT_MIN_TYPING_MS, BOT_MAX_TYPING_MS, MUBIT_TIMEOUT_MS, BOT_RETRY_DELAY_MS } from "./botTiming";
 
 const modules = import.meta.glob("./**/*.ts");
 const command = () => ({ clientRequestId: crypto.randomUUID() });
@@ -453,6 +453,9 @@ describe("Mubit turns and lifecycle", () => {
   test("the room-wide attempt cap stops an unbounded bot conversation", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 1); await chat(r);
+    // Isolate the attempt cap from the normal one-minute deadline: ten paced
+    // replies intentionally cannot fit in a real round anymore.
+    await t.run(ctx => ctx.db.patch(r.roundId, { chatEndsAt: Date.now() + 180_000, votingEndsAt: Date.now() + 190_000 }));
     for (let turn = 0; turn < 12; turn++) await takeTurn(r, turn);
     expect(fetch).toHaveBeenCalledTimes(10);
     const value = await r.get(); if (value.phase !== "chat") throw new Error("Expected chat");
@@ -489,7 +492,7 @@ describe("two-seat bot turn-taking", () => {
   });
 
   test("a new human batch wakes one reply, retries do not duplicate it, and silence pauses again", async () => {
-    const r = await duel(); await elapse(r, 8000);
+    const r = await duel(); await takeTurn(r, 0);
     const input = { ...command(), text: "What about a shop on Mars?" };
     const sent = must(await r.people[0].mutation(api.game.sendMessage, { roundId: r.roundId, input }));
     expect(must(await r.people[0].mutation(api.game.sendMessage, { roundId: r.roundId, input })).id).toBe(sent.id);
@@ -546,7 +549,7 @@ describe("two-seat bot turn-taking", () => {
     const r = await room(t, humans); await chat(r);
     expect((await r.get()).participants.length).toBeGreaterThan(2);
     await elapse(r, 35_000);
-    expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(vi.mocked(fetch).mock.calls.length).toBeGreaterThanOrEqual(2);
     expect((await r.get()).phase).toBe("chat");
   });
 });
@@ -562,14 +565,25 @@ describe("typing-paced publication and texting style", () => {
 
   test("typing time grows with Unicode message length, is bounded, and fits the retry watchdog", () => {
     const short = botTypingDelayMs("hey");
-    const medium = botTypingDelayMs("x".repeat(80));
+    const medium = botTypingDelayMs("x".repeat(40));
     const long = botTypingDelayMs("x".repeat(400));
-    expect(short).toBeGreaterThanOrEqual(2000);
+    expect(short).toBeGreaterThanOrEqual(6000);
     expect(medium).toBeGreaterThan(short);
     expect(long).toBeGreaterThan(medium);
     expect(long).toBeLessThanOrEqual(12_000);
     expect(botTypingDelayMs("🙂".repeat(10))).toBe(botTypingDelayMs("x".repeat(10)));
     expect(BOT_WATCHDOG_MS).toBeGreaterThan(2 * MUBIT_TIMEOUT_MS + BOT_RETRY_DELAY_MS + long);
+  });
+
+  test("reply pauses vary within six to twelve seconds without changing Unicode length handling", () => {
+    for (const text of ["ok", "that is a brilliant idea", "x".repeat(400)]) {
+      for (const variation of [0, 0.5, 0.999]) {
+        expect(botTypingDelayMs(text, variation)).toBeGreaterThanOrEqual(BOT_MIN_TYPING_MS);
+        expect(botTypingDelayMs(text, variation)).toBeLessThanOrEqual(BOT_MAX_TYPING_MS);
+      }
+    }
+    expect(botTypingDelayMs("ok", 0.999) - botTypingDelayMs("ok", 0)).toBeGreaterThan(1900);
+    expect(botTypingDelayMs("🙂".repeat(10), 0.5)).toBe(botTypingDelayMs("x".repeat(10), 0.5));
   });
 
   test.each(["hey", "x".repeat(100)])("a prepared reply waits its length-scaled delay and publishes once: %s", async text => {
@@ -612,17 +626,19 @@ describe("typing-paced publication and texting style", () => {
     expect((await r.t.run(ctx => ctx.db.get(r.roundId)))?.messageCount).toBe(0);
   });
 
-  test("a completed late reply shortens typing but still publishes before the deadline", async () => {
+  test("a completed late reply keeps at least six seconds of pacing and publishes before the deadline", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
     const r = await room(t, 1); await chat(r);
     await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
     const round = await t.run(ctx => ctx.db.get(r.roundId));
-    vi.setSystemTime(round!.chatEndsAt - 6000);
+    vi.setSystemTime(round!.chatEndsAt - 8000);
+    const preparedAt = Date.now();
     await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 0, text: "x".repeat(100) });
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
     await publishReply(r);
     const view = await r.get();
     expect(view).toMatchObject({ phase: "chat", messages: [{ text: "x".repeat(100) }] });
+    expect(Date.now() - preparedAt).toBeGreaterThanOrEqual(BOT_MIN_TYPING_MS);
     expect(Date.now()).toBeLessThan(round!.chatEndsAt);
   });
 
@@ -631,7 +647,7 @@ describe("typing-paced publication and texting style", () => {
     const r = await room(t, 1); await chat(r);
     await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
     const round = await t.run(ctx => ctx.db.get(r.roundId));
-    vi.setSystemTime(round!.chatEndsAt - 1500);
+    vi.setSystemTime(round!.chatEndsAt - 5000);
     await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 0, text: "x".repeat(100) });
     expect((await t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBeUndefined();
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
@@ -661,7 +677,7 @@ describe("typing-paced publication and texting style", () => {
     const unanswered = must(await r.people[0].mutation(api.game.sendMessage, { roundId: r.roundId, input: { ...command(), text: "It could sell red cheese." } }));
     expect(await followups()).toHaveLength(0); // sendMessage sees the reserved turn.
     vi.setSystemTime(round!.chatEndsAt - 1500);
-    await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 1, text: "x".repeat(100) }); // Needs 9s typing.
+    await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 1, text: "x".repeat(100) }); // Needs 12s typing.
     expect((await t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBeUndefined();
     expect(await followups()).toHaveLength(0); // No publication means no follow-up.
     const beforeVoting = await r.get(); if (beforeVoting.phase !== "chat") throw new Error("Expected chat");

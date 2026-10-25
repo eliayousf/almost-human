@@ -79,7 +79,9 @@ export const prepareReply = internalMutation({
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
-    const delay = Math.min(botTypingDelayMs(trimmed), Math.max(BOT_MIN_TYPING_MS, round.chatEndsAt - now - 1000));
+    // Sample one reading/typing pause for this publication. Even near the round
+    // deadline, a reply must retain the minimum pause instead of rushing out.
+    const delay = Math.min(botTypingDelayMs(trimmed, Math.random()), Math.max(BOT_MIN_TYPING_MS, round.chatEndsAt - now - 1000));
     if (now + delay >= round.chatEndsAt) {
       // Keep at least the minimum typing delay and never publish into voting.
       await ctx.db.patch(roundId, { botPending: undefined });

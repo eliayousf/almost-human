@@ -1,8 +1,9 @@
 // Pure bot logic: no Convex imports, directly unit-testable.
 import { BOT_MIN_TYPING_MS, BOT_MAX_TYPING_MS } from "./botTiming";
 
-export function botTypingDelayMs(text: string): number {
-  return Math.min(BOT_MAX_TYPING_MS, BOT_MIN_TYPING_MS + [...text.trim()].length * 70);
+export function botTypingDelayMs(text: string, variation = 0): number {
+  const pause = Math.floor(Math.max(0, Math.min(1, variation)) * 2000);
+  return Math.min(BOT_MAX_TYPING_MS, BOT_MIN_TYPING_MS + [...text.trim()].length * 80 + pause);
 }
 
 // Just past the presence grace period (2.5x the 10s heartbeat interval), so a
