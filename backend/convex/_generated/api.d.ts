@@ -23,6 +23,7 @@ import type * as matchmaking from "../matchmaking.js";
 import type * as mubitConsole from "../mubitConsole.js";
 import type * as mubitModel from "../mubitModel.js";
 import type * as ratings from "../ratings.js";
+import type * as topics from "../topics.js";
 import type * as validators from "../validators.js";
 
 import type {
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   mubitConsole: typeof mubitConsole;
   mubitModel: typeof mubitModel;
   ratings: typeof ratings;
+  topics: typeof topics;
   validators: typeof validators;
 }>;
 
