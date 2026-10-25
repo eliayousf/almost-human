@@ -41,13 +41,14 @@ export function castMedia(faceId: FaceId, state: CastState): { src: string; post
 /** Face per seat id for one room; null means "no face supplied" (neutral plate). */
 export function castFaces(roundId: string, participants: readonly Seat[]): ReadonlyMap<string, FaceId | null> {
   const faces = new Map<string, FaceId | null>();
+  if (!__CAST_MEDIA_READY__) return new Map(participants.map(seat => [seat.id, null]));
   const drawn = FIXTURE_DRAW ? fixtureDraw(roundId, participants) : null;
   for (const seat of participants) faces.set(seat.id, payloadFaceId(seat) ?? drawn?.get(seat.id) ?? null);
   return faces;
 }
 
 function payloadFaceId(seat: Seat): FaceId | null {
-  const value = (seat as Seat & { faceId?: unknown }).faceId;
+  const value = seat.faceId;
   return typeof value === "number" && BY_ID.has(value) ? value : null;
 }
 

@@ -9,6 +9,7 @@ import { advanceRound, cancelRound } from "./lifecycle";
 import { scheduleBotTurn } from "./botState";
 import { presence } from "./connections";
 import { matchWaiting } from "./matchmaking";
+import { castFaceIds } from "./cast";
 import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
 import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV, joinQueueV } from "./validators";
 
@@ -26,7 +27,9 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
   const round = await ctx.db.get(roundId);
   if (!round) return fail("NOT_FOUND", "This round could not be found.");
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
-  const base = { roundId, revision: round.revision, serverNow: iso(round.updatedAt), selfId: self._id, participants: members.map(m => ({ id: m._id, alias: m.alias })) };
+  const faces = castFaceIds(roundId, members.map(m => m._id));
+  const publicSeat = (member: typeof members[number]) => ({ id: member._id, alias: member.alias, faceId: faces.get(member._id)! });
+  const base = { roundId, revision: round.revision, serverNow: iso(round.updatedAt), selfId: self._id, participants: members.map(publicSeat) };
   if (round.phase === "countdown") return ok({ ...base, phase: "countdown" as const, chatStartsAt: iso(round.chatStartsAt), chatEndsAt: iso(round.chatEndsAt) });
   if (round.phase === "cancelled") return ok({ ...base, phase: "cancelled" as const, reason: round.cancelReason ?? "room_closed", message: round.cancelReason === "service_unavailable"
     ? "The game service is temporarily unavailable. This round ended with no points awarded. Please try playing again."
@@ -43,7 +46,7 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
   }
   const result = await ctx.db.query("results").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId).eq("playerId", playerId)).unique();
   if (!result) return fail("SERVICE_UNAVAILABLE", "The result is still being prepared.");
-  return ok({ ...base, phase: "reveal" as const, topic: round.topic, messages, participants: members.map(m => ({ id: m._id, alias: m.alias, kind: m.kind })), yourResult: result.data });
+  return ok({ ...base, phase: "reveal" as const, topic: round.topic, messages, participants: members.map(m => ({ ...publicSeat(m), kind: m.kind })), yourResult: result.data });
 }
 
 export const getSession = playerQuery({ args: {}, returns: resultV(sessionV), handler: async ctx => ctx.player ? ok(sessionView(ctx.player)) : unauthenticated() });

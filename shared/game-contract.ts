@@ -23,6 +23,8 @@ export type Two<T> = readonly [T, T];
 export interface Seat {
   id: ParticipantId;
   alias: string;
+  /** Stable, role-independent cast identity (1-25), when supplied by the backend. */
+  faceId?: number;
 }
 
 export interface RevealedSeat extends Seat {

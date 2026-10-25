@@ -17,7 +17,7 @@ export const reportV = v.object({ clientRequestId: v.string(), participantId: v.
 export const blockV = v.object({ clientRequestId: v.string(), participantId: v.id("members") });
 
 export const recognitionV = v.object({ humanVotesReceived: v.number(), humanVotesRecognisingYou: v.number(), fraction: v.union(v.number(), v.null()) });
-export const seatV = v.object({ id: v.id("members"), alias: v.string() });
+export const seatV = v.object({ id: v.id("members"), alias: v.string(), faceId: v.optional(v.number()) });
 export const topicV = v.object({ id: v.string(), text: v.string() });
 export const messageV = v.object({ id: v.string(), senderId: v.id("members"), text: v.string(), sentAt: v.string() });
 export const ballotV = v.union(v.object({ status: v.literal("open") }), v.object({ status: v.literal("submitted"), votes: v.array(guessV), submittedAt: v.string() }));
@@ -31,7 +31,7 @@ export const roundV = v.union(
   v.object({ ...base, phase: v.literal("countdown"), chatStartsAt: v.string(), chatEndsAt: v.string() }),
   v.object({ ...base, phase: v.literal("chat"), topic: topicV, messages: v.array(messageV), chatEndsAt: v.string() }),
   v.object({ ...base, phase: v.literal("voting"), topic: topicV, messages: v.array(messageV), votingEndsAt: v.string(), ownBallot: ballotV }),
-  v.object({ ...base, participants: v.array(v.object({ id: v.id("members"), alias: v.string(), kind: labelV })), phase: v.literal("reveal"), topic: topicV, messages: v.array(messageV), yourResult: roundResultV }),
+  v.object({ ...base, participants: v.array(v.object({ ...seatV.fields, kind: labelV })), phase: v.literal("reveal"), topic: topicV, messages: v.array(messageV), yourResult: roundResultV }),
   v.object({ ...base, phase: v.literal("cancelled"), reason: cancelReasonV, message: v.string() }),
 );
 export const sessionV = v.object({

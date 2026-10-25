@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+declare const __CAST_MEDIA_READY__: boolean;
 
 interface ImportMetaEnv {
   readonly VITE_CONVEX_URL?: string;

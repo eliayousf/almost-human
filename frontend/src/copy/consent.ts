@@ -1,34 +1,17 @@
-/**
- * CONSENT GATE COPY: DEV-PREVIEW PLACEHOLDERS ONLY.
- *
- * The earlier playtest consent copy is stale and is deliberately NOT reused or
- * paraphrased here. Every string below is a marked placeholder that renders
- * with a hazard-striped "placeholder" treatment so it cannot be mistaken for
- * final copy. The repo owner replaces each slot with approved text (and bumps
- * POLICY_VERSION to whatever the backend accepts for that text) before this
- * ever ships to players. `isPlaceholder` drives the warning treatment.
- */
-export const PENDING = "PENDING OWNER-APPROVED COPY";
+/** Development playtest notice. This is not a production-launch policy. */
+export interface CopySlot { text: string; isPlaceholder: boolean }
+const copy = (text: string): CopySlot => ({ text, isPlaceholder: false });
 
-export interface CopySlot {
-  text: string;
-  isPlaceholder: boolean;
-}
-
-const pending = (slot: string): CopySlot => ({ text: `${PENDING} — [${slot}]`, isPlaceholder: true });
-
-/** The policy version the deployed backend currently validates. Owner-controlled. */
+// Existing backend policy contract; no automatic acceptance or training opt-in.
 export const POLICY_VERSION = "playtest-v1";
-
 export const consentCopy = {
-  heading: pending("gate heading"),
-  aiDisclosure: pending("counterpart may be a person or an AI"),
-  processingNotice: pending("chat text is processed by AI services for replies"),
-  conductRules: pending("conduct rules summary"),
-  adultCheckbox: pending("eligibility / age confirmation checkbox label"),
-  rulesCheckbox: pending("rules acceptance checkbox label"),
-  continueButton: pending("accept button label"),
-  trainingToggle: pending("optional training opt-in label (stored separately)"),
-  trainingDetail: pending("what training opt-in does and how to withdraw"),
+  heading: copy("Join the playtest"),
+  aiDisclosure: copy("Your conversation partners may be people or AI. Guess who is human at the end of the round."),
+  processingNotice: copy("Messages are stored and processed by the game and AI services to provide replies. Use invented, nonpersonal text only in this development playtest."),
+  conductRules: copy("Be respectful. Do not share personal or contact details, links, or harmful content. You can leave, block or report a participant at any time."),
+  adultCheckbox: copy("I am 18 or older."),
+  rulesCheckbox: copy("I agree to play respectfully and use invented, nonpersonal text."),
+  continueButton: copy("Start player"),
+  trainingToggle: copy("Optional: use my votes to improve bot style"),
+  trainingDetail: copy("Your votes may label bot replies, and bot-written lines may be reused as style examples. Turning this off stops future use of your votes. This does not mean a trained adapter is serving the game."),
 } satisfies Record<string, CopySlot>;
-// END consent.ts

@@ -4,7 +4,7 @@ import {
   AlmostHumanProvider, useAlmostHuman, useGameLeaderboard, useGameQueue,
   useGameRound, useGameSession, useRoundSeconds,
 } from "@game/react-game";
-import type { CommandInput } from "@game/game-contract";
+import type { CommandInput, JoinQueueInput } from "@game/game-contract";
 import type { AdapterModule, Connection, GameBinding, PlayClient } from "./binding";
 import { ConfigError } from "../screens/ConfigError";
 
@@ -15,13 +15,9 @@ const independentTabs = import.meta.env.VITE_INDEPENDENT_PLAYTEST_TABS === "true
 const convex = url ? new ConvexReactClient(url) : null;
 
 /**
- * STRICT PAIR GATE. The deployed backend's validator rejects this field, so it
- * is sent only when VITE_STRICT_PAIR=true, which may be set only after the
- * strict backend is deployed and integration is permitted. Default: absent,
- * and joinQueue receives the plain CommandInput. The shape below is the
- * not-yet-deployed proposal's source and is not in shared/game-contract.ts.
+ * Send strictPair only for a deployment explicitly configured for the shared
+ * opt-in 1v1 contract. Older deployments can keep the flag absent.
  */
-interface JoinQueueInput extends CommandInput { strictPair?: boolean }
 const strictPair = import.meta.env.VITE_STRICT_PAIR === "true";
 
 function withStrictPair(game: PlayClient): PlayClient {
