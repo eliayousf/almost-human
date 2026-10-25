@@ -1,7 +1,7 @@
 import type { Seat } from "@game/game-contract";
-import { PORTRAITS } from "../../assets/portraits";
+import type { FaceId } from "../../assets/cast";
 import { Portrait, type BurstSignal } from "../../components/Portrait";
-import type { MouthDriver } from "../../fx/mouth";
+import { useTalking, type TalkSignal } from "../../fx/talk";
 
 /** Reference-sheet header: red on-air dot, centred mono label, MENU. */
 export function Hud({ label, onMenu }: { label: string; onMenu?: () => void }) {
@@ -24,17 +24,23 @@ export function TopicCard({ text }: { text: string | null }) {
 export interface SeatVisuals {
   selfId: string;
   focusId: string | null;
-  selfMouth: MouthDriver;
-  strangerMouth: MouthDriver;
+  /** Per seat id, from the cast bind point (assets/cast.ts) only. */
+  faces: ReadonlyMap<string, FaceId | null>;
+  /** Your Talk: real local keystrokes. */
+  selfTalk: TalkSignal;
+  /** Focused counterpart's Talk: fixture fallback only (game/speech.ts). */
+  strangerTalk: TalkSignal;
   burst: BurstSignal;
 }
 
 /**
- * One portrait tile per seat. Your seat gets the hatched treatment and a YOU
- * tag; the focused counterpart carries the mouth signal and the burst. Tile
- * art is chosen by seat position only and never encodes a role.
+ * One cast tile per seat. Your seat gets the hatched treatment and a YOU tag;
+ * the focused counterpart carries the Talk signal and the burst. The face
+ * comes from the cast bind point and never encodes a role. Loop state: smile
+ * on the verdict/reveal screens, otherwise talk while the seat's signal is on,
+ * else idle.
  */
-export function SeatTile({ seat, visuals, variant, mirrored = false, label, status, live = false }: {
+export function SeatTile({ seat, visuals, variant, mirrored = false, label, status, live = false, smile = false }: {
   seat: Seat;
   visuals: SeatVisuals;
   variant: "room" | "air" | "thumb";
@@ -44,15 +50,17 @@ export function SeatTile({ seat, visuals, variant, mirrored = false, label, stat
   status?: string;
   /** Brighter edge for the seat that spoke last. */
   live?: boolean;
+  smile?: boolean;
 }) {
   const self = seat.id === visuals.selfId;
   const focus = seat.id === visuals.focusId;
+  const talking = useTalking(self ? visuals.selfTalk : focus ? visuals.strangerTalk : null);
   const placement = label ?? (variant === "air" ? "top" : variant === "room" ? "bottom" : "none");
   return <Portrait
-    asset={self ? PORTRAITS.self : PORTRAITS.stranger}
+    faceId={visuals.faces.get(seat.id) ?? null}
+    state={smile ? "smile" : talking ? "talk" : "idle"}
     className={`tile tile--${variant}${self ? " tile--you" : ""}${live ? " tile--live" : ""}`}
     label={self ? "Your seat" : `${seat.alias}'s portrait`}
-    mouth={self ? visuals.selfMouth : focus ? visuals.strangerMouth : undefined}
     burst={focus ? visuals.burst : undefined}
     mirrored={mirrored}
     hatched={self}>

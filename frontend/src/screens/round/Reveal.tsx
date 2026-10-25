@@ -42,7 +42,7 @@ export function RevealScreen({ round, visuals, others, busy, onPlayAgain, onLobb
         const kind = kindOf(seat.id);
         const vote = votes.find(item => item.participantId === seat.id);
         return <div key={seat.id} className="card card--seat">
-          <SeatTile seat={seat} visuals={visuals} variant="thumb" />
+          <SeatTile seat={seat} visuals={visuals} variant="thumb" smile />
           <div className="card__who">
             <p className="card__name">{seat.alias}</p>
             <p className="card__meta mono">

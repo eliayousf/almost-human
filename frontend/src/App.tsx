@@ -1,12 +1,11 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { preloadPortraits } from "./assets/portraits";
 import { command, useBinding } from "./game/binding";
 import { ConsentGate } from "./screens/Consent";
 import { Lobby } from "./screens/Lobby";
 import { StatusScreen } from "./screens/Status";
 import { Waiting } from "./screens/Waiting";
 
-// The round stage (portraits, shader, mouth layers) is outside the critical
+// The round stage (cast videos, shader) is outside the critical
 // path: it is prefetched once a player exists and is needed only after Play.
 const loadRound = () => import("./screens/round/Round");
 const Round = lazy(() => loadRound().then(module => ({ default: module.Round })));
@@ -53,7 +52,6 @@ export function App() {
   const hasSession = Boolean(session);
   useEffect(() => {
     if (!hasSession) return;
-    preloadPortraits();
     void loadRound();
   }, [hasSession]);
 

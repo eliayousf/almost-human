@@ -5,7 +5,7 @@ import type { PlayClient } from "../../game/binding";
 /**
  * Chat composer. Typed text survives failures; a network retry reuses the same
  * clientRequestId and payload; RATE_LIMITED respects retryAfterMs. `onType`
- * fires on real local input events only (drives your own seat's mouth).
+ * fires on real local input events only (drives your own seat's Talk loop).
  */
 export function Composer({ game, roundId, onType }: {
   game: PlayClient;

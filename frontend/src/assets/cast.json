@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "signature": "down-glance",
+    "description": "The eyes dip down briefly, then return to a direct stare.",
+    "idle": "loops/face25-01-idle.mp4",
+    "talk": "loops/face25-01-talk.mp4",
+    "smile": "loops/face25-01-smile.mp4",
+    "poster": "loops/face25-01-poster.jpg",
+    "timings_seconds": {
+      "idle": 49.3,
+      "talk": 78.0,
+      "smile": 69.7
+    }
+  },
+  {
+    "id": 2,
+    "signature": "one-sided-smile",
+    "description": "One side of the mouth rises into a small uneven smile.",
+    "idle": "loops/face25-02-idle.mp4",
+    "talk": "loops/face25-02-talk.mp4",
+    "smile": "loops/face25-02-smile.mp4",
+    "poster": "loops/face25-02-poster.jpg",
+    "timings_seconds": {
+      "idle": 60.6,
+      "talk": 86.2,
+      "smile": 64.2
+    }
+  },
+  {
+    "id": 3,
+    "signature": "tiny-nods",
+    "description": "Small repeated nods continue at a steady, unsettling pace.",
+    "idle": "loops/face25-03-idle.mp4",
+    "talk": "loops/face25-03-talk.mp4",
+    "smile": "loops/face25-03-smile.mp4",
+    "poster": "loops/face25-03-poster.jpg",
+    "timings_seconds": {
+      "idle": 56.0,
+      "talk": 79.3,
+      "smile": 61.1
+    }
+  },
+  {
+    "id": 4,
+    "signature": "raised-brow",
+    "description": "The brows stay slightly raised above a restrained smile.",
+    "idle": "loops/face25-04-idle.mp4",
+    "talk": "loops/face25-04-talk.mp4",
+    "smile": "loops/face25-04-smile.mp4",
+    "poster": "loops/face25-04-poster.jpg",
+    "timings_seconds": {
+      "idle": 57.2,
+      "talk": 56.8,
+      "smile": 63.8
+    }
+  },
+  {
+    "id": 5,
+    "signature": "widening-eyes",
+    "description": "The eyes slowly widen and hold their expression.",
+    "idle": "loops/face25-05-idle.mp4",
+    "talk": "loops/face25-05-talk.mp4",
+    "smile": "loops/face25-05-smile.mp4",
+    "poster": "loops/face25-05-poster.jpg",
+    "timings_seconds": {
+      "idle": 42.2,
+      "talk": 67.2,
+      "smile": 60.8
+    }
+  },
+  {
+    "id": 6,
+    "signature": "locked-head",
+    "description": "The mouth speaks while the head stays almost perfectly still.",
+    "idle": "loops/face25-06-idle.mp4",
+    "talk": "loops/face25-06-talk.mp4",
+    "smile": "loops/face25-06-smile.mp4",
+    "poster": "loops/face25-06-poster.jpg",
+    "timings_seconds": {
+      "idle": 59.0,
+      "talk": 66.3,
+      "smile": 61.9
+    }
+  },
+  {
+    "id": 7,
+    "signature": "shy-return",
+    "description": "The face looks away briefly, then returns to a still stare.",
+    "idle": "loops/face25-07-idle.mp4",
+    "talk": "loops/face25-07-talk.mp4",
+    "smile": "loops/face25-07-smile.mp4",
+    "poster": "loops/face25-07-poster.jpg",
+    "timings_seconds": {
+      "idle": 50.0,
+      "talk": 65.7,
+      "smile": 59.1
+    }
+  },
+  {
+    "id": 8,
+    "signature": "smiling-no",
+    "description": "The head makes a slow no-like sway while the mouth smiles.",
+    "idle": "loops/face25-08-idle.mp4",
+    "talk": "loops/face25-08-talk.mp4",
+    "smile": "loops/face25-08-smile.mp4",
+    "poster": "loops/face25-08-poster.jpg",
+    "timings_seconds": {
+      "idle": 51.1,
+      "talk": 60.1,
+      "smile": 76.3
+    }
+  },
+  {
+    "id": 9,
+    "signature": "offbeat-bob",
+    "description": "The head bobs gently out of rhythm with the mouth.",
+    "idle": "loops/face25-09-idle.mp4",
+    "talk": "loops/face25-09-talk.mp4",
+    "smile": "loops/face25-09-smile.mp4",
+    "poster": "loops/face25-09-poster.jpg",
+    "timings_seconds": {
+      "idle": 40.3,
+      "talk": 66.1,
+      "smile": 70.2
+    }
+  },
+  {
+    "id": 10,
+    "signature": "dead-stare",
+    "description": "The eyes stay fixed in a long, unblinking stare.",
+    "idle": "loops/face25-10-idle.mp4",
+    "talk": "loops/face25-10-talk.mp4",
+    "smile": "loops/face25-10-smile.mp4",
+    "poster": "loops/face25-10-poster.jpg",
+    "timings_seconds": {
+      "idle": 70.1,
+      "talk": 65.2,
+      "smile": 62.1
+    }
+  },
+  {
+    "id": 11,
+    "signature": "side-glide",
+    "description": "Eyes slide slowly to one side while the head stays still.",
+    "idle": "loops/face25-11-idle.mp4",
+    "talk": "loops/face25-11-talk.mp4",
+    "smile": "loops/face25-11-smile.mp4",
+    "poster": "loops/face25-11-poster.jpg",
+    "timings_seconds": {
+      "idle": 50.4,
+      "talk": 62.1,
+      "smile": 60.4
+    }
+  },
+  {
+    "id": 12,
+    "signature": "smile-hold",
+    "description": "A mild smile arrives slowly and remains held too long.",
+    "idle": "loops/face25-12-idle.mp4",
+    "talk": "loops/face25-12-talk.mp4",
+    "smile": "loops/face25-12-smile.mp4",
+    "poster": "loops/face25-12-poster.jpg",
+    "timings_seconds": {
+      "idle": 53.6,
+      "talk": 66.1,
+      "smile": 66.3
+    }
+  },
+  {
+    "id": 13,
+    "signature": "double-blink",
+    "description": "Two quick blinks are followed by an unusually long stare.",
+    "idle": "loops/face25-13-idle.mp4",
+    "talk": "loops/face25-13-talk.mp4",
+    "smile": "loops/face25-13-smile.mp4",
+    "poster": "loops/face25-13-poster.jpg",
+    "timings_seconds": {
+      "idle": 48.2,
+      "talk": 65.0,
+      "smile": 65.3
+    }
+  },
+  {
+    "id": 14,
+    "signature": "switch-smile",
+    "description": "A small smile appears, then drops abruptly to blank.",
+    "idle": "loops/face25-14-idle.mp4",
+    "talk": "loops/face25-14-talk.mp4",
+    "smile": "loops/face25-14-smile.mp4",
+    "poster": "loops/face25-14-poster.jpg",
+    "timings_seconds": {
+      "idle": 53.2,
+      "talk": 80.6,
+      "smile": 47.2
+    }
+  },
+  {
+    "id": 15,
+    "signature": "slow-lean",
+    "description": "The face leans slightly toward the camera and stays there.",
+    "idle": "loops/face25-15-idle.mp4",
+    "talk": "loops/face25-15-talk.mp4",
+    "smile": "loops/face25-15-smile.mp4",
+    "poster": "loops/face25-15-poster.jpg",
+    "timings_seconds": {
+      "idle": 52.2,
+      "talk": 78.0,
+      "smile": 56.6
+    }
+  },
+  {
+    "id": 16,
+    "signature": "slow-blink",
+    "description": "The eyelids close and reopen with an unnaturally slow blink.",
+    "idle": "loops/face25-16-idle.mp4",
+    "talk": "loops/face25-16-talk.mp4",
+    "smile": "loops/face25-16-smile.mp4",
+    "poster": "loops/face25-16-poster.jpg",
+    "timings_seconds": {
+      "idle": 51.7,
+      "talk": 67.5,
+      "smile": 54.8
+    }
+  },
+  {
+    "id": 17,
+    "signature": "long-wink",
+    "description": "One eye closes for an awkwardly long wink.",
+    "idle": "loops/face25-17-idle.mp4",
+    "talk": "loops/face25-17-talk.mp4",
+    "smile": "loops/face25-17-smile.mp4",
+    "poster": "loops/face25-17-poster.jpg",
+    "timings_seconds": {
+      "idle": 46.6,
+      "talk": 63.1,
+      "smile": 51.2
+    }
+  },
+  {
+    "id": 18,
+    "signature": "upward-listen",
+    "description": "The eyes drift upward as if listening to something else.",
+    "idle": "loops/face25-18-idle.mp4",
+    "talk": "loops/face25-18-talk.mp4",
+    "smile": "loops/face25-18-smile.mp4",
+    "poster": "loops/face25-18-poster.jpg",
+    "timings_seconds": {
+      "idle": 51.7,
+      "talk": 74.2,
+      "smile": 53.2
+    }
+  },
+  {
+    "id": 19,
+    "signature": "held-tilt",
+    "description": "The head eases into a slight tilt and holds it.",
+    "idle": "loops/face25-19-idle.mp4",
+    "talk": "loops/face25-19-talk.mp4",
+    "smile": "loops/face25-19-smile.mp4",
+    "poster": "loops/face25-19-poster.jpg",
+    "timings_seconds": {
+      "idle": 51.3,
+      "talk": 56.1,
+      "smile": 43.3
+    }
+  },
+  {
+    "id": 20,
+    "signature": "wide-mouth",
+    "description": "The mouth movements are slightly larger than the rest of the face.",
+    "idle": "loops/face25-20-idle.mp4",
+    "talk": "loops/face25-20-talk.mp4",
+    "smile": "loops/face25-20-smile.mp4",
+    "poster": "loops/face25-20-poster.jpg",
+    "timings_seconds": {
+      "idle": 65.2,
+      "talk": 78.9,
+      "smile": 63.3
+    }
+  },
+  {
+    "id": 21,
+    "signature": "frozen-laugh",
+    "description": "The mouth laughs while the eyes remain oddly still.",
+    "idle": "loops/face25-21-idle.mp4",
+    "talk": "loops/face25-21-talk.mp4",
+    "smile": "loops/face25-21-smile.mp4",
+    "poster": "loops/face25-21-poster.jpg",
+    "timings_seconds": {
+      "idle": 60.5,
+      "talk": 78.2,
+      "smile": 63.7
+    }
+  },
+  {
+    "id": 22,
+    "signature": "lip-purse",
+    "description": "The lips make a small repeated pursing twitch.",
+    "idle": "loops/face25-22-idle.mp4",
+    "talk": "loops/face25-22-talk.mp4",
+    "smile": "loops/face25-22-smile.mp4",
+    "poster": "loops/face25-22-poster.jpg",
+    "timings_seconds": {
+      "idle": 59.3,
+      "talk": 73.3,
+      "smile": 59.8
+    }
+  },
+  {
+    "id": 23,
+    "signature": "gaze-snap",
+    "description": "The eyes make a small sideways shift and snap back to center.",
+    "idle": "loops/face25-23-idle.mp4",
+    "talk": "loops/face25-23-talk.mp4",
+    "smile": "loops/face25-23-smile.mp4",
+    "poster": "loops/face25-23-poster.jpg",
+    "timings_seconds": {
+      "idle": 46.9,
+      "talk": 80.2,
+      "smile": 58.8
+    }
+  },
+  {
+    "id": 24,
+    "signature": "loose-jaw",
+    "description": "The mouth hangs open slightly as the jaw drifts.",
+    "idle": "loops/face25-24-idle.mp4",
+    "talk": "loops/face25-24-talk.mp4",
+    "smile": "loops/face25-24-smile.mp4",
+    "poster": "loops/face25-24-poster.jpg",
+    "timings_seconds": {
+      "idle": 75.7,
+      "talk": 84.2,
+      "smile": 65.8
+    }
+  },
+  {
+    "id": 25,
+    "signature": "frown-flash",
+    "description": "A faint frown flickers briefly into a small smile.",
+    "idle": "loops/face25-25-idle.mp4",
+    "talk": "loops/face25-25-talk.mp4",
+    "smile": "loops/face25-25-smile.mp4",
+    "poster": "loops/face25-25-poster.jpg",
+    "timings_seconds": {
+      "idle": 65.4,
+      "talk": 60.1,
+      "smile": 47.0
+    }
+  }
+]

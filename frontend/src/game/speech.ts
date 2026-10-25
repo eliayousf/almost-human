@@ -1,17 +1,23 @@
 /**
- * Counterpart speech signal: the single module the counterpart's mouth listens to.
+ * Counterpart speech signal: the single module the counterpart's Talk loop and
+ * the style-only READING YOU caption listen to.
  *
- * Bound source (only one): a counterpart message LANDING in the round snapshot.
- * The mouth then moves for a duration proportional to the line's length, as if
- * finishing saying it. It is never presented as a live typing indicator.
+ * LABELLED FIXTURE FALLBACK ONLY. The one trigger is a counterpart message
+ * LANDING in a fixture round snapshot: their card then plays its talk loop for
+ * a duration proportional to the line's length. This is NOT a typing,
+ * presence, attention, or audio indicator, and it is never presented as one.
  *
- * Remote typing presence: UNBOUND. Awaiting verified backend typing API - do not
- * guess the shape. The pinned contract carries no typing state, and nothing here
- * assumes any remote field, function, or payload. When a verified API exists,
- * bind it inside this module only; screens and the mouth layer stay unchanged.
+ * Remote typing/presence: UNBOUND. Awaiting a verified backend signal - do not
+ * guess the shape. Outside fixture mode REMOTE_SIGNAL is null, so the
+ * counterpart stays on its idle loop and READING YOU stays off. When a verified
+ * API exists, bind it inside this module only; screens and cards stay unchanged.
  */
 import { useEffect, useRef } from "react";
 import type { RoundSnapshot } from "@game/game-contract";
+
+/** Which source drives remote Talk/READING YOU. null = off (no fake presence). */
+export const REMOTE_SIGNAL: "fixture-message-landing" | null =
+  import.meta.env.MODE === "fixtures" ? "fixture-message-landing" : null;
 
 const MS_PER_CHARACTER = 55;
 const MIN_MS = 650;
@@ -22,8 +28,9 @@ export function speechDurationMs(text: string): number {
 }
 
 /**
- * Calls onSpeak(durationMs) once per counterpart message that arrives while
- * mounted. Messages already present at mount (refresh/resume) stay silent.
+ * FIXTURE FALLBACK: calls onSpeak(durationMs) once per counterpart message
+ * that arrives while mounted. Messages already present at mount
+ * (refresh/resume) stay silent. Inert outside fixture mode.
  */
 export function useCounterpartSpeech(
   round: RoundSnapshot | undefined,
@@ -36,7 +43,7 @@ export function useCounterpartSpeech(
   const messages = round && "messages" in round ? round.messages : null;
   const roundId = round?.roundId ?? null;
   useEffect(() => {
-    if (!roundId || !messages) return;
+    if (!REMOTE_SIGNAL || !roundId || !messages) return;
     if (seen.current?.roundId !== roundId) {
       seen.current = { roundId, ids: new Set(messages.map(message => message.id)) };
       return;
@@ -48,4 +55,14 @@ export function useCounterpartSpeech(
       if (message.senderId === counterpartId) speak.current(speechDurationMs(message.text));
     }
   }, [roundId, messages, counterpartId]);
+}
+
+/**
+ * Style-only READING YOU caption on the focused counterpart, bound to the same
+ * fixture trigger: shown while your line is the latest message and their Talk
+ * loop is not playing. Message order only; not a typing/presence indicator.
+ * Always false outside fixture mode.
+ */
+export function showsReadingYou(lastSenderId: string | null, selfId: string, counterpartTalking: boolean): boolean {
+  return REMOTE_SIGNAL !== null && lastSenderId === selfId && !counterpartTalking;
 }

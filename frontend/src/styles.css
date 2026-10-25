@@ -270,6 +270,5 @@ button .placeholder { border: 0; padding: 0; background: none; color: inherit; f
     transition: none !important;
   }
   .slices, .mosh-canvas { display: none !important; }
-  .mouth { opacity: 0 !important; }
 }
 /* END styles.css */

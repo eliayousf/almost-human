@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChatMessage, RoundSnapshot, Seat } from "@game/game-contract";
-import { useMouth } from "../../fx/mouth";
+import { castFaces } from "../../assets/cast";
+import { useTalk } from "../../fx/talk";
 import type { PlayClient } from "../../game/binding";
 import { useCounterpartSpeech } from "../../game/speech";
 import "./round.css";
@@ -45,15 +46,17 @@ export function Round({ game, round, seconds, busy, roundNumber, onPlayAgain, on
   }, [others, self]);
   const messages = "messages" in round ? round.messages : [];
   const focus = focusedCounterpart(others, messages);
-  const selfMouth = useMouth();
-  const strangerMouth = useMouth();
+  const selfTalk = useTalk();
+  const strangerTalk = useTalk();
   const burst = useBursts(round);
   const [sheetOpen, setSheetOpen] = useState(false);
-  useCounterpartSpeech(round, focus?.id ?? null, ms => strangerMouth.speakFor(ms));
+  // Labelled fixture fallback only; inert outside fixture mode (see speech.ts).
+  useCounterpartSpeech(round, focus?.id ?? null, ms => strangerTalk.speakFor(ms));
+  const faces = useMemo(() => castFaces(round.roundId, round.participants), [round.roundId, round.participants]);
 
   const visuals = useMemo<SeatVisuals>(() => ({
-    selfId: round.selfId, focusId: focus?.id ?? null, selfMouth, strangerMouth, burst,
-  }), [round.selfId, focus?.id, selfMouth, strangerMouth, burst]);
+    selfId: round.selfId, focusId: focus?.id ?? null, faces, selfTalk, strangerTalk, burst,
+  }), [round.selfId, focus?.id, faces, selfTalk, strangerTalk, burst]);
   const live = round.phase === "countdown" || round.phase === "chat" || round.phase === "voting";
   const props: ScreenProps = {
     game, seconds, roundNumber, visuals, ordered, others,
@@ -84,7 +87,7 @@ export function formatSeconds(seconds: number | null): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 }
 
-/** The burst/mouth target follows the last other seat to speak; in 1v1 it is the stranger. */
+/** The burst/Talk target follows the last other seat to speak; in 1v1 it is the stranger. */
 function focusedCounterpart(others: readonly Seat[], messages: readonly ChatMessage[]): Seat | undefined {
   const ids = new Set(others.map(seat => seat.id));
   const lastSpeaker = [...messages].reverse().find(message => ids.has(message.senderId))?.senderId;

@@ -2,20 +2,18 @@
  * Datamosh burst for the character portrait panel only.
  *
  * One shared WebGL2 context on one canvas, moved into whichever portrait frame
- * bursts. Both portraits live in one texture atlas uploaded once. The render
- * loop runs only for the 300-600ms burst; uniforms are set with scalar calls
- * and the loop is a pre-bound method, so frames allocate nothing.
+ * bursts. The frame's current cast video frame (or its poster still) is
+ * uploaded once per burst as the source texture. The render loop runs only for
+ * the 300-600ms burst; uniforms are set with scalar calls and the loop is a
+ * pre-bound method, so frames allocate nothing.
  *
  * Callers fall back to the CSS slice burst when burst() resolves false (no
- * WebGL2, software rendering, low-memory device, context loss, tainted atlas).
+ * WebGL2, software rendering, low-memory device, context loss, tainted source).
  * Under prefers-reduced-motion nothing runs at all.
  */
-import { ATLAS_ORDER, PORTRAITS, type PortraitAsset } from "../assets/portraits";
 import { prefersReducedMotion } from "./motion";
 
-const CELL_W = 512;
-const CELL_H = 640; // 4:5 plate
-const PLATE_ASPECT = CELL_W / CELL_H;
+type BurstSource = HTMLVideoElement | HTMLImageElement;
 
 const VERTEX = `#version 300 es
 out vec2 vUv;
@@ -30,14 +28,13 @@ precision mediump float;
 in vec2 vUv;
 out vec4 outColor;
 uniform sampler2D uTex;
-uniform vec4 uCell;   // atlas cell origin.xy, size.zw
-uniform vec4 uMap;    // frame uv -> plate uv: scale.xy, offset.zw
+uniform vec4 uMap;    // frame uv -> source uv (object-fit: cover): scale.xy, offset.zw
 uniform float uI;     // intensity 0..1
 uniform float uSeed;
 uniform vec2 uDir;    // dominant motion direction for this burst
 
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7)) + uSeed * 13.17) * 43758.5453); }
-vec3 tap(vec2 uv) { return texture(uTex, uCell.xy + clamp(uv, 0.002, 0.998) * uCell.zw).rgb; }
+vec3 tap(vec2 uv) { return texture(uTex, clamp(uv, 0.002, 0.998)).rgb; }
 
 void main() {
   vec2 uv = vUv * uMap.xy + uMap.zw;
@@ -63,14 +60,14 @@ void main() {
   outColor = vec4(c, 1.0);
 }`;
 
-type Uniforms = Record<"cell" | "map" | "i" | "seed" | "dir", WebGLUniformLocation | null>;
+type Uniforms = Record<"map" | "i" | "seed" | "dir", WebGLUniformLocation | null>;
 
 class DatamoshEngine {
   private canvas: HTMLCanvasElement | null = null;
   private gl: WebGL2RenderingContext | null = null;
   private u: Uniforms | null = null;
   private failed = false;
-  private atlas: Promise<boolean> | null = null;
+  private texture: WebGLTexture | null = null;
   private raf = 0;
   private start = 0;
   private duration = 0;
@@ -100,13 +97,18 @@ class DatamoshEngine {
       const program = link(gl);
       gl.useProgram(program);
       this.u = {
-        cell: gl.getUniformLocation(program, "uCell"),
         map: gl.getUniformLocation(program, "uMap"),
         i: gl.getUniformLocation(program, "uI"),
         seed: gl.getUniformLocation(program, "uSeed"),
         dir: gl.getUniformLocation(program, "uDir"),
       };
       gl.bindVertexArray(gl.createVertexArray());
+      this.texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
       canvas.addEventListener("webglcontextlost", event => {
         event.preventDefault();
         this.cancel();
@@ -121,42 +123,27 @@ class DatamoshEngine {
     }
   }
 
-  /** Load both portraits into one atlas texture, once. */
-  prepare(): Promise<boolean> {
-    if (!this.available()) return Promise.resolve(false);
-    return this.atlas ??= (async () => {
-      try {
-        const images = await Promise.all(ATLAS_ORDER.map(key => load(PORTRAITS[key])));
-        const scratch = document.createElement("canvas");
-        scratch.width = CELL_W * images.length;
-        scratch.height = CELL_H;
-        const context = scratch.getContext("2d");
-        if (!context) return false;
-        images.forEach((image, index) => context.drawImage(image, index * CELL_W, 0, CELL_W, CELL_H));
-        const gl = this.gl!;
-        gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        // Throws SecurityError if the atlas is tainted; caller then falls back.
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, scratch);
-        scratch.width = scratch.height = 0;
-        return true;
-      } catch {
-        this.failed = true;
-        return false;
-      }
-    })();
+  /** Upload the burst source (one video frame or a still). False if tainted/failed. */
+  private upload(source: BurstSource): boolean {
+    const gl = this.gl!;
+    try {
+      gl.bindTexture(gl.TEXTURE_2D, this.texture);
+      // Throws SecurityError if the source is tainted; caller then falls back.
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, source);
+      return true;
+    } catch {
+      this.failed = true;
+      return false;
+    }
   }
 
   /**
    * Burst over `host` (a portrait frame). Resolves false when the caller should
    * run the CSS fallback instead.
    */
-  async burst(host: HTMLElement, key: PortraitAsset["key"], durationMs: number): Promise<boolean> {
+  burst(host: HTMLElement, source: BurstSource, durationMs: number): boolean {
     if (prefersReducedMotion()) return true; // nothing runs, nothing to fall back to
-    if (!(await this.prepare()) || !this.gl || !this.canvas || !this.u) return false;
+    if (!this.available() || !this.gl || !this.canvas || !this.u) return false;
     const gl = this.gl;
     const rect = host.getBoundingClientRect();
     if (rect.width < 2 || rect.height < 2) return true;
@@ -165,13 +152,14 @@ class DatamoshEngine {
     this.canvas.width = Math.round(rect.width * scale);
     this.canvas.height = Math.round(rect.height * scale);
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    // Same "cover" math as the CSS plate: width max(frame, 0.8 x frame height), centred.
-    const plateW = Math.max(rect.width, rect.height * PLATE_ASPECT);
-    const plateH = plateW / PLATE_ASPECT;
-    const sx = rect.width / plateW;
-    const sy = rect.height / plateH;
-    const cellW = 1 / ATLAS_ORDER.length;
-    gl.uniform4f(this.u.cell, ATLAS_ORDER.indexOf(key) * cellW, 0, cellW, 1);
+    const width = source instanceof HTMLVideoElement ? source.videoWidth : source.naturalWidth;
+    const height = source instanceof HTMLVideoElement ? source.videoHeight : source.naturalHeight;
+    if (!width || !height || !this.upload(source)) return false;
+    // Same math as the CSS media's object-fit: cover, centred.
+    const sourceAspect = width / height;
+    const frameAspect = rect.width / rect.height;
+    const sx = frameAspect > sourceAspect ? 1 : frameAspect / sourceAspect;
+    const sy = frameAspect > sourceAspect ? sourceAspect / frameAspect : 1;
     gl.uniform4f(this.u.map, sx, sy, (1 - sx) / 2, (1 - sy) / 2);
     const angle = (Math.random() - 0.5) * 0.9 + (Math.random() < 0.5 ? 0 : Math.PI);
     gl.uniform2f(this.u.dir, Math.cos(angle), Math.sin(angle) * 0.4);
@@ -227,19 +215,6 @@ function link(gl: WebGL2RenderingContext): WebGLProgram {
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error("program link failed");
   return program;
-}
-
-function load(asset: PortraitAsset): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => resolve(image);
-    image.onerror = () => {
-      if (asset.fallbackSrc && image.src !== asset.fallbackSrc) image.src = asset.fallbackSrc;
-      else reject(new Error("portrait failed to load"));
-    };
-    image.src = asset.src;
-  });
 }
 
 export const datamosh = new DatamoshEngine();

@@ -51,7 +51,7 @@ export function VerdictScreen({ game, round, seconds, visuals, others, onMenu }:
       {others.map(seat => {
         const call = callOf(seat.id);
         return <div key={seat.id} className="card card--seat">
-          <SeatTile seat={seat} visuals={visuals} variant="thumb" />
+          <SeatTile seat={seat} visuals={visuals} variant="thumb" smile />
           <div className="card__who">
             <p className="card__name">{seat.alias}</p>
             <p className="card__meta mono">{locked ? "Locked" : "Your call"}</p>
@@ -68,7 +68,7 @@ export function VerdictScreen({ game, round, seconds, visuals, others, onMenu }:
       })}
 
       {self && <div className="card card--seat card--you">
-        <SeatTile seat={self} visuals={visuals} variant="thumb" />
+        <SeatTile seat={self} visuals={visuals} variant="thumb" smile />
         <div className="card__who">
           <p className="card__name">You · {self.alias}</p>
           <p className="card__meta mono">{others.length === 1 ? "The stranger's read on you" : "The room's read on you"}</p>

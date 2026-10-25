@@ -22,12 +22,16 @@
    required before this ever ships to players: replace the slots in
    `src/copy/consent.ts` (set `isPlaceholder: false`) and set
    `POLICY_VERSION` to the version the backend accepts for that copy.
-2. **Counterpart typing signal is unbound.** No backend typing API exists. The
-   counterpart's mouth moves only when a message *lands*, for a duration
-   proportional to its length; your own mouth moves only from real local
-   input events. `src/game/speech.ts` is the single isolated signal module
-   and is explicitly marked "awaiting verified backend typing API - do not
-   guess the shape". It assumes no remote field, function, or payload.
+2. **Counterpart typing signal is unbound.** No backend typing API exists.
+   Your card's Talk loop runs only from real local input events. In FIXTURE
+   MODE ONLY, the counterpart's Talk loop and the style-only READING YOU
+   caption run from a labelled fallback: a message *landing* (talk for a
+   duration proportional to its length). That is not a typing, presence,
+   attention, or audio indicator. Outside fixture mode `REMOTE_SIGNAL` is
+   null, so the counterpart stays idle and READING YOU stays off.
+   `src/game/speech.ts` is the single isolated signal module, marked
+   "awaiting a verified backend signal - do not guess the shape". It assumes
+   no remote field, function, or payload.
 3. **strictPair is not deployable yet.** `strictPair` is accepted only by a
    NOT-yet-deployed backend branch and is not declared in
    `shared/game-contract.ts`. The deployed validator (backend at `5101272`)
@@ -38,17 +42,20 @@
    locally. That flag must stay off (absent) until the strict backend is
    deployed and the contract declares the field. With the flag absent the
    field is compiled out and `joinQueue` sends the plain `CommandInput`.
-4. **Portraits are procedural dev placeholders,** not production-cleared art
-   (`src/assets/portraits/*.svg`). Final cleared photographic portraits are
-   a drop-in via `src/assets/portraits.ts` (see "Portraits" below).
+4. **Cast media is owner-supplied and local only.** The 25-face video set
+   (idle/talk/smile loops + posters) lives in git-ignored `public/cast/` and
+   is never committed; only `src/assets/cast.json` is tracked. A hosted build
+   needs the owner to supply that folder. **The backend has no `faceId`
+   field:** live rooms show a neutral blank plate per seat until the payload
+   carries one (see "Cast" below).
 
 Further items the owner should know before launch:
 
 - **Strict 1v1 is not enforced by this UI.** The deployed backend seats 2-5
   participants with 0-2 bots. The UI renders `participants` by array length:
   2 seats get the 1v1 layout; larger rooms get one tile and one verdict
-  card per seat (the reference sheet's multi-seat layout), and the mouth and
-  burst follow the last counterpart to speak. Only the fixture adapter forces
+  card per seat (the reference sheet's multi-seat layout), and the Talk
+  signal and burst follow the last counterpart to speak. Only the fixture adapter forces
   2 seats, and it is labelled
   fixture-only in the UI and in `src/game/fixtures/twoSeat.ts`.
 - **Contract note:** `YourRoundResult.votes` is typed `Two<Guess> | null`
@@ -132,7 +139,7 @@ The lockfile resolves every package from `https://registry.npmjs.org` only.
 | Runtime, live mode | the `VITE_CONVEX_URL` origin (HTTPS + WSS) | game API, anonymous auth, heartbeat, clock |
 | Runtime, fixture mode | none | fully offline after page load |
 
-Fonts and portraits are bundled and served from the app's own origin. There
+Fonts are bundled, and cast media is served, from the app's own origin. There
 are no CDNs, no analytics, no external images, and no third-party scripts.
 Strings such as `docs.convex.dev` or `react.dev` inside the bundles appear
 only in library error messages and are never fetched.
@@ -181,13 +188,14 @@ Deliberate deviations from the reference sheet, required by the brief:
   here. Nothing auto-submits at zero (CASH_HANDOFF: reaching zero never
   submits votes) and an unlocked call scores 0, so there is an explicit Lock
   and the footnote reads "Lock your call before the timer hits zero".
-- The "READING YOU" tag on the stranger's card shows only while your line is
-  the latest message. It is derived from message order alone and is not a
-  presence or typing signal.
+- The "READING YOU" tag is a style-only fixture caption: shown in fixture
+  mode while your line is the latest message and the counterpart's Talk loop
+  is not playing; never shown outside fixture mode. It is not a presence or
+  typing signal. There is no equalizer element in this UI.
 - Your "read on you" card always shows "? ? ?" before the reveal. After the
   reveal, a bot counterpart yields exactly "Unrated. No human judged you this
   round."; a bot ballot is never shown as a read, a score, or "believed you".
-- Your seat keeps a face under the hatching so own-typing mouth feedback shows.
+- Your seat keeps a face under the hatching so own-typing Talk feedback shows.
 - Round numbers are a display-only, per-browser-session counter; the API
   has none.
 - Rooms with 3+ seats render one tile/card per seat, the sheet's multi-seat
@@ -204,39 +212,50 @@ queue behaviour (pair, or wait indefinitely), and send `/blocked` or
 
 ## Animations (both fully off under `prefers-reduced-motion`)
 
-**Mouth flap**: `src/fx/mouth.ts`. A separate layer over the portrait does a
-3-frame stepped `scaleY` flap, rAF-driven, writing only transform/opacity,
-and stops cleanly. Your seat's mouth is driven by local input/keydown events.
-The counterpart's mouth is driven by message arrival via `src/game/speech.ts`
-(`clamp(len × 55ms, 650ms, 6.5s)`). Messages already present on
-resume/refresh stay silent.
+**Cast loops**: each card plays one muted, looping, inline video:
+idle by default, talk while its seat's Talk signal (`src/fx/talk.ts`) is on,
+smile on the Verdict and Reveal screens. Your Talk comes from local
+input/keydown events (260ms per keystroke). The counterpart's Talk is the
+fixture-only fallback in `src/game/speech.ts` (`clamp(len × 55ms, 650ms,
+6.5s)`); messages already present on resume/refresh stay silent. A state
+change mounts the new loop hidden and swaps once it is playing (no blank
+flash). Video mounts only while the card is on screen (IntersectionObserver)
+and never under reduced motion, which shows the poster still instead.
 
 **Datamosh burst**: `src/fx/datamosh.ts`. It runs for 480ms on the stranger
 portrait panel only, on round start, verdict lock, and reveal; resumed
 snapshots don't burst. It uses one shared WebGL2 context/canvas, moved into
-the bursting frame, and both portraits in a single texture atlas uploaded
-once. The fragment shader does block motion vectors with directional smear,
+the bursting frame, and uploads the frame's current video frame (or the
+face's poster still, if the video is not ready yet) once per burst. The fragment shader does block motion vectors with directional smear,
 stale macroblocks, and chroma bleed under an intensity uniform. The rAF loop
 runs only during the burst, and frames allocate nothing. It falls back to
 CSS clip-path slices animated with `translateX` when there is no WebGL2,
 `failIfMajorPerformanceCaveat` trips, `deviceMemory < 2`, the context is lost,
-or the atlas is tainted. Text and controls render above the burst layer and
+or the source is tainted. The slices show the poster still. Text and controls render above the burst layer and
 are never distorted.
 
-## Portraits
+## Cast
 
-`src/assets/portraits.ts` is the only module that knows about portrait
-files. To drop in final cleared photographs: add the AVIF (+ optional WebP
-`fallbackSrc`) files, change the two imports, set `placeholder: false`, and
-re-measure each `mouth` anchor (centre x/y and size as fractions of a 4:5
-plate). The UI, the mouth layer, and the WebGL atlas all read from that
-module. Images load lazily and are prefetched once a player exists. Portrait
-choice is by seat position only and never encodes a role.
+`src/assets/cast.ts` is the single bind point for every seat's face (the
+YOU card and every counterpart, by the same rule; it never reads a role):
+
+1. a valid `faceId` (1-25) on the participant payload (not in the contract
+   yet; read defensively), else
+2. FIXTURE MODE ONLY: a seeded draw from roundId + seat id (distinct faces
+   per room, in sorted seat-id order, so every view agrees), else
+3. null: a neutral blank plate. A live client never draws its own face; two
+   clients would disagree. The live bundle contains no draw code.
+
+When the backend adds a per-participant `faceId`, declare it in the shared
+contract; `cast.ts` already reads it and no component changes. Media is served
+from `/cast/loops/face25-NN-{idle,talk,smile}.mp4` and `-poster.jpg` (512²,
+H.264, silent), filled into the existing frames with `object-fit: cover`.
 
 ## Performance
 
-- Critical path (gz): fixtures ≈ 77.5 KB, live ≈ 96.6 KB (react-dom alone
-  is ≈ 60 KB). The round screens are a lazy chunk (≈ 8 KB JS + 2.5 KB CSS),
+- Critical path (gz): fixtures ≈ 77.3 KB, live ≈ 96.6 KB (react-dom alone
+  is ≈ 60 KB). The round screens are a lazy chunk (≈ 10.8 KB JS incl. the
+  cast manifest + 2.6 KB CSS),
   prefetched once the session exists. `npm run budget` reports this (soft goal, warning only).
 - Animations are transform/opacity only. The film grain is a restrained static
   overlay (3% opacity).
@@ -262,19 +281,20 @@ choice is by seat position only and never encodes a role.
 | `src/vite-env.d.ts` | env typings |
 | `src/game/binding.tsx` | adapter interface (`GameBinding`, `PlayClient`) |
 | `src/game/live.tsx` | live adapter: shared provider/hooks; strictPair gate |
-| `src/game/speech.ts` | counterpart speech signal (typing API UNBOUND) |
+| `src/game/speech.ts` | fixture-only counterpart Talk/READING YOU (typing API UNBOUND) |
 | `src/game/fixtures/client.ts` | synthetic in-memory game client |
 | `src/game/fixtures/binding.tsx` | fixture provider + hooks |
 | `src/game/fixtures/twoSeat.ts` | fixture-only 2-seat composition from `shared/fixtures.ts` |
 | `src/game/fixtures/FixturePanel.tsx` | dev controls behind the FIXTURE MODE strip |
-| `src/assets/portraits.ts` | the single portrait assets module |
-| `src/assets/portraits/stranger.svg`, `self.svg` | procedural DEV PLACEHOLDERS |
-| `src/fx/datamosh.ts` | shared WebGL2 burst + atlas |
-| `src/fx/mouth.ts` | mouth flap driver |
+| `src/assets/cast.ts` | the single cast bind point (faceId per seat) |
+| `src/assets/cast.json` | cast manifest (text only; media is git-ignored) |
+| `public/cast/` | owner-supplied loops + posters (git-ignored, never committed) |
+| `src/fx/datamosh.ts` | shared WebGL2 burst (per-burst frame upload) |
+| `src/fx/talk.ts` | per-seat Talk window (idle ↔ talk loop) |
 | `src/fx/motion.ts` | reduced-motion source |
 | `src/ui/viewport.ts` | visual-viewport sizing for the keyboard |
 | `src/copy/consent.ts` | PLACEHOLDER copy slots + `POLICY_VERSION` |
-| `src/components/Portrait.tsx` | plate, mouth layer, burst layers |
+| `src/components/Portrait.tsx` | cast video/poster/blank plate, burst layers |
 | `src/components/Copy.tsx` | placeholder-aware copy renderer |
 | `src/screens/Consent.tsx`, `Lobby.tsx`, `Waiting.tsx`, `Status.tsx`, `ConfigError.tsx` | shell screens |
 | `src/screens/round/Round.tsx` | round shell: focus, bursts, speech, menu |
@@ -299,9 +319,14 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
   ("They believed you.") and the AI-counterpart unrated empty state.
 - Bursts: 3 WebGL bursts (start, lock, reveal) with SwiftShader WebGL2, and 3
   CSS-slice bursts with WebGL disabled.
-- Mouths: your-seat flap fires while typing (open mouth ≈ 19px on the tile);
-  the counterpart flap fires on message arrival.
-- `prefers-reduced-motion: reduce`: 0 bursts, 0 mouth frames, loop intact.
+- Cast (fixtures, Chromium, 390×844): Room/On air idle, your card talk while
+  typing, counterpart talk when its line lands, READING YOU only while the
+  counterpart is idle, smile on Verdict/Reveal; every visible video playing
+  (currentTime > 0, readyState 4, muted). Headless SwiftShader logs a "GPU
+  stall due to ReadPixels" driver warning when a video frame is uploaded for
+  a burst.
+- `prefers-reduced-motion: reduce`: 0 bursts, 0 videos (posters only), loop intact.
+- WebGL disabled: CSS-slice burst using the poster still.
 - Keyboard simulation (viewport height − 336px): the composer stays visible
   and inside the visible area.
 - Keyboard docking: with `--app-h: 480px` + `kb-open` forced on On air, the
