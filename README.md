@@ -31,7 +31,7 @@ Canonical release: [GitHub main and the main playtest](RELEASE.md).
 
 | Criterion | What to inspect | Evidence and boundary |
 | --- | --- | --- |
-| **Use of Mubit · 25%** | Accepted conversational correction → completed adapter v1 | [Training lineage and result](MUBIT_TRAINING_RUN.md). Training completed; fresh trained-adapter serving is blocked. |
+| **Use of Mubit · 25%** | Accepted conversational correction → completed adapter v1 | Adapter training completed. Game-vote feedback was accepted as trainable. Fresh adapter verification is pending amid reported Mubit capacity issues. |
 | **Usefulness · 25%** | Conversational examples and feedback aimed at improving the words voice agents say | [User/task rationale](judging/USEFULNESS.md). Text-game collection is implemented; voice deployment, demand, quality and speed gains are unverified. |
 | **Technical execution · 25%** | Live game, private rooms, authoritative scoring and reproducible tests | [Hosted checks](INTEGRATION.md) and [local check receipt](judging/evidence/checks.json). Local mocks are labelled; they do not prove live adapter inference. |
 | **Demo · 25%** | Real game interaction plus recorded correction/training evidence | [Sub-two-minute walkthrough](judging/DEMO.md). The final recording still needs validation and upload. |
