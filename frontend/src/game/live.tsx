@@ -15,11 +15,15 @@ const independentTabs = import.meta.env.VITE_INDEPENDENT_PLAYTEST_TABS === "true
 const convex = url ? new ConvexReactClient(url) : null;
 
 /**
- * STRICT PAIR GATE. The deployed backend's validator rejects this field, so it
- * is sent only when VITE_STRICT_PAIR=true, which may be set only after the
- * strict backend is deployed and integration is permitted. Default: absent,
- * and joinQueue receives the plain CommandInput. The shape below is the
- * not-yet-deployed proposal's source and is not in shared/game-contract.ts.
+ * STRICT PAIR GATE (build-time: Vite inlines the flag). The strict 1v1 backend exists
+ * on the undeployed strict line (4fe32ae), whose shared/game-contract.ts
+ * exports JoinQueueInput with this field; this branch's deployed base
+ * (5101272) still rejects it, so it is sent only when VITE_STRICT_PAIR=true,
+ * which may be set only after the strict backend is deployed and integration
+ * is permitted, followed by a rebuild. Default: off - joinQueue receives the
+ * plain CommandInput and the wrapper below is compiled out. On integration onto
+ * the strict line, import JoinQueueInput from shared/game-contract.ts and
+ * delete this local declaration.
  */
 interface JoinQueueInput extends CommandInput { strictPair?: boolean }
 const strictPair = import.meta.env.VITE_STRICT_PAIR === "true";

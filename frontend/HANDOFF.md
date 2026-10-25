@@ -34,16 +34,23 @@
    `src/game/speech.ts` is the single isolated signal module, marked
    "awaiting a verified backend signal - do not guess the shape". It assumes
    no remote field, function, or payload.
-3. **strictPair is not deployable yet.** `strictPair` is accepted only by a
-   NOT-yet-deployed backend branch and is not declared in
-   `shared/game-contract.ts`. The deployed validator (backend at `5101272`)
-   rejects the field, so it must never be sent against it. The
-   flagged live adapter (`src/game/live.tsx`) sends it only when
-   `VITE_STRICT_PAIR=true`, using exactly
-   `JoinQueueInput extends CommandInput { strictPair?: boolean }` declared
-   locally. That flag must stay off (absent) until the strict backend is
-   deployed and the contract declares the field. With the flag absent the
-   field is compiled out and `joinQueue` sends the plain `CommandInput`.
+3. **strictPair is build-time gated, pending strict-line integration.** The
+   strict 1v1 backend landed on the undeployed strict line (`4fe32ae`), whose
+   `shared/game-contract.ts` exports `JoinQueueInput` with the field. This
+   branch's base (`5101272`) still rejects it, so the flagged live adapter
+   (`src/game/live.tsx`) sends `strictPair: true` only when
+   `VITE_STRICT_PAIR=true`. Vite inlines the flag at build time, so turning
+   it on needs a rebuild; with it unset the wrapper is compiled out and
+   `joinQueue` sends the plain `CommandInput`. The local
+   `JoinQueueInput extends CommandInput { strictPair?: boolean }` declaration
+   mirrors the strict-line contract; on integration onto the strict line,
+   import the exported `JoinQueueInput` from `shared/game-contract.ts` and
+   delete the local declaration. Deploy order: the strict backend deploys
+   first, then the owner sets the flag. Elia-side review of `f124337` against
+   `4fe32ae` found no integration break in inspected source (not runtime
+   verification). `YourRoundResult.votes` remaining `Two<Guess>|null` on a
+   2-seat round is a known backend item on their side, and live 1v1
+   voting/reveal remains runtime-unverified.
 4. **Cast media is owner-supplied and local only.** The 25-face video set
    (idle/talk/smile loops + posters) lives in git-ignored `public/cast/` and
    is never committed; only `src/assets/cast.json` is tracked. A hosted build
@@ -103,7 +110,7 @@ configured" screen. It never falls back to mock data.
 | --- | --- | --- |
 | `VITE_CONVEX_URL` | unset | Public Convex cloud URL, injected by the repo owner at deploy. |
 | `VITE_INDEPENDENT_PLAYTEST_TABS` | unset | Desktop testing only: sessionStorage identity per tab. |
-| `VITE_STRICT_PAIR` | unset | `true` ONLY after the strict backend is deployed and integration is permitted (blocker 3). |
+| `VITE_STRICT_PAIR` | unset | Build-time gate (rebuild after changing): `true` ONLY after the strict backend line is deployed and integration is permitted (blocker 3). |
 
 The live adapter uses the shared `AlmostHumanProvider` and hooks verbatim.
 `createSession`, `getSession`, `setTrainingConsent`, `joinQueue`,
@@ -331,7 +338,8 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
 - `npm run typecheck` is clean, including the shared backend client sources.
 - `vite build` passes in fixtures and live mode. The live bundle contains
   the shared client (`game:joinQueue`, `game:heartbeat`, `game:clockNow`) and
-  no fixtures; with `VITE_STRICT_PAIR` unset it contains no `strictPair`. The
+  no fixtures; `VITE_STRICT_PAIR` is inlined at build time, so with it unset
+  the bundle contains no `strictPair` (the wrapper is compiled out). The
   fixture bundle contains no Convex client.
 - The full loop ran twice: consent → lobby → waiting (lone ticket) → Cancel
   (`QUEUE_CLOSED` path) → Play → Room → On air → Verdict lock → Reveal, with
