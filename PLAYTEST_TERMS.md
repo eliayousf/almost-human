@@ -49,13 +49,17 @@ Mubit external ratings remain disabled by default. The trained-adapter serving
 blocker is unchanged; see [JUDGING.md](JUDGING.md). Default vote feedback is not
 evidence of a trained adapter answering live questions.
 
-## Separate optional chat-training choice (implementation, not yet live)
+## Separate optional chat-training choice
 
 `optional-chat-training-v1` is a separate permission surfaced inside the terms
-modal after a supporting backend is deployed. It covers future game transcripts
+modal with the supporting backend. It covers future game transcripts
 and AI replies being recorded by Mubit for model training. It is off for existing
 profiles and is not required to play. The server snapshots grant revisions before
 matching and denies full recording when any human has not granted it. Withdrawal
 stops new uploads; re-enabling does not revive old rooms' permission. This does
 not promise erasure of records or weights already trained. General playtest
 acceptance and vote-feedback eligibility remain distinct from this choice.
+
+The [reviewed release](RELEASE.md) deploys this permission control but keeps
+external full-record captures and ratings disabled. Granting permission alone
+does not establish that any conversation was captured or any model was trained.

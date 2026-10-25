@@ -7,7 +7,8 @@ import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
 import { messageAllowed } from "./lib";
 import { MAX_LOBBY, botTypingDelayMs } from "./botlogic";
-import { BOT_MIN_TYPING_MS, BOT_START_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
+import { BOT_START_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
+import { setTypingPresence } from "./connections";
 import { recentLessons } from "./ratings";
 
 export const MAX_BOT_TURNS = 10;
@@ -98,17 +99,37 @@ export const prepareReply = internalMutation({
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
-    // Sample one reading/typing pause for this publication. Even near the round
-    // deadline, a reply must retain the minimum pause instead of rushing out.
-    const delay = Math.min(botTypingDelayMs(trimmed, Math.random()), Math.max(BOT_MIN_TYPING_MS, round.chatEndsAt - now - 1000));
+    // Never compress a long message's typing to squeeze it into the deadline.
+    const delay = botTypingDelayMs(trimmed, Math.random());
     if (now + delay >= round.chatEndsAt) {
       // Keep at least the minimum typing delay and never publish into voting.
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+    const bots = members.filter(member => member.kind === "ai");
+    const bot = bots[turn % bots.length];
+    if (!bot) return null;
+    // Renew the same four-second lease humans use; never expose the planned send time.
+    await setTypingPresence(ctx, round, bot._id, Math.min(now + 4000, round.chatEndsAt));
+    if (delay > 2500) await ctx.scheduler.runAfter(2500, internal.botState.refreshTyping, { roundId, turn, memberId: bot._id });
     // Keep the claim reserved through typing. The durable callback rechecks
     // membership, moderation and phase before exposing text to the transcript.
     await ctx.scheduler.runAfter(delay, internal.botState.commit, { roundId, turn, text: trimmed, mubitRequestId, lessonCount, trainingEligible });
+    return null;
+  },
+});
+
+export const refreshTyping = internalMutation({
+  args: { ...turnArgs, memberId: v.id("members") }, returns: v.null(),
+  handler: async (ctx, { roundId, turn, memberId }) => {
+    const round = await ctx.db.get(roundId);
+    const member = await ctx.db.get(memberId);
+    const now = Date.now();
+    if (!round || round.phase !== "chat" || round.botPending !== turn || now >= round.chatEndsAt
+      || member?.roundId !== roundId || member.kind !== "ai") return null;
+    await setTypingPresence(ctx, round, memberId, Math.min(now + 4000, round.chatEndsAt));
+    await ctx.scheduler.runAfter(2500, internal.botState.refreshTyping, { roundId, turn, memberId });
     return null;
   },
 });
@@ -129,6 +150,7 @@ export const commit = internalMutation({
     const bots = members.filter(member => member.kind === "ai");
     if (!bots.length) return null;
     const bot = bots[turn % bots.length];
+    await setTypingPresence(ctx, round, bot._id, 0);
     let continueTurns = members.length > 2;
     if (!continueTurns) {
       const stored = await listMessages(ctx, components.agent, {

@@ -58,7 +58,8 @@ All 25 characters are committed: 75 animated WebP loops and 25 WebP posters.
 Asset checks verify the WebP format, animation flags, frame counts, loop setting,
 256px dimensions and size bound. Original MP4/JPEG sources remain for regeneration;
 the app exports only the WebP files. Mood changes and decorative bars are visual
-cues, not remote typing or audio signals. Reduced motion uses still portraits.
+cues, not audio signals. A separate text bubble shows remote typing activity
+from the backend; it reveals no draft content or roles. Reduced motion uses still portraits.
 
 `/?cast=1` opens the asset gallery. `/?preview=1` shows labelled synthetic design
 examples. Neither route mounts the live game provider or silently substitutes

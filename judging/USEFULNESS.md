@@ -55,10 +55,10 @@ reviewed synthetic Mubit training experiment. The full voice-data pipeline above
 is a proposed next step, not a completed capability.
 
 Human-written player responses could eventually supply supervised context-to-reply
-examples. That would require a separate, clearly explained permission workflow,
-personal-data filtering, provenance and editorial review. The current
-[playtest terms](../PLAYTEST_TERMS.md) explicitly do not authorize importing chat
-messages as human-authored training targets, and this pipeline is not implemented.
+examples. Separate optional transcript-training permission is now implemented
+in the [terms controls](../PLAYTEST_TERMS.md), distinct from ordinary vote feedback.
+External captures/ratings remain disabled. Personal-data filtering, provenance,
+editorial review and importing human replies as supervised targets remain future work.
 Earlier opt-outs must not be converted into training permission.
 
 ## What would validate the benefit

@@ -7,6 +7,7 @@ export type State = {
   phase: Phase; name: string; faceId?: number; score: number; played?: number; right?: number;
   roomId?: string; partner?: Partner; topic?: string; now?: number; endsAt?: number;
   roundMs?: number; voteMs?: number; guessEndsAt?: number; guessed?: Verdict;
+  partnerTyping?: boolean;
   messages?: { me: boolean; text: string }[]; cancellation?: string;
   reveal?: { partner: Partner; truth: Verdict; correct: boolean; yourGuess?: Verdict;
     score: number; earnedPoints?: number; streak?: number;
@@ -28,7 +29,7 @@ export function displayState(session: SessionView, round: RoundSnapshot | undefi
   if (round.phase === 'countdown') return { ...state, phase: 'waiting', endsAt: Date.parse(round.chatStartsAt) };
   state.topic = round.topic.text;
   state.messages = round.messages.map(message => ({ me: message.senderId === round.selfId, text: message.text }));
-  if (round.phase === 'chat') return { ...state, phase: 'chat', endsAt: Date.parse(round.chatEndsAt) };
+  if (round.phase === 'chat') return { ...state, phase: 'chat', endsAt: Date.parse(round.chatEndsAt), partnerTyping: round.typing?.some(entry => entry.participantId === partner.id && Date.parse(entry.until) > now) ?? false };
   if (round.phase === 'voting') return { ...state, phase: 'guess', guessEndsAt: Date.parse(round.votingEndsAt),
     guessed: round.ownBallot.status === 'submitted' ? round.ownBallot.votes.find(vote => vote.participantId === partner.id)?.label : undefined };
   const revealed = round.participants.find(seat => seat.id === partner.id)!;

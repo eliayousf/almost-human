@@ -1,8 +1,9 @@
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { CHAT_TRAINING_POLICY_VERSION } from "../../../shared/playtest-policy";
-import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { ConvexReactClient } from 'convex/react';
 import { AlmostHumanProvider, useAlmostHuman, useGameSession, useGameQueue, useGameRound, useRoundSeconds } from '../../../shared/react-game';
 import type { ApiResult, ReportReason } from '../../../shared/game-contract';
+import { createTypingReporter } from './typing';
 import { displayState, type State } from './game-state';
 import { needsCurrentTerms, VOTE_FEEDBACK_TERMS_VERSION } from '../../../shared/playtest-policy';
 
@@ -24,6 +25,11 @@ export function useLiveGame() {
   const queue = useGameQueue(queueId);
   const roundResult = useGameRound(roundId);
   const round = roundResult?.ok ? roundResult.data : undefined;
+  const typingEnabled = round?.phase === 'chat' && round.typing !== undefined;
+  const typingReporter = useMemo(() => createTypingReporter(active => {
+    if (game?.setTyping && roundId && typingEnabled) void game.setTyping(roundId, active).catch(() => undefined);
+  }), [game, roundId, typingEnabled]);
+  useEffect(() => () => typingReporter.stop(), [typingReporter]);
   const seconds = useRoundSeconds(round);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -101,5 +107,5 @@ export function useLiveGame() {
     needsAcceptance: Boolean(game && ((sessionResult && !sessionResult.ok && sessionResult.error.code === 'UNAUTHENTICATED') || (needsCurrentTerms(session) && !roundId && !queueId))),
     updatingTerms: needsCurrentTerms(session),
     queueing: Boolean(queueId), queueClosed: Boolean(queue && !queue.ok && queue.error.code === 'QUEUE_CLOSED'),
-    roundId, partner, play, send, vote, accept, chatTraining, cancelQueue, leave, report, block, toLobby };
+    roundId, partner, play, send, typing: typingReporter.update, vote, accept, chatTraining, cancelQueue, leave, report, block, toLobby };
 }

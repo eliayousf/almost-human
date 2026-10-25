@@ -17,6 +17,7 @@ import type * as cast from "../cast.js";
 import type * as connections from "../connections.js";
 import type * as game from "../game.js";
 import type * as http from "../http.js";
+import type * as learningConsent from "../learningConsent.js";
 import type * as lib from "../lib.js";
 import type * as lifecycle from "../lifecycle.js";
 import type * as matchmaking from "../matchmaking.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   connections: typeof connections;
   game: typeof game;
   http: typeof http;
+  learningConsent: typeof learningConsent;
   lib: typeof lib;
   lifecycle: typeof lifecycle;
   matchmaking: typeof matchmaking;

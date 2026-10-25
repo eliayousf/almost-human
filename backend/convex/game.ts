@@ -9,7 +9,7 @@ import type { Id } from "./_generated/dataModel";
 import { playerMutation, playerQuery, unauthenticated, ok, fail, iso, memberFor, sessionView, queueView, idempotent, recognition, messageAllowed, SEAT_NAMES, shuffled, POLICY_VERSION, validRequestId } from "./lib";
 import { advanceRound, cancelRound, revealIfReady } from "./lifecycle";
 import { scheduleBotTurn } from "./botState";
-import { presence } from "./connections";
+import { presence, setTypingPresence } from "./connections";
 import { matchWaiting } from "./matchmaking";
 import { castFaceIds } from "./cast";
 import { LEGACY_PLAYTEST_POLICY } from "../../shared/playtest-policy";
@@ -19,6 +19,7 @@ import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, cr
 const limiter = new RateLimiter(components.rateLimiter, {
   chat: { kind: "token bucket", rate: 45, period: MINUTE, capacity: 3 },
   queue: { kind: "token bucket", rate: 12, period: MINUTE, capacity: 5 },
+  typing: { kind: "token bucket", rate: 60, period: MINUTE, capacity: 6 },
   report: { kind: "token bucket", rate: 5, period: MINUTE, capacity: 3 },
 });
 const leftV = resultV(v.object({ left: v.literal(true) }));
@@ -42,7 +43,16 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
     const sender = members.find(seat => seat._id === m.userId);
     return sender ? [{ id: m._id, senderId: sender._id, text: m.text ?? "", sentAt: iso(m._creationTime) }] : [];
   });
-  if (round.phase === "chat") return ok({ ...base, phase: "chat" as const, topic: round.topic, messages, chatEndsAt: iso(round.chatEndsAt) });
+  if (round.phase === "chat") {
+    const activity = round.typingRoomToken ? await presence.list(ctx, round.typingRoomToken, MAX_LOBBY) : [];
+    const typing = activity.flatMap(entry => {
+      const member = members.find(member => member._id === entry.userId && member._id !== self._id);
+      const data = entry.data;
+      return member && entry.online && data && typeof data === "object" && "until" in data && typeof data.until === "number" && data.until > 0
+        ? [{ participantId: member._id, until: iso(Math.min(data.until, round.chatEndsAt)) }] : [];
+    });
+    return ok({ ...base, phase: "chat" as const, topic: round.topic, messages, typing, chatEndsAt: iso(round.chatEndsAt) });
+  }
   if (round.phase === "voting") {
     const ballot = await ctx.db.query("ballots").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId).eq("playerId", playerId)).unique();
     return ok({ ...base, phase: "voting" as const, topic: round.topic, messages, votingEndsAt: iso(round.votingEndsAt), ownBallot: ballot ? { status: "submitted" as const, votes: ballot.votes, submittedAt: iso(ballot.submittedAt) } : { status: "open" as const } });
@@ -150,6 +160,18 @@ export const leaveQueue = playerMutation({ args: { queueId: v.id("queue"), input
   });
 } });
 export const getRound = playerQuery({ args: { roundId: v.id("rounds") }, returns: resultV(roundV), handler: async (ctx, { roundId }) => ctx.player ? roundView(ctx, ctx.player._id, roundId) : unauthenticated() });
+export const setTyping = playerMutation({ args: { roundId: v.id("rounds"), typing: v.boolean() }, returns: resultV(v.null()), handler: async (ctx, { roundId, typing }) => {
+  if (!ctx.player) return unauthenticated();
+  const self = await memberFor(ctx, ctx.player._id, roundId);
+  if (!self || self.kind !== "human") return fail("NOT_PARTICIPANT", "You are not a participant in this round.");
+  const round = await ctx.db.get(roundId);
+  const now = Date.now();
+  if (!round || round.phase !== "chat" || now < round.chatStartsAt || now >= round.chatEndsAt) return fail("ROUND_CLOSED", "Chat is closed for this round.");
+  const rate = await limiter.limit(ctx, "typing", { key: self._id });
+  if (!rate.ok) return fail("RATE_LIMITED", "Please slow down a little.", rate.retryAfter);
+  await setTypingPresence(ctx, round, self._id, typing ? Math.min(now + 4000, round.chatEndsAt) : 0);
+  return ok(null);
+} });
 export const sendMessage = playerMutation({ args: { roundId: v.id("rounds"), input: sendMessageV }, returns: resultV(messageV), handler: async (ctx, { roundId, input }) => {
   if (!ctx.player) return unauthenticated();
   const self = await memberFor(ctx, ctx.player._id, roundId);
@@ -164,6 +186,7 @@ export const sendMessage = playerMutation({ args: { roundId: v.id("rounds"), inp
     if (round.messageCount >= 240) return fail("RATE_LIMITED", "This round has reached its message limit.");
     const rate = await limiter.limit(ctx, "chat", { key: self.playerId });
     if (!rate.ok) return fail("RATE_LIMITED", "Please slow down a little.", rate.retryAfter);
+    await setTypingPresence(ctx, round, self._id, 0);
     const { messageId } = await saveMessage(ctx, components.agent, { threadId: round.threadId, userId: self._id, message: { role: "user", content: text } });
     await ctx.db.patch(roundId, { messageCount: round.messageCount + 1, revision: round.revision + 1, updatedAt: now });
     const nextBotTurn = round.botTurn ?? 0;

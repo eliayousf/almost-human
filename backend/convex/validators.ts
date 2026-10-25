@@ -30,7 +30,7 @@ export const roundResultV = v.object({
 const base = { roundId: v.id("rounds"), revision: v.number(), serverNow: v.string(), selfId: v.id("members"), participants: v.array(seatV) };
 export const roundV = v.union(
   v.object({ ...base, phase: v.literal("countdown"), chatStartsAt: v.string(), chatEndsAt: v.string() }),
-  v.object({ ...base, phase: v.literal("chat"), topic: topicV, messages: v.array(messageV), chatEndsAt: v.string() }),
+  v.object({ ...base, phase: v.literal("chat"), topic: topicV, messages: v.array(messageV), typing: v.optional(v.array(v.object({ participantId: v.id("members"), until: v.string() }))), chatEndsAt: v.string() }),
   v.object({ ...base, phase: v.literal("voting"), topic: topicV, messages: v.array(messageV), votingEndsAt: v.string(), ownBallot: ballotV }),
   v.object({ ...base, participants: v.array(v.object({ ...seatV.fields, kind: labelV })), phase: v.literal("reveal"), topic: topicV, messages: v.array(messageV), yourResult: roundResultV }),
   v.object({ ...base, phase: v.literal("cancelled"), reason: cancelReasonV, message: v.string() }),

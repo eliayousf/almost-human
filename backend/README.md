@@ -79,8 +79,8 @@ retried human commands cannot restart a self-conversation. Larger rooms retain
 their scheduled turns and existing 7–11-second gap between generations.
 
 Every generated reply is moderated, then published by a durable scheduled
-mutation after a typing delay: 2 seconds plus 70 ms per Unicode character,
-capped at 12 seconds. Two-seat replies begin generating on human input instead
+mutation after a typing delay: 125–175 ms per Unicode character,
+bounded to 6–12 seconds. Two-seat replies begin generating on human input instead
 of adding the group-room gap. No reply is rushed into the transcript at the
 deadline: if typing cannot finish before chat ends, it is discarded. The final
 mutation rechecks phase, moderation, membership and the claimed turn.
@@ -104,7 +104,7 @@ At most ten turns are reserved per room. Each request has a ten-second provider 
 limit. Network errors, timeouts, HTTP 429 and HTTP 5xx responses get at most one
 retry after two seconds. Other HTTP 4xx responses (including 408), malformed
 responses and other non-transient failures are never retried. A turn needs the
-24-second generation budget plus the minimum typing delay before chat ends;
+one ten-second attempt plus the minimum typing delay and two seconds of headroom before chat ends;
 its 40-second watchdog covers both attempts, maximum typing and processing overhead.
 The topic, up to twenty recent room messages and optional earlier bot-only
 lessons form the context; no account IDs or other rooms' human messages are included.
@@ -214,3 +214,22 @@ route, and frontend integration. Raw chats and real player data stay out of Git.
 Training consent is recorded and revocable; it does not trigger any training.
 Mubit bot inference and learning integration remain separate, with no claimed
 adapter improvement. All game LLM calls route through Mubit.
+
+### Typing indicators
+
+Chat snapshots optionally include `typing: [{ participantId, until }]`. Only current
+room members can call `game.setTyping({ roundId, typing })`; identity comes from
+Convex Auth. Draft content is never sent. Clients throttle activity to once per
+1.5 seconds, stop after 2.5 seconds of inactivity, and hide expired signals using
+the calibrated server clock (four-second server expiry). Sending clears activity
+atomically. Human and prepared AI replies share the same role-free shape and four-second
+lease; bots renew their lease without exposing the planned send timestamp.
+
+AI publication waits 125–175 ms per Unicode character, bounded to 6–12 seconds.
+A reply that cannot finish its full delay before chat closes is dropped. Presence
+metadata is isolated per room and removed on voting/cancellation/reveal.
+
+Deploy the Convex schema/functions from the same revision before enabling this in
+production. The frontend detects support from the `typing` field and remains
+compatible with an older backend. A Vercel frontend deployment alone cannot
+activate typing or change server-side AI pacing.

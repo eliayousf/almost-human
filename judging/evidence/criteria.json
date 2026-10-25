@@ -34,7 +34,7 @@
         "Voice-agent integration and spoken-dialogue transfer are unverified.",
         "Customer demand, reply-quality gains and latency gains have not been measured.",
         "Human/AI votes are conversation-level believability signals, not guaranteed per-reply quality labels.",
-        "Human-authored training-target ingestion is not implemented or authorized by the current terms.",
+        "Human-authored training-target ingestion is not implemented. Optional transcript permission is separate from vote feedback; external captures and ratings are disabled.",
         "Synthetic operator-reviewed examples are not a user study."
       ]
     },
@@ -48,6 +48,7 @@
         "scripts/verify-judging.py",
         "backend/VERIFICATION.md",
         "INTEGRATION.md",
+        "RELEASE.md",
         "frontend/expo/MOBILE_MULTIPLAYER.md",
         "backend/convex/concurrency.test.ts"
       ],

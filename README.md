@@ -25,6 +25,8 @@ supplies a perceived-human-likeness signal for selecting examples to review.
 The current product is **text-only**: voice integration, better spoken dialogue,
 lower latency and customer demand have not yet been demonstrated.
 
+Canonical release: [GitHub main and the main playtest](RELEASE.md).
+
 ## Judging at a glance
 
 | Criterion | What to inspect | Evidence and boundary |
@@ -34,7 +36,7 @@ lower latency and customer demand have not yet been demonstrated.
 | **Technical execution · 25%** | Live game, private rooms, authoritative scoring and reproducible tests | [Hosted checks](INTEGRATION.md) and [local check receipt](judging/evidence/checks.json). Local mocks are labelled; they do not prove live adapter inference. |
 | **Demo · 25%** | Real game interaction plus recorded correction/training evidence | [Sub-two-minute walkthrough](judging/DEMO.md). The final recording still needs validation and upload. |
 
-**Recorded validation:** 143 backend/client tests, 20 Python checks, all 100 WebP
+**Recorded validation:** 155 backend/client tests, 20 Python checks, all 100 WebP
 assets, TypeScript and frontend/diagnostic builds. The command below reproduces
 the checks and writes a new result with its own source fingerprint.
 These checks cover the text game and its tooling, not spoken-audio quality or speed.
@@ -93,9 +95,11 @@ and measure both reply quality and end-to-end response time.
 
 Reviewed human-written replies could become another source of training targets
 in future, with separate permission, personal-data filtering and provenance.
-That pipeline is not implemented, and the current [terms](PLAYTEST_TERMS.md)
-explicitly do not authorize importing chat messages as human-authored training
-examples. The completed Mubit experiment used synthetic game conversations.
+A separate optional transcript-training permission is implemented in the
+[terms controls](PLAYTEST_TERMS.md); ordinary vote feedback never grants it.
+External captures/ratings remain disabled. Selecting and importing human-written
+replies as supervised targets is still future work. The completed Mubit experiment
+used synthetic game conversations.
 
 The [diagnostic report](judging/DIAGNOSTIC.md) separates verified
 application behavior from the unresolved Mubit training/serving step.

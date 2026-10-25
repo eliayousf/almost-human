@@ -113,7 +113,7 @@ export function LiveGame() {
     content = <>
       {state.phase === 'idle' && session && <PlayerHeader alias={session.leaderboardAlias} points={session.totalGuessingPoints} onTerms={() => setTerms(true)} />}
       <RoundScreen state={state} phase={state.phase} count={controller.seconds ?? 0} busy={busy}
-        onPlay={() => { void controller.play(); }} onSend={controller.send} onVote={value => { void controller.vote(value); }}
+        onPlay={() => { void controller.play(); }} onSend={controller.send} onTyping={controller.typing} onVote={value => { void controller.vote(value); }}
         onMenu={controller.roundId && state.phase !== 'reveal' ? () => setMenu(true) : undefined} />
     </>;
   }

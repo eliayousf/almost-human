@@ -99,7 +99,7 @@ export function Frame({ title, children, onMenu }: { title: string; children: Re
   const compact = useVisibleHeight() < 740;
   return <View style={[s.phone, compact && { padding: 16 }]}><View style={[s.header, compact && { marginBottom: 8 }]}><View style={s.live} /><Label>{title}</Label>{onMenu ? <Pressable accessibilityRole="button" accessibilityLabel="Menu: report, block or leave" onPress={onMenu} style={{ minWidth: 44, minHeight: 44, justifyContent: 'center' }}><Label>MENU</Label></Pressable> : <View style={{ width: 5 }} />}</View>{children}</View>;
 }
-export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onSend, onVote, onMenu }: { state: State; phase: Phase; count?: number; busy?: boolean; onPlay: () => void; onSend: (text: string) => Promise<boolean>; onVote: (v: Verdict) => void; onMenu?: () => void }) {
+export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onSend, onTyping, onVote, onMenu }: { state: State; phase: Phase; count?: number; busy?: boolean; onPlay: () => void; onSend: (text: string) => Promise<boolean>; onTyping?: (typing: boolean) => void; onVote: (v: Verdict) => void; onMenu?: () => void }) {
   const [text, setText] = useState('');
   const visibleHeight = useVisibleHeight();
   const desktop = useWindowDimensions().width >= 900;
@@ -109,7 +109,7 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
   const partner = state.partner || state.reveal?.partner;
   const left = Math.max(0, Math.ceil((((phase === 'guess' ? state.guessEndsAt : state.endsAt) || 0) - (state.now || 0)) / 1000));
   const timer = `${Math.floor(left / 60)}:${String(Math.ceil(left % 60)).padStart(2, '0')}`;
-  const submit = async () => { if (text.trim() && await onSend(text.trim())) setText(''); };
+  const submit = async () => { if (text.trim() && await onSend(text.trim())) { setText(''); onTyping?.(false); } };
   const result = state.reveal ? roundResult(state.reveal) : undefined;
   const title = phase === 'chat' ? `ROUND · ${timer}` : phase === 'guess' ? `VERDICT · ${timer}` : phase === 'reveal' ? 'ROUND OVER' : 'YOUR ROOM';
   return <Frame title={title} onMenu={onMenu}>
@@ -129,8 +129,9 @@ export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onS
       <ScrollView ref={messages} style={[s.messages, { minHeight: 0 }, compact && { marginTop: 8 }]} contentContainerStyle={{ gap: 15, paddingBottom: 20 }} onContentSizeChange={() => messages.current?.scrollToEnd({ animated: false })}>
         {!state.messages?.length && <Text style={s.subtitle}>Break the silence. Ask them anything.</Text>}
         {state.messages?.map((m, i) => <View key={i} accessible accessibilityLabel={`${m.me ? 'You' : partner?.name}: ${m.text}`}><Label>{m.me ? 'YOU' : partner?.name.toUpperCase()}</Label><Text style={[s.body, desktop && { fontSize: 15, lineHeight: 23 }, m.me && { fontWeight: '600' }]}>{m.text}</Text></View>)}
+        {state.partnerTyping && <View accessibilityLiveRegion="polite" accessible accessibilityLabel={`${partner?.name || 'Stranger'} is typing`} style={{ alignSelf: 'flex-start', borderRadius: 14, backgroundColor: C.surface, paddingHorizontal: 14, paddingVertical: 8 }}><Text style={{ color: C.muted, fontSize: 12 }}>{partner?.name || 'Stranger'} is typing <Text style={{ color: C.gold, letterSpacing: 3 }}>•••</Text></Text></View>}
       </ScrollView>
-      <View style={s.composer}><TextInput accessibilityLabel="Your message" style={s.input} placeholder="Convince them…" placeholderTextColor={C.muted} value={text} onChangeText={setText} maxLength={400} onSubmitEditing={submit} returnKeyType="send" /><Pressable accessibilityRole="button" accessibilityLabel="Send message" disabled={busy || !text.trim()} onPress={submit} style={s.send}><Label>SEND</Label></Pressable></View>
+      <View style={s.composer}><TextInput accessibilityLabel="Your message" style={s.input} placeholder="Convince them…" placeholderTextColor={C.muted} value={text} onChangeText={value => { setText(value); onTyping?.(!!value.trim()); }} onBlur={() => onTyping?.(false)} maxLength={400} onSubmitEditing={submit} returnKeyType="send" /><Pressable accessibilityRole="button" accessibilityLabel="Send message" disabled={busy || !text.trim()} onPress={submit} style={s.send}><Label>SEND</Label></Pressable></View>
         </View>
       </View>
     </>}
@@ -172,7 +173,7 @@ export function CastGallery() {
   const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: { item: typeof cast[number] }[] }) => setVisible(new Set(viewableItems.map(item => item.item.id))));
   return <FlatList key={columns} data={cast} numColumns={columns} keyExtractor={face => String(face.id)} extraData={visible} initialNumToRender={columns * 2} windowSize={3} maxToRenderPerBatch={columns} viewabilityConfig={viewability.current} onViewableItemsChanged={onViewableItemsChanged.current} contentContainerStyle={{ padding: 24, alignSelf: 'center', gap: 16 }} columnWrapperStyle={columns > 1 ? { gap: 16 } : undefined} ListHeaderComponent={<><Text style={[s.previewTitle, { textAlign: 'center' }]}>Almost Human</Text><Text style={s.subtitle}>25 characters · Idle / Talk / Smile</Text></>} renderItem={({ item }) => <CastCard face={item} visible={visible.has(item.id)} />} />;
 }
-export const previewState: State = { phase: 'chat', topic: previewTopic, roundMs: GAME_DEFAULTS.chatMs, voteMs: GAME_DEFAULTS.votingMs, name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 300, right: 9, played: 11, now: 0, endsAt: 57000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, earnedPoints: 100, score: 300, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
+export const previewState: State = { phase: 'chat', partnerTyping: true, topic: previewTopic, roundMs: GAME_DEFAULTS.chatMs, voteMs: GAME_DEFAULTS.votingMs, name: 'Hollow', faceId: 14, partner: { name: 'Ink Fox', faceId: 7 }, score: 300, right: 9, played: 11, now: 0, endsAt: 57000, guessEndsAt: 9000, messages: [{ me: false, text: '“Soup Crimes.” Best bisque in town, legally questionable.' }, { me: true, text: 'Grandma’s Garage. It’s Italian. Don’t ask about the oil.' }, { me: false, text: 'lol no?? are YOU real' }, { me: true, text: 'As someone who also eats food, I agree. Garage.' }], reveal: { partner: { name: 'Ink Fox', faceId: 7 }, truth: 'human', yourGuess: 'human', correct: true, earnedPoints: 100, score: 300, judgeOnYou: { verdict: 'human', tell: 'The oddly specific joke gave you away.' } } };
 export const s = StyleSheet.create({
   resultArea: { alignItems: 'center', paddingVertical: 24, gap: 8 },
   resultBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, borderWidth: 1, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 10, minWidth: 180, marginBottom: 6 },

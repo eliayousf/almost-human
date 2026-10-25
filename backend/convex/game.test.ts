@@ -486,3 +486,33 @@ describe("leave, block, and safe rematching", () => {
     for (const person of [a, b, c]) expect(must(await person.client.query(api.game.getSession, {})).totalGuessingPoints).toBe(0);
   });
 });
+
+
+describe("private ephemeral typing activity", () => {
+  test("only members can signal; sending clears it and phase changes hide it", async () => {
+    const t = init();
+    const r = await room(t);
+    const [a, b] = r.people;
+    const outsider = await player(t);
+    expect(await a.client.mutation(api.game.setTyping, { roundId: r.roundId, typing: true })).toMatchObject({ ok: false, error: { code: "ROUND_CLOSED" } });
+    await advance(t, a, r.roundId);
+    expect(await outsider.client.mutation(api.game.setTyping, { roundId: r.roundId, typing: true })).toMatchObject({ ok: false, error: { code: "NOT_PARTICIPANT" } });
+    must(await a.client.mutation(api.game.setTyping, { roundId: r.roundId, typing: true }));
+    const own = await snapshot(a, r.roundId);
+    const other = await snapshot(b, r.roundId);
+    if (own.phase !== "chat" || other.phase !== "chat") throw new Error("Expected chat");
+    expect(own.typing).toEqual([]);
+    expect(other.typing).toHaveLength(1);
+    expect(other.typing![0].participantId).toBe(own.selfId);
+    expect(Date.parse(other.typing![0].until) - Date.now()).toBeGreaterThanOrEqual(3999);
+    expect(Date.parse(other.typing![0].until) - Date.now()).toBeLessThanOrEqual(4002);
+    expect(JSON.stringify(other.typing)).not.toMatch(/playerId|kind|draft|token|provider/);
+    must(await a.client.mutation(api.game.sendMessage, { roundId: r.roundId, input: { ...command(), text: "A synthetic greeting" } }));
+    expect(await snapshot(b, r.roundId)).toMatchObject({ typing: [] });
+    must(await a.client.mutation(api.game.setTyping, { roundId: r.roundId, typing: true }));
+    must(await a.client.mutation(api.game.setTyping, { roundId: r.roundId, typing: false }));
+    expect(await snapshot(b, r.roundId)).toMatchObject({ typing: [] });
+    await advance(t, a, r.roundId);
+    expect(await snapshot(b, r.roundId)).not.toHaveProperty("typing");
+  });
+});

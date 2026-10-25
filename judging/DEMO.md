@@ -51,8 +51,9 @@ refresh corrections are accepted-data evidence, not a completed new version.
   builders. The game collects text and believability feedback; actual voice
   integration, customer demand, spoken-response quality and speed gains are unverified.
 - **Future data:** reviewed human-written responses could provide targets with
-  separate permission and personal-data filtering. This is not implemented or
-  authorized by the current playtest terms.
+  separate permission, personal-data filtering and review. The optional permission
+  control is implemented; external captures/ratings are disabled and human-target
+  ingestion remains future work.
 - **Mubit:** real gateway calls, a reviewed synthetic conversational correction,
   completed v1 training, and an explicit serving limitation.
 - **Execution:** actual game behavior plus reproducible code checks. Mocked contract

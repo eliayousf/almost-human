@@ -1,0 +1,20 @@
+import { afterEach, expect, test, vi } from "vitest";
+import { createTypingReporter } from "../../frontend/expo/src/typing";
+afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); });
+test("signals immediately, throttles keystrokes and clears after inactivity or unmount", () => {
+  vi.useFakeTimers();
+  const send = vi.fn();
+  const reporter = createTypingReporter(send);
+  reporter.update(true); reporter.update(true);
+  expect(send.mock.calls).toEqual([[true]]);
+  vi.advanceTimersByTime(1500); reporter.update(true);
+  expect(send.mock.calls).toEqual([[true], [true]]);
+  vi.advanceTimersByTime(2499); expect(send).toHaveBeenCalledTimes(2);
+  vi.advanceTimersByTime(1); expect(send).toHaveBeenLastCalledWith(false);
+  reporter.update(true); reporter.update(false);
+  expect(send).toHaveBeenLastCalledWith(false);
+  reporter.update(true); reporter.stop();
+  expect(send).toHaveBeenLastCalledWith(false);
+  const count = send.mock.calls.length;
+  vi.advanceTimersByTime(5000); expect(send).toHaveBeenCalledTimes(count);
+});

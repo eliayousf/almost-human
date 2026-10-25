@@ -34,3 +34,10 @@ assert.equal(result.reveal.recognition.fraction, null);
 assert.throws(() => displayState(session, { ...chat, participants: [...participants, { id: 'extra' }] }, 0), /two-seat/);
 assert.equal(displayState(session, { ...base, phase: 'cancelled', message: 'No points awarded.' }, 0).cancellation, 'No points awarded.');
 console.log('Convex presentation mapping passed: phases, hidden roles, topic, ballots, scores, recognition and old-room rejection.');
+
+const typingChat = { ...chat, typing: [{ participantId: 'other', until: '2026-10-25T00:00:04Z' }] };
+assert.equal(displayState(session, typingChat, Date.parse('2026-10-25T00:00:03Z')).partnerTyping, true);
+assert.equal(displayState(session, typingChat, Date.parse('2026-10-25T00:00:04Z')).partnerTyping, false);
+assert.equal(displayState(session, chat, 0).partnerTyping, false);
+assert.equal(displayState(session, { ...typingChat, typing: [{ participantId: 'self', until: '2026-10-25T00:00:04Z' }] }, 0).partnerTyping, false);
+assert.equal(displayState(session, { ...voting, typing: typingChat.typing }, 0).partnerTyping, undefined);

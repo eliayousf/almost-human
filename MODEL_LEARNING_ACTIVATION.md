@@ -2,11 +2,12 @@
 
 ## State of this change
 
-This branch prepares a consent-gated path from game verdicts to real Mubit
-adapter training. It has not activated learning in the live account. Elias owns
-the game deployment and Mubit workspace; this checkout has no authorised Convex
-admin session or signed-in Mubit console. No live flags, keys, policy gates or
-adapter rollouts were changed.
+PR #8 adds a consent-gated path from game verdicts to Mubit adapter training.
+The reviewed backend was deployed on 25 October; [RELEASE.md](RELEASE.md) records
+the release checks. External full-record captures and ratings remain disabled:
+no console credential or project is configured, and the ratings flag is off.
+The optional permission control does not itself activate remote training.
+No keys, Mubit quality gates or adapter rollouts were changed.
 
 Mubit trains adapters in batches, not synchronously after every chat. A sent
 rating, a local test, a new prompt example or a completed training job alone does
@@ -23,11 +24,13 @@ The earlier failed serving experiment remains documented in MUBIT_TRAINING_RUN.m
 2. Matchmaking snapshots each human's grant revision before a room starts.
    Enabling the choice during a room or queue is refused. Withdrawal is allowed,
    and a later grant never revives permission for older rooms.
-3. Each bot request checks all humans' grants again. Full recording is requested
-   only for an eligible room with ratings enabled and an explicit console/project
+3. Each bot attempt, including a retry after a transient failure, rechecks all
+   humans' grants. Full recording is requested only for an eligible room with ratings enabled and an explicit console/project
    configuration. Every other request sends `x-middleware-record: metadata`.
-   Calls carry the room's opaque session ID so training/test splits can stay at
-   the conversation boundary. Mubit may retain less than requested under its own
+   A stable first user message carries the room's opaque ID for Mubit's
+   documented automatic session grouping. Request metadata is omitted because
+   the live provider requires `store` for it; no extra provider storage is enabled.
+   Training/test splits can stay at the conversation boundary. Mubit may retain less than requested under its own
    recording policy; local eligibility is not proof of remote dataset inclusion.
 4. Each published bot call retains its eligibility. Round verdicts still teach
    prompt lessons under the existing vote rules. Only eligible calls enter the
@@ -43,7 +46,7 @@ The earlier failed serving experiment remains documented in MUBIT_TRAINING_RUN.m
 Existing records without the new grant/eligibility fields are not retroactively
 used. No data migration enables training for old profiles or past calls.
 
-## Elias's activation checklist
+## Remaining model-learning activation checklist
 
 1. Review and deploy this backend/schema to the game project already serving
    `original-buzzard-860.eu-west-1.convex.cloud`; use that project's existing

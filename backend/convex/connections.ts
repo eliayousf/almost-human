@@ -2,13 +2,22 @@ import { Presence } from "@convex-dev/presence";
 import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import { internalMutation, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import { cancelRound } from "./lifecycle";
 import { MAX_LOBBY } from "./botlogic";
 
 export const presence = new Presence(components.presence);
 export async function isOnline(ctx: MutationCtx, playerId: Id<"players">) {
   return (await presence.listUser(ctx, playerId, true, 2)).some(room => room.online);
+}
+
+// The token is stored once; high-frequency activity stays in the presence component.
+export async function setTypingPresence(ctx: MutationCtx, round: Doc<"rounds">, memberId: Id<"members">, until: number) {
+  if (until > 0) {
+    const { roomToken } = await presence.heartbeat(ctx, round._id, memberId, `typing-${memberId}`, 10000);
+    if (!round.typingRoomToken) await ctx.db.patch(round._id, { typingRoomToken: roomToken });
+  }
+  if (until > 0 || round.typingRoomToken) await presence.updateRoomUser(ctx, round._id, memberId, { until });
 }
 
 export const expireQueue = internalMutation({ args: { queueId: v.id("queue") }, returns: v.null(), handler: async (ctx, { queueId }) => {
