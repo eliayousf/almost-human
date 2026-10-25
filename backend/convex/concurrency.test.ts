@@ -7,8 +7,9 @@ import presenceTest from "@convex-dev/presence/test";
 import schema from "./schema";
 import { api, internal } from "./_generated/api";
 import { LOBBY_ACCUMULATE_WAIT_MS } from "./botlogic";
+import { BOT_MAX_TYPING_MS } from "./botTiming";
 import type { Id } from "./_generated/dataModel";
-import type { ApiResult, QueueTicket } from "../../shared/game-contract";
+import { GAME_DEFAULTS, type ApiResult, type QueueTicket } from "../../shared/game-contract";
 
 import { VOTE_FEEDBACK_TERMS_VERSION } from "../../shared/playtest-policy";
 
@@ -112,7 +113,10 @@ describe("40 concurrent players", () => {
       ids.push(roundId(must(await p.query(api.game.getQueue, { queueId: ticket.queueId }))));
     }
     expect(new Set(ids).size).toBe(40);
-    await vi.advanceTimersByTimeAsync(16_000); await t.finishInProgressScheduledFunctions();
+    // Cover countdown, the longest opener delay, and the current typing cap.
+    // A fixed 16s wait raced the recently increased 6–12s reply pacing.
+    await vi.advanceTimersByTimeAsync(GAME_DEFAULTS.countdownMs + 4_000 + BOT_MAX_TYPING_MS + 1_000);
+    await t.finishInProgressScheduledFunctions();
     const views = await Promise.all(people.map((p, i) => p.query(api.game.getRound, { roundId: ids[i] }).then(must)));
     const botMessageIds = new Set<string>();
     for (const view of views) {
