@@ -69,3 +69,7 @@ broken local links, inconsistent counts and claims that serving or improvement
 has been verified. If the service blocker is genuinely resolved later, update
 the evidence, validator and guide together with new receipts; do not simply
 flip a success flag.
+
+The [controlled game-vote proof](GAME_VOTE_PROOF.md) records real synthetic
+ballots, console-mediated feedback, and the observed kept-count change. It does
+not establish automatic feedback, exact dataset-row membership or adapter serving.

@@ -11,6 +11,7 @@
       "evidence": [
         "judging/evidence/mubit-run.json",
         "MUBIT_TRAINING_RUN.md",
+        "judging/GAME_VOTE_PROOF.md",
         "scripts/mubit-learning-proof.py"
       ],
       "limitations": [

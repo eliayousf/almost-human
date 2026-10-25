@@ -71,6 +71,11 @@ The [organizer's event page](https://luma.com/nightshift-london), checked on
 Machine-readable mapping: [criteria.json](judging/evidence/criteria.json).
 Statuses describe evidence coverage; they are not self-awarded judging scores.
 
+A [controlled live game-vote proof](judging/GAME_VOTE_PROOF.md) now connects
+stored ballots to persisted Mubit Bad/Good feedback, followed by a kept-count
+increase from 81 to 82. Submission used the console; automatic public uploads
+and trained-adapter serving remain unverified.
+
 For the boundary between working application code and the unresolved Mubit
 workflow, see the [diagnostic evidence and conditional contract tests](judging/DIAGNOSTIC.md).
 

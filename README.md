@@ -36,7 +36,7 @@ Canonical release: [GitHub main and the main playtest](RELEASE.md).
 | **Technical execution · 25%** | Live game, private rooms, authoritative scoring and reproducible tests | [Hosted checks](INTEGRATION.md) and [local check receipt](judging/evidence/checks.json). Local mocks are labelled; they do not prove live adapter inference. |
 | **Demo · 25%** | Real game interaction plus recorded correction/training evidence | [Sub-two-minute walkthrough](judging/DEMO.md). The final recording still needs validation and upload. |
 
-**Recorded validation:** 155 backend/client tests, 20 Python checks, all 100 WebP
+**Recorded validation:** 158 backend/client tests, 20 Python checks, all 100 WebP
 assets, TypeScript and frontend/diagnostic builds. The command below reproduces
 the checks and writes a new result with its own source fingerprint.
 These checks cover the text game and its tooling, not spoken-audio quality or speed.
@@ -74,6 +74,12 @@ and request IDs link bot replies to their service receipts.
 | Train a model update | Mubit kept 36 synthetic examples and completed Qwen3-4B adapter v1. [Training evidence](MUBIT_TRAINING_RUN.md). |
 | Refresh the examples | A further reviewed batch and trigger example received 31 Good and 10 Bad ratings; the observed task count rose from 43 to 74 kept examples. [Refresh evidence](judging/evidence/mubit-refresh.json). |
 | Serve the trained model | **Blocked:** v1 failed its evaluation and is marked Prompt only. No fresh trained-adapter answer or quality improvement is established. |
+
+**Live game-vote proof:** two consented synthetic rounds produced stored votes
+and matching Bad/Good ratings saved through the Mubit console. The task's kept
+count rose from 81 to 82; the positive request shows **Trainable: yes**. This is a console-mediated
+proof, not unattended learning or a fresh adapter answer.
+[Evidence and limits](judging/GAME_VOTE_PROOF.md).
 
 The game also uses eligible votes to identify passed/caught **bot-written** lines
 for optional prompt lessons. That prompt-feedback path is separate from the
