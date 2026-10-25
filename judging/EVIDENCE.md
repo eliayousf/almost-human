@@ -41,8 +41,10 @@ It includes uncommitted, nonignored files; keep the tree stable during a run.
 The receipt's commit identifies the checkout at verification time, and the
 fingerprint identifies the actual checked contents.
 
-The Node guard rejects accidental fetch, HTTP and socket calls in checks; tests
-use their explicit mocks. It is a test guard, not an OS sandbox. Dependency
+The Node guard rejects accidental fetch, HTTP and TCP calls in checks; tests
+use their explicit mocks. It permits only Metro's named temporary Unix logging
+socket so Expo build workers can report locally. Other socket endpoints remain
+blocked. It is a test guard, not an OS sandbox. Dependency
 installation is a separate registry operation before the guard applies.
 
 ## Maintainer-only regeneration

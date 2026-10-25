@@ -50,6 +50,27 @@ const assert = require('node:assert/strict');
         result = subprocess.run(['node', '--require', str(ROOT / 'scripts/judging-no-network.cjs'), '-e', code], env={k: v for k, v in os.environ.items() if k != 'NODE_OPTIONS'}, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_guard_allows_only_the_named_local_metro_logging_socket(self):
+        code = """
+const assert = require('node:assert/strict');
+const net = require('node:net');
+const path = require('node:path');
+const socket = path.join(require('node:os').tmpdir(), `event-log-${process.pid}-qa.sock`);
+process.env.__eventLogIpc = socket;
+assert.throws(() => net.connect(path.join(require('node:os').tmpdir(), 'unrelated.sock')), /forbid network/);
+assert.throws(() => net.connect({path:socket, host:'example.invalid', port:443}), /forbid network/);
+const server = net.createServer(stream => stream.end('local IPC only'));
+server.listen(socket, () => {
+  let text = '';
+  const client = net.connect(socket);
+  client.on('data', data => text += data);
+  client.on('end', () => { assert.equal(text, 'local IPC only'); server.close(); });
+  client.on('error', () => process.exit(1));
+});
+"""
+        result = subprocess.run(['node', '--require', str(ROOT / 'scripts/judging-no-network.cjs'), '-e', code], env={k: v for k, v in os.environ.items() if k != 'NODE_OPTIONS'}, capture_output=True, text=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

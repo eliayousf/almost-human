@@ -20,7 +20,9 @@ profile, one bot partner, server topic/countdown, Mubit opener and contextual
 reply, preserved transcript after refresh, blocked-contact rejection with input
 preserved, locked vote, role reveal and the correct 100-point award. Recognition
 was correctly unrated for a bot counterpart. Replay queue cancellation preserved
-the 100-point profile. Browser error/warning logs were empty.
+the 100-point profile. The room-control menu and Leave action also worked in a
+subsequent replay, with no additional points awarded. Browser error/warning logs
+were empty.
 
 All 100 WebPs passed format/dimension/frame/size checks. Browser screenshots of
 the same animated asset changed across frames, confirming playback rather than
