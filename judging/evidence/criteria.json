@@ -44,11 +44,14 @@
         "judging/evidence/checks.json",
         "scripts/verify-judging.py",
         "backend/VERIFICATION.md",
-        "INTEGRATION.md"
+        "INTEGRATION.md",
+        "frontend/expo/MOBILE_MULTIPLAYER.md",
+        "backend/convex/concurrency.test.ts"
       ],
       "limitations": [
         "Local tests use mocks and do not prove current deployment behavior.",
-        "Public-launch safeguards and physical-device verification remain incomplete."
+        "Public-launch safeguards and physical-device verification remain incomplete.",
+        "The 40-player/40-room checks use isolated test services and do not measure live provider capacity."
       ]
     },
     {

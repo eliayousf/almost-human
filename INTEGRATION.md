@@ -1,21 +1,25 @@
 # Frontend integration — 25 October 2026
 
-## Main playtest release
+## Initial main playtest release
 
 The owner authorized release of the latest interface on 25 October 2026.
 Use **https://almost-human-playtest.vercel.app/** for shared testing.
 Production deployment `dpl_SdYZqw6HdEcZJii4a3heY3QXvNFi` was rebuilt from
 commit `46c4001fa5833b57b86c2afe33a8fcd9630f2c63` with the same public Convex
-backend URL as the integration preview. Vercel reports READY and the main alias
-maps to this deployment. Anonymous HTTP access returns 200; existing project
-access settings were preserved.
+backend URL as the integration preview. At that release check, Vercel reported
+READY, the main alias mapped to this deployment, and anonymous HTTP access
+returned 200. Existing project access settings were preserved. Subsequent
+releases can replace this deployment; use GitHub `main` for the submission
+source and Vercel's current deployment metadata for the live revision.
 
 This release includes Ayo's animated interface, versioned playtest terms,
 60-second chats, varied questions with recent-question exclusion, immediate
 reveal once all humans vote (at most 10 seconds), and 6–12 second bot reply
 pauses after generation. The entry screen loads and connects on the main domain.
-The existing 139-test receipt covers the application source; publishing the
-main URL does not establish public-launch safeguards or trained-adapter serving.
+The then-current 139-test receipt covered that application source. The latest
+[check receipt](judging/evidence/checks.json) records subsequent checks;
+publishing the main URL does not establish public-launch safeguards or
+trained-adapter serving.
 
 ## Current interface: Ayo's Expo/WebP UI
 
