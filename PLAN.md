@@ -5,6 +5,13 @@
 Proposed plan, 24 October 2026. This document describes intended behaviour;
 it is not a claim that the game or training integration already works.
 
+**Owner update, 25 October:** the active Expo interface uses strict 1v1 rooms.
+Vote-based bot improvement is included in the playtest terms, enabled on their
+acceptance, with no separate feedback toggle. Earlier opted-out votes are not
+reused retrospectively. [PLAYTEST_TERMS.md](PLAYTEST_TERMS.md) describes this
+implementation. Human-authored training examples remain a separate scope;
+the older proposed group flow below is retained as planning history.
+
 For parallel frontend/backend work, use [TEAM_BRIEF.md](TEAM_BRIEF.md) and its
 shared contract as the integration agreement. Cash owns `frontend/`; Elia and
 Codex own `backend/`.

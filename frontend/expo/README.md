@@ -29,8 +29,11 @@ providers. No root npm-workspace restructuring is required.
 ## Live behavior
 
 - Official anonymous Convex auth and the existing session/queue/round subscriptions.
-- Explicit development playtest eligibility/rules choices; optional feedback off
-  by default. Aliases are assigned by the server, not supplied as identity.
+- Adult eligibility and versioned playtest terms before joining. Vote-based bot
+  improvement is included by default after acceptance, with no separate toggle.
+  Returning players review updated terms once; earlier opted-out votes remain
+  excluded. See [terms behavior](../../PLAYTEST_TERMS.md).
+  Aliases are assigned by the server, not supplied as identity.
 - Strict 1v1 matchmaking; honest queue waiting, server countdown and random topic.
 - Server-calibrated two-minute chat and 30-second voting. Reaching zero never
   submits an unselected vote or invents a reveal.

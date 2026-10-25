@@ -5,7 +5,7 @@
 At the end of every round, the votes decide whether each bot passed as human or got found out. That verdict can feed two loops; only the prompt-lesson loop is enabled by default.
 
 ```
-round settles ──► votes from training-opted-in players only
+round settles ──► eligible votes under accepted current terms or legacy preference
                   most said "human" → passed 👍   most said "AI" → caught 👎   tie → no verdict
         │
         ├─► fast loop (next round): the newest passed and caught bot lines go into the
@@ -19,6 +19,9 @@ round settles ──► votes from training-opted-in players only
 - Every bot line is stored in `botCalls` with its Mubit request ID (`mreq_…`), verdict, rating status and the model that served it.
 - The bot system prompt is now identical for every call. Mubit groups calls into one task, and trains one adapter, only when the instructions match exactly. The alias, style, difficulty and lessons travel in the user message.
 - Lessons are bot-written lines only, never players' messages.
+- Current Expo terms include vote feedback as standard. Eligibility is recorded
+  when each vote is submitted, so accepting new terms cannot convert an earlier
+  opted-out vote into feedback. See [PLAYTEST_TERMS.md](PLAYTEST_TERMS.md).
 
 ## Switches (Convex environment variables)
 

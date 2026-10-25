@@ -55,7 +55,7 @@ before relying on them. Do not fork a private copy of the contract inside the UI
 
 | Screen/state | Required behaviour |
 | --- | --- |
-| Welcome | Premise, Play, adult eligibility/rules acceptance, separate optional training choice |
+| Welcome | Premise, adult eligibility, versioned terms including default vote feedback; human-chat training remains separate. See [PLAYTEST_TERMS.md](PLAYTEST_TERMS.md). |
 | Queue | Own alias, waiting state, Cancel; no bot count or target composition |
 | Countdown | Three aliases, identify your own seat, 3–2–1; topic stays hidden |
 | Chat | Topic, messages, composer, server-based timer, Leave/Block/Report |

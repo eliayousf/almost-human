@@ -7,6 +7,8 @@ export default defineSchema({
   ...authTables,
   players: defineTable({
     userId: v.id("users"), alias: v.string(), trainingOptIn: v.boolean(), policyVersion: v.string(),
+    // Versioned terms acceptance and prospective vote eligibility; no bulk opt-in migration.
+    termsAcceptedAt: v.optional(v.number()), voteFeedbackSince: v.optional(v.number()),
     guessingPoints: v.number(), roundsPlayed: v.number(), guessesSubmitted: v.number(), correctGuesses: v.number(),
     humanVotesReceived: v.number(), humanVotesRecognisingYou: v.number(), streak: v.number(), updatedAt: v.number(),
     activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),
@@ -35,7 +37,7 @@ export default defineSchema({
     mubitRating: v.optional(v.union(v.literal("sent"), v.literal("failed"), v.literal("not_found"))),
     servedBy: v.optional(v.string()),
   }).index("by_roundId", ["roundId"]).index("by_verdict_and_judgedAt", ["verdict", "judgedAt"]).index("by_judgedAt", ["judgedAt"]),
-  ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number() })
+  ballots: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), votes: v.array(guessV), submittedAt: v.number(), feedbackEligible: v.optional(v.boolean()) })
     .index("by_roundId", ["roundId"]).index("by_roundId_and_playerId", ["roundId", "playerId"]),
   results: defineTable({ roundId: v.id("rounds"), playerId: v.id("players"), data: roundResultV })
     .index("by_roundId_and_playerId", ["roundId", "playerId"]),

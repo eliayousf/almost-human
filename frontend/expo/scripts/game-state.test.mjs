@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict';
 import { displayState } from '../src/game-state.ts';
+import { needsCurrentTerms, VOTE_FEEDBACK_TERMS_VERSION } from '../../../shared/playtest-policy.ts';
+
+assert.equal(needsCurrentTerms(null), false);
+assert.equal(needsCurrentTerms({ policyVersion: 'playtest-v1' }), true);
+assert.equal(needsCurrentTerms({}), true);
+assert.equal(needsCurrentTerms({ policyVersion: VOTE_FEEDBACK_TERMS_VERSION }), false);
 
 const session = { leaderboardAlias: 'Synthetic', totalGuessingPoints: 0 };
 const participants = [{ id: 'self', alias: 'Mango', faceId: 4 }, { id: 'other', alias: 'Pebble', faceId: 9 }];

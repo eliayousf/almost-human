@@ -35,7 +35,7 @@ export const roundV = v.union(
   v.object({ ...base, phase: v.literal("cancelled"), reason: cancelReasonV, message: v.string() }),
 );
 export const sessionV = v.object({
-  serverNow: v.string(), leaderboardEntryId: v.id("players"), leaderboardAlias: v.string(), totalGuessingPoints: v.number(), trainingOptIn: v.boolean(),
+  serverNow: v.string(), leaderboardEntryId: v.id("players"), leaderboardAlias: v.string(), totalGuessingPoints: v.number(), trainingOptIn: v.boolean(), policyVersion: v.optional(v.string()),
   activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),
 });
 export const queueV = v.union(

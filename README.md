@@ -30,6 +30,11 @@ requests strict 1v1 rooms, receives server topics/timers/scores and routes bot
 replies through Mubit. See [INTEGRATION.md](INTEGRATION.md) for exact tested builds.
 The Vite frontend in `frontend/src/` remains as earlier work, not the active build.
 
+Vote-based bot improvement is a standard part of the current Expo playtest,
+explained in its terms before joining. There is no separate feedback toggle.
+See [playtest terms and versioning](PLAYTEST_TERMS.md) for the treatment of
+existing players and the separate boundary around human-chat training.
+
 In the backend's default group mode, matchmaking fills lobbies from the live queue: five or more waiting humans
 match immediately (ten queued players become two five-player games), three or
 four accumulate for a few seconds, and after a waiting period a solo player
@@ -87,7 +92,7 @@ The reveal identifies human or AI status, never a player's real identity.
 - Text chat with no attachments, clickable links, contact sharing, or follow-up messages.
 - Visible Leave, Block, and Report controls; no penalty for leaving.
 - Moderation of both human and AI messages, with an operator reviewing reports.
-- Optional training participation, separate from agreeing to play.
+- Vote feedback covered by playtest terms; any human-chat training participation remains separate.
 - Training candidates limited to reviewed, redacted conversations with the required participants' consent.
 - Defined retention and deletion, restricted data access, and no public chat logs.
 

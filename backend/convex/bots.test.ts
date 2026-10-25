@@ -911,7 +911,10 @@ function fakeMubit() {
 
 // One solo human (two bots) round: each bot speaks once, the human votes the
 // first speaker human and the second AI, then the round settles.
-async function judgedRound(t: Backend, trainingOptIn: boolean) {
+async function judgedRound(t: Backend, trainingOptIn: boolean, hooks: {
+  beforeVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
+  afterVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
+} = {}) {
   vi.spyOn(Math, "random").mockReturnValue(0.99);
   const r = await room(t, 1, trainingOptIn); await chat(r);
   await takeTurn(r, 0);
@@ -920,16 +923,58 @@ async function judgedRound(t: Backend, trainingOptIn: boolean) {
   vi.setSystemTime(round!.chatEndsAt); await r.t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
   const spoken = await r.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).collect());
   expect(spoken).toHaveLength(2);
+  await hooks.beforeVote?.(r);
   must(await r.people[0].mutation(api.game.submitVotes, {
     roundId: r.roundId,
     input: { ...command(), votes: [{ participantId: spoken[0].memberId, label: "human" as const }, { participantId: spoken[1].memberId, label: "ai" as const }] },
   }));
+  await hooks.afterVote?.(r);
   vi.setSystemTime(round!.votingEndsAt); await r.t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
   const judged = await r.t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).collect());
   return { r, judged };
 }
 
 describe("round verdicts teach the bots and Mubit", () => {
+  test("updated terms do not retroactively include a vote submitted while feedback was off", async () => {
+    const t = init(); vi.stubGlobal("fetch", fakeMubit().fn);
+    const { judged } = await judgedRound(t, false, { afterVote: async r => {
+      vi.setSystemTime(Date.now() + 1);
+      must(await r.people[0].mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v2-vote-feedback", trainingOptIn: true } }));
+      const ballots = await t.run(ctx => ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).take(10));
+      expect(ballots[0].feedbackEligible).toBe(false);
+    } });
+    expect(judged.every(call => call.verdict === undefined && call.judgedAt === undefined)).toBe(true);
+  });
+
+  test("new votes after updated terms acceptance judge bot replies", async () => {
+    const t = init(); vi.stubGlobal("fetch", fakeMubit().fn);
+    const { judged } = await judgedRound(t, false, { beforeVote: async r => {
+      vi.setSystemTime(Date.now() + 1);
+      must(await r.people[0].mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v2-vote-feedback", trainingOptIn: true } }));
+    } });
+    expect(judged.map(call => call.verdict)).toEqual(["passed", "caught"]);
+  });
+
+  test("historical ballots without an eligibility snapshot stay excluded after new terms", async () => {
+    const t = init(); vi.stubGlobal("fetch", fakeMubit().fn);
+    const { judged } = await judgedRound(t, false, { afterVote: async r => {
+      await t.run(async ctx => {
+        const ballot = await ctx.db.query("ballots").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).first();
+        await ctx.db.patch(ballot!._id, { feedbackEligible: undefined });
+      });
+      must(await r.people[0].mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v2-vote-feedback", trainingOptIn: true } }));
+    } });
+    expect(judged.every(call => call.verdict === undefined && call.judgedAt === undefined)).toBe(true);
+  });
+
+  test("a legacy withdrawal before settlement excludes an otherwise eligible ballot", async () => {
+    const t = init(); vi.stubGlobal("fetch", fakeMubit().fn);
+    const { judged } = await judgedRound(t, true, { afterVote: async r => {
+      must(await r.people[0].mutation(api.game.setTrainingConsent, { input: { ...command(), policyVersion: "playtest-v1", trainingOptIn: false } }));
+    } });
+    expect(judged.every(call => call.verdict === undefined && call.judgedAt === undefined)).toBe(true);
+  });
+
   test("opted-in votes judge each bot seat, and the next round's prompt learns from those lines", async () => {
     const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
     const { judged } = await judgedRound(t, true);

@@ -3,8 +3,9 @@ import { customCtx, customMutation, customQuery } from "convex-helpers/server/cu
 import { query, mutation, type QueryCtx, type MutationCtx } from "./_generated/server";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { ApiErrorCode } from "../../shared/game-contract";
+import { VOTE_FEEDBACK_TERMS_VERSION } from "../../shared/playtest-policy";
 
-export const POLICY_VERSION = "playtest-v1";
+export const POLICY_VERSION = VOTE_FEEDBACK_TERMS_VERSION;
 export const iso = (time: number) => new Date(time).toISOString();
 export const ok = <T>(data: T) => ({ ok: true as const, data });
 export const fail = (code: ApiErrorCode, message: string, retryAfterMs?: number) => ({ ok: false as const, error: { code, message, ...(retryAfterMs === undefined ? {} : { retryAfterMs }) } });
@@ -25,7 +26,7 @@ export async function memberFor(ctx: QueryCtx | MutationCtx, playerId: Id<"playe
 }
 export const recognition = (received: number, recognised: number) => ({ humanVotesReceived: received, humanVotesRecognisingYou: recognised, fraction: received === 0 ? null : recognised / received });
 export function sessionView(player: Doc<"players">) {
-  return { serverNow: iso(player.updatedAt), leaderboardEntryId: player._id, leaderboardAlias: player.alias, totalGuessingPoints: player.guessingPoints, trainingOptIn: player.trainingOptIn,
+  return { serverNow: iso(player.updatedAt), leaderboardEntryId: player._id, leaderboardAlias: player.alias, totalGuessingPoints: player.guessingPoints, trainingOptIn: player.trainingOptIn, policyVersion: player.policyVersion,
     ...(player.activeRoundId ? { activeRoundId: player.activeRoundId } : {}), ...(player.activeQueueId ? { activeQueueId: player.activeQueueId } : {}) };
 }
 export function queueView(ticket: Doc<"queue">) {

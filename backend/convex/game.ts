@@ -10,6 +10,7 @@ import { scheduleBotTurn } from "./botState";
 import { presence } from "./connections";
 import { matchWaiting } from "./matchmaking";
 import { castFaceIds } from "./cast";
+import { LEGACY_PLAYTEST_POLICY } from "../../shared/playtest-policy";
 import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
 import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV, joinQueueV } from "./validators";
 
@@ -52,18 +53,32 @@ async function roundView(ctx: QueryCtx | MutationCtx, playerId: Id<"players">, r
 export const getSession = playerQuery({ args: {}, returns: resultV(sessionV), handler: async ctx => ctx.player ? ok(sessionView(ctx.player)) : unauthenticated() });
 export const createSession = playerMutation({ args: { input: createSessionV }, returns: resultV(sessionV), handler: async (ctx, { input }) => {
   if (!ctx.userId) return unauthenticated();
-  if (!validRequestId(input.clientRequestId) || input.policyVersion !== POLICY_VERSION) return fail("INVALID_INPUT", "Please accept the current game rules.");
-  if (ctx.player) return ok(sessionView(ctx.player));
+  if (!validRequestId(input.clientRequestId) || ![POLICY_VERSION, LEGACY_PLAYTEST_POLICY].includes(input.policyVersion)) return fail("INVALID_INPUT", "Please accept the current game rules.");
   const now = Date.now();
-  const playerId = await ctx.db.insert("players", { userId: ctx.userId, alias: `${shuffled(SEAT_NAMES)[0]}-${Math.floor(Math.random() * 90000 + 10000)}`, trainingOptIn: input.trainingOptIn, policyVersion: input.policyVersion, guessingPoints: 0, roundsPlayed: 0, guessesSubmitted: 0, correctGuesses: 0, humanVotesReceived: 0, humanVotesRecognisingYou: 0, streak: 0, updatedAt: now });
+  const standardFeedback = input.policyVersion === POLICY_VERSION;
+  if (ctx.player) {
+    if (standardFeedback && ctx.player.policyVersion !== POLICY_VERSION) {
+      await ctx.db.patch(ctx.player._id, { policyVersion: POLICY_VERSION, termsAcceptedAt: now, trainingOptIn: true, voteFeedbackSince: now, updatedAt: now });
+      return ok(sessionView((await ctx.db.get(ctx.player._id))!));
+    }
+    // Repeated acceptance does not reset the cutoff or overwrite a later explicit choice.
+    return ok(sessionView(ctx.player));
+  }
+  const playerId = await ctx.db.insert("players", { userId: ctx.userId, alias: `${shuffled(SEAT_NAMES)[0]}-${Math.floor(Math.random() * 90000 + 10000)}`, trainingOptIn: standardFeedback || input.trainingOptIn, policyVersion: input.policyVersion,
+    ...(standardFeedback ? { termsAcceptedAt: now, voteFeedbackSince: now } : {}),
+    guessingPoints: 0, roundsPlayed: 0, guessesSubmitted: 0, correctGuesses: 0, humanVotesReceived: 0, humanVotesRecognisingYou: 0, streak: 0, updatedAt: now });
   return ok(sessionView((await ctx.db.get(playerId))!));
 } });
 export const setTrainingConsent = playerMutation({ args: { input: consentV }, returns: resultV(sessionV), handler: async (ctx, { input }) => {
   if (!ctx.player) return unauthenticated();
   const player = ctx.player;
   return idempotent(ctx, player._id, "consent", input, async () => {
-    if (input.policyVersion !== POLICY_VERSION) return fail("INVALID_INPUT", "Please review the current data notice.");
-    await ctx.db.patch(player._id, { trainingOptIn: input.trainingOptIn, policyVersion: input.policyVersion, updatedAt: Date.now() });
+    // Retained for old clients and explicit preference changes. This endpoint
+    // cannot claim acceptance of the new terms or downgrade their version.
+    if (input.policyVersion !== LEGACY_PLAYTEST_POLICY) return fail("INVALID_INPUT", "Please accept the current terms through the game entry screen.");
+    const now = Date.now();
+    await ctx.db.patch(player._id, { trainingOptIn: input.trainingOptIn,
+      ...(input.trainingOptIn && !player.trainingOptIn ? { voteFeedbackSince: now } : {}), updatedAt: now });
     return ok(sessionView((await ctx.db.get(player._id))!));
   });
 } });
@@ -159,7 +174,7 @@ export const submitVotes = playerMutation({ args: { roundId: v.id("rounds"), inp
     const existing = await ctx.db.query("ballots").withIndex("by_roundId_and_playerId", q => q.eq("roundId", roundId).eq("playerId", player._id)).unique();
     if (existing) return fail("VOTES_LOCKED", "Your guesses are already locked in.");
     const now = Date.now();
-    await ctx.db.insert("ballots", { roundId, playerId: player._id, votes: input.votes, submittedAt: now });
+    await ctx.db.insert("ballots", { roundId, playerId: player._id, votes: input.votes, submittedAt: now, feedbackEligible: player.trainingOptIn });
     await ctx.db.patch(roundId, { revision: round.revision + 1, updatedAt: now });
     return roundView(ctx, player._id, roundId);
   });

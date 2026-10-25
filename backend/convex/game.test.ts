@@ -8,6 +8,7 @@ import { api, internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import schema from "./schema";
 import type { ApiResult, HumanOrAi, QueueTicket, RoundSnapshot, SessionView } from "../../shared/game-contract";
+import { VOTE_FEEDBACK_TERMS_VERSION } from "../../shared/playtest-policy";
 
 const modules = import.meta.glob("./**/*.ts");
 const POLICY_VERSION = "playtest-v1";
@@ -103,7 +104,7 @@ async function elapseWithHeartbeats(t: TestBackend, people: readonly Player[], d
 function assertPrivateFieldsAbsent(value: unknown): void {
   if (!value || typeof value !== "object") return;
   for (const [key, nested] of Object.entries(value)) {
-    expect(["kind", "role", "botCount", "model", "provider", "threadId", "userId", "trainingOptIn", "systemPrompt"]).not.toContain(key);
+    expect(["kind", "role", "botCount", "model", "provider", "threadId", "userId", "trainingOptIn", "feedbackEligible", "voteFeedbackSince", "termsAcceptedAt", "systemPrompt"]).not.toContain(key);
     assertPrivateFieldsAbsent(nested);
   }
 }
@@ -124,6 +125,46 @@ afterEach(() => {
 });
 
 describe("anonymous sessions and atomic all-human matching", () => {
+  test("new terms enable vote feedback by default and record acceptance once", async () => {
+    const t = init();
+    const userId = await t.run(ctx => ctx.db.insert("users", { isAnonymous: true }));
+    const client = t.withIdentity({ subject: `${userId}|new-terms-test` });
+    const input = { ...command(), adultConfirmed: true as const, rulesAccepted: true as const, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: false };
+    const accepted = must(await client.mutation(api.game.createSession, { input }));
+    expect(accepted).toMatchObject({ trainingOptIn: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION });
+    const first = await t.run(ctx => ctx.db.get(accepted.leaderboardEntryId as Id<"players">));
+    expect(first).toMatchObject({ termsAcceptedAt: Date.now(), voteFeedbackSince: Date.now() });
+    vi.setSystemTime(Date.now() + 5000);
+    must(await client.mutation(api.game.createSession, { input }));
+    const repeated = await t.run(ctx => ctx.db.get(accepted.leaderboardEntryId as Id<"players">));
+    expect(repeated?.termsAcceptedAt).toBe(first?.termsAcceptedAt);
+    expect(repeated?.voteFeedbackSince).toBe(first?.voteFeedbackSince);
+  });
+
+  test("existing legacy choices remain until updated terms are accepted, without resetting score", async () => {
+    const t = init();
+    const person = await player(t, false);
+    const playerId = person.session.leaderboardEntryId as Id<"players">;
+    await t.run(ctx => ctx.db.patch(playerId, { guessingPoints: 300 }));
+    expect(must(await person.client.query(api.game.getSession, {}))).toMatchObject({ trainingOptIn: false, policyVersion: POLICY_VERSION, totalGuessingPoints: 300 });
+    vi.setSystemTime(Date.now() + 1000);
+    const accepted = must(await person.client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true } }));
+    expect(accepted).toMatchObject({ leaderboardEntryId: playerId, leaderboardAlias: person.session.leaderboardAlias, trainingOptIn: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, totalGuessingPoints: 300 });
+    expect(await t.run(ctx => ctx.db.get(playerId))).toMatchObject({ voteFeedbackSince: Date.now(), termsAcceptedAt: Date.now() });
+  });
+
+  test("the legacy preference endpoint cannot accept or downgrade the new terms", async () => {
+    const t = init();
+    const person = await player(t, false);
+    expect(await person.client.mutation(api.game.setTrainingConsent, { input: { ...command(), policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true } })).toMatchObject({ ok: false, error: { code: "INVALID_INPUT" } });
+    expect(must(await person.client.query(api.game.getSession, {})).policyVersion).toBe(POLICY_VERSION);
+    must(await person.client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true } }));
+    must(await person.client.mutation(api.game.setTrainingConsent, { input: { ...command(), policyVersion: POLICY_VERSION, trainingOptIn: false } }));
+    expect(must(await person.client.query(api.game.getSession, {}))).toMatchObject({ trainingOptIn: false, policyVersion: VOTE_FEEDBACK_TERMS_VERSION });
+    must(await person.client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true } }));
+    expect(must(await person.client.query(api.game.getSession, {})).trainingOptIn).toBe(false);
+  });
+
   test("requires authentication and persists separate, revocable training consent", async () => {
     const t = init();
     expect(await t.query(api.game.getSession, {})).toMatchObject({ ok: false, error: { code: "UNAUTHENTICATED" } });

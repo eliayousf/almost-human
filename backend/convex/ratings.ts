@@ -8,7 +8,7 @@ import { LESSONS_PER_KIND, type BotLessons } from "./botlogic";
 // - fast: recent passed and caught bot lines go into the next bot prompts;
 // - slow: mubitConsole sends the same verdicts to Mubit as Good/Bad ratings,
 //   which decide what its adapter training learns from.
-// Only votes from players who opted in to training count.
+// Only eligible new votes count: legacy choices or accepted standard-feedback terms.
 
 const LESSON_CHARS = 200;
 const RATING_DELAY_MS = 5000; // Mubit lists a call a few seconds after it ends.
@@ -22,18 +22,24 @@ export async function recentLessons(ctx: MutationCtx): Promise<BotLessons> {
   return { passed: await lines("passed"), caught: await lines("caught") };
 }
 
-/** Settles each bot seat as passed (most opted-in votes said human), caught
+/** Settles each bot seat as passed (most eligible votes said human), caught
  * (most said AI) or undecided, and queues the Mubit ratings when enabled. */
 export async function judgeBots(ctx: MutationCtx, round: Doc<"rounds">, members: Doc<"members">[], ballots: Doc<"ballots">[]) {
   const calls = await ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(50);
   if (!calls.length) return;
-  const optedIn = new Set<Id<"players">>();
+  const eligibleSince = new Map<Id<"players">, number>();
   for (const member of members) {
     if (member.kind !== "human") continue;
     const player = await ctx.db.get(member.playerId);
-    if (player?.trainingOptIn) optedIn.add(player._id);
+    if (player?.trainingOptIn) eligibleSince.set(player._id, player.voteFeedbackSince ?? -Infinity);
   }
-  const votes = ballots.filter(ballot => optedIn.has(ballot.playerId)).flatMap(ballot => ballot.votes);
+  const votes = ballots.filter(ballot => {
+    const since = eligibleSince.get(ballot.playerId);
+    // Snapshot eligibility at submission: acceptance later in the same millisecond
+    // must never turn an earlier opted-out ballot into feedback. Historical rows
+    // lack that snapshot, so use a conservative, strictly-after cutoff for them.
+    return since !== undefined && (ballot.feedbackEligible ?? ballot.submittedAt > since);
+  }).flatMap(ballot => ballot.votes);
   const now = Date.now();
   let toRate = 0;
   for (const bot of members) {
@@ -79,7 +85,7 @@ export const record = internalMutation({
   },
 });
 
-// Is the bot getting more human? Fooled rate = share of opted-in votes on bot
+// Is the bot getting more human? Fooled rate = share of eligible votes on bot
 // seats that said "human", over time, per serving model (provider vs Mubit
 // adapter) and with vs without lessons. Run: npx convex run ratings:progress
 const statV = v.object({ seats: v.number(), votes: v.number(), fooledRate: v.union(v.number(), v.null()) });

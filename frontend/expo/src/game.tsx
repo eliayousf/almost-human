@@ -3,6 +3,7 @@ import { ConvexReactClient } from 'convex/react';
 import { AlmostHumanProvider, useAlmostHuman, useGameSession, useGameQueue, useGameRound, useRoundSeconds } from '../../../shared/react-game';
 import type { ApiResult, ReportReason } from '../../../shared/game-contract';
 import { displayState, type State } from './game-state';
+import { needsCurrentTerms, VOTE_FEEDBACK_TERMS_VERSION } from '../../../shared/playtest-policy';
 
 export const backendUrl = process.env.EXPO_PUBLIC_CONVEX_URL;
 export function GameProvider({ children }: { children: ReactNode }) {
@@ -52,6 +53,7 @@ export function useLiveGame() {
     } finally { inFlight.current = false; setBusy(false); }
   }
   const play = async () => {
+    if (needsCurrentTerms(session)) { setSelectedRound(null); setTicket(null); setError(''); return; }
     const result = await command('join', {}, id => game!.joinQueue({ clientRequestId: id, strictPair: true }));
     if (result?.ok) {
       setSelectedRound(result.data.status === 'assigned' ? result.data.roundId : null);
@@ -80,10 +82,7 @@ export function useLiveGame() {
     (await command('block', [roundId, partner.id], id => game!.blockParticipant(roundId, { clientRequestId: id, participantId: partner.id })))?.ok);
   const accept = async (adult: boolean, rules: boolean) => {
     if (!adult || !rules) return;
-    await command('profile', {}, id => game!.createSession({ clientRequestId: id, adultConfirmed: true, rulesAccepted: true, policyVersion: 'playtest-v1', trainingOptIn: false }));
-  };
-  const feedback = async (enabled: boolean) => {
-    await command('feedback', enabled, id => game!.setTrainingConsent({ clientRequestId: id, policyVersion: 'playtest-v1', trainingOptIn: enabled }));
+    await command('terms', VOTE_FEEDBACK_TERMS_VERSION, id => game!.createSession({ clientRequestId: id, adultConfirmed: true, rulesAccepted: true, policyVersion: VOTE_FEEDBACK_TERMS_VERSION, trainingOptIn: true }));
   };
   let state: State | undefined;
   let mappingError = '';
@@ -96,7 +95,8 @@ export function useLiveGame() {
       : queue && !queue.ok ? queue.error.message : '';
   return { connection, session, state, seconds, busy, error: error || mappingError || queryError,
     loading: !game || sessionResult === undefined || Boolean(roundId && !roundResult),
-    needsConsent: Boolean(game && sessionResult && !sessionResult.ok && sessionResult.error.code === 'UNAUTHENTICATED'),
+    needsAcceptance: Boolean(game && ((sessionResult && !sessionResult.ok && sessionResult.error.code === 'UNAUTHENTICATED') || (needsCurrentTerms(session) && !roundId && !queueId))),
+    updatingTerms: needsCurrentTerms(session),
     queueing: Boolean(queueId), queueClosed: Boolean(queue && !queue.ok && queue.error.code === 'QUEUE_CLOSED'),
-    roundId, partner, play, send, vote, accept, feedback, cancelQueue, leave, report, block, toLobby };
+    roundId, partner, play, send, vote, accept, cancelQueue, leave, report, block, toLobby };
 }

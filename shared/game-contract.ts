@@ -119,7 +119,10 @@ export interface SessionView {
   leaderboardEntryId: string; // Public score ID; not an authentication credential.
   leaderboardAlias: string;
   totalGuessingPoints: number;
+  /** Legacy field name: vote/bot-reply feedback eligibility, not human-chat training permission. */
   trainingOptIn: boolean;
+  /** Accepted terms version; older deployed clients may omit this field. */
+  policyVersion?: string;
   /** Optional resume pointers for this player only. */
   activeRoundId?: string;
   activeQueueId?: string;
