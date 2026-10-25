@@ -1,94 +1,88 @@
-# Demo runbook
+# Submission video: target 1:45–1:50, hard maximum 2:00
 
-**Play here: [almost-human-playtest.vercel.app](https://almost-human-playtest.vercel.app/).**
-The released Expo interface includes all 25 animated characters and uses the
-shared Convex client. Hosted chat/vote/reveal and replay have been verified;
-see [INTEGRATION.md](../INTEGRATION.md) for exact revisions and evidence scope.
-Use [GitHub main](https://github.com/eliayousf/almost-human/tree/main) for the
-submission source. This is not a timed presentation
-rehearsal. The trained adapter is blocked from serving, and the event's actual
-time limit has not been confirmed in this package.
+The organizer's submission instructions, supplied by the team on 25 October
+2026, require an **MP4 or MOV file, no more than 120 seconds and 300 MB**.
+A phone recording is allowed. Upload the file to Max's private team page;
+YouTube links and decks are not submissions. Use a conservative 300,000,000-byte
+file limit and leave roughly ten seconds of duration headroom.
 
-## Run the checks first
+**Game:** https://almost-human-playtest.vercel.app/
+**Judged source:** https://github.com/eliayousf/almost-human/tree/main
 
-From the repository root:
+## Prepare before pressing Record
 
-```sh
-nix develop -c python3 scripts/verify-judging.py --install
-```
+- Use the main game, not a design-preview route or an older deployment URL.
+- Read and accept the game's eligibility/terms yourself before filming.
+- Use invented, nonpersonal messages. Keep keys, account details and the private
+  submission URL off-screen.
+- Open the original/revised synthetic example and completed-v1 evidence in advance.
+  The owner-held training receipt is recorded evidence, not a live training run.
+- Start a real round. Begin recording with about **45 seconds of chat remaining**,
+  and say that the round is already in progress. Do not shorten the server timer.
+- Set recording to 1080p/30 fps if available. Prioritize readable text and clear voice.
+- Rehearse once. This script is a plan, not evidence that rehearsal has happened.
 
-This builds against an inert address and does not contact the game or Mubit.
-It is local verification, not a live demo. Logs stay in ignored artifacts.
+## Shot list and narration cues
 
-## Optional live diagnostic client
-
-Use the existing development backend only for an intentional playtest. The
-address below is public client configuration, not a credential. Its deployment
-can change independently of this checkout; this guide does not assert that the
-current backend matches the submitted commit. A live round can consume Mubit
-inference credit and send synthetic chat content to the service.
-
-```sh
-nix develop -c env CONVEX_URL=https://original-buzzard-860.eu-west-1.convex.cloud npm --prefix backend run build:playtest
-nix develop -c npm --prefix backend run playtest
-```
-
-Open **http://127.0.0.1:3219/react.html**. The server binds only to loopback.
-Use separate tabs for separate diagnostic identities. Read and deliberately
-accept the playtest's eligibility/rules as appropriate; leave training consent
-off for the game demonstration. Send only invented, nonpersonal text.
-
-In normal matchmaking, a solo player can receive bot partners after the waiting
-period when server bot inference is enabled and available. With bots disabled,
-human matching may wait. Do not promise an instant match. The main Expo game
-requests strict pairs and uses the current terms flow; this diagnostic client
-retains the earlier optional feedback control.
-
-Verify visible behavior: a shared countdown/topic, a real reply, server timer,
-one vote per other seat, reveal and server-scored points, then refresh/replay.
-Leave and report controls must be accessible. Treat provider failures and room
-cancellation as failures, not as successful replies.
-
-## A proposed 2:20 walkthrough
-
-New rounds use 3 seconds countdown + 60 seconds chat + at most 10 seconds
-voting, plus queue time. The server reveals as soon as all humans vote; a
-bot round reveals immediately on your vote. Start matchmaking during the
-introduction, allow time for service delays, and rehearse against the organiser's
-actual time limit. Bot messages deliberately pause 6–12 seconds after generation.
-Do not change the server clock to fit the presentation.
-
-| Time | Show and say | Evidence boundary |
+| Video time | Show | Say |
 | --- | --- | --- |
-| 0:00–0:15 | Explain the NPC-dialogue job and the guessing-game interface. | Developer usefulness is proposed; no demand or improvement claim. |
-| 0:15–0:45 | Send a synthetic message in the main game and show a response. | Label it provider inference through Mubit. It is not the trained adapter. |
-| 0:45–1:10 | Show the conversational correction and completed training lineage. | Training happened earlier. Use the public summary or owner-held receipts; do not simulate live training. |
-| 1:10–1:40 | Cast guesses, wait for the server reveal, show points. | Actual timings can vary; do not fabricate a reveal or award. |
-| 1:40–2:05 | Show the serving blocker and 2/12 length-compliance result. | Fresh learned-model inference is unavailable. Explain the literal-string checks and genuine quality issue. |
-| 2:05–2:20 | Show the recorded check receipt and the next acceptance gate. | Local passing tests do not make the service blocker pass. |
+| 0:00–0:12 | The live game, already in a round | Natural-sounding speech still needs natural conversation. Almost Human collects dialogue feedback through a one-minute game, aiming to improve the words voice agents say. |
+| 0:12–0:35 | Send a message and show the actual reply | This is our text-based collection prototype, already in a round. Guesses measure perceived human-likeness, not guaranteed response quality. All game-model calls go through Mubit. |
+| 0:35–0:52 | Vote and show the actual reveal/score | The server locks the vote, reveals the role and awards points. React to the actual outcome; don't promise a correct guess. |
+| 0:52–1:20 | The real original/corrected synthetic example and completed-v1 receipt | We supplied editorial feedback and approved the corrected conversation. Mubit kept 36 synthetic examples and completed adapter v1. Training happened earlier. |
+| 1:20–1:35 | Current adapter status, briefly | The version did not pass evaluation and is not serving. Live game replies are still provider inference through Mubit. We have added reviewed examples, but do not claim a fresh adapter answer. |
+| 1:35–1:45 | Main README and proof/check links | The game and reproducible checks are available on GitHub main. The next acceptance gate is a version-verified adapter answer on an unseen question. |
 
-If a live service is unavailable, show dated recorded evidence with an explicit
-recorded label and report the failure. Synthetic fixtures demonstrate screen
-states only. Neither is a live-game or live-adapter substitute.
+A bot reply deliberately pauses 6–12 seconds after generation; that is a game
+display effect, not a voice-latency benchmark. Narrate while
+waiting; don't spend the video watching a silent timer. If the live round fails,
+record another take. If editing out downtime, make the cut apparent and keep the
+normal one-minute duration clear. Do not manufacture a result or splice a provider
+reply into an adapter-labelled view.
 
-## Questions the presenter should be able to answer
+The full original and revised model text is in the owner's ignored experiment
+receipts. Do not put raw model records in the public repository. The demonstration
+must use the correction associated with the completed v1 experiment; the newer
+refresh corrections are accepted-data evidence, not a completed new version.
 
-- **What changed?** A follow-up editorial correction changed the synthetic
-  response; the corrected conversation was approved, and Mubit trained v1.
-  The separate replacement-target field stayed null.
-- **Which model is playing now?** The game integration routes provider chat
-  through Mubit. No trained-version game serving was verified.
-- **Did it improve?** Not established. The internal evaluation is unsuitable
-  for alternative dialogue wording, and the adapter also misses length limits.
-- **Can I reproduce it without your account?** The code/tests and sanitised
-  summary checks, yes. A new remote training job or console trace read needs
-  the owner's authorised Mubit access and is not run by the judging command.
+## Essential claims
 
-## Operator rehearsal checklist — not yet completed for this submission
+- **Usefulness:** repeated conversational-response generation for voice-agent
+  builders. The game collects text and believability feedback; actual voice
+  integration, customer demand, spoken-response quality and speed gains are unverified.
+- **Future data:** reviewed human-written responses could provide targets with
+  separate permission and personal-data filtering. This is not implemented or
+  authorized by the current playtest terms.
+- **Mubit:** real gateway calls, a reviewed synthetic conversational correction,
+  completed v1 training, and an explicit serving limitation.
+- **Execution:** actual game behavior plus reproducible code checks. Mocked contract
+  tests and simulated concurrency checks are labelled as such.
+- **Demo:** real interaction, clear narration, no sign-in/setup delay, under two minutes.
 
-- [ ] Record source commit, actual live backend and demo configuration.
-- [ ] Complete a synthetic live round, including refresh and replay.
-- [ ] Verify the intended presentation device and network.
-- [ ] Rehearse within the confirmed time limit.
-- [ ] Keep the serving blocker visible and all model provenance accurate.
-- [ ] Keep credentials, account details and player transcripts off-screen.
+Say the serving limitation once, clearly. Keep the longer evaluation analysis in
+[JUDGING.md](../JUDGING.md) and [DIAGNOSTIC.md](DIAGNOSTIC.md). Do not call a vendor
+bug proven or claim that passing local tests demonstrates learned-model quality.
+
+## Validate the final file
+
+```sh
+nix shell nixpkgs#ffmpeg -c ffprobe -v error \
+  -show_entries format=duration,size,format_name \
+  -show_entries stream=codec_type,codec_name -of json /absolute/path/demo.mp4
+```
+
+Check duration ≤120 seconds, actual size ≤300,000,000 bytes, an MP4/MOV container,
+and a playable video stream. Listen to the exported file all the way through.
+Aim for ≤110 seconds so an export/timing mismatch cannot invalidate it. This
+repository does not claim that an unprovided video has been checked or submitted.
+
+## Recording checklist
+
+- [ ] Real game footage and actual score/result.
+- [ ] Correction and completed-v1 evidence are readable and labelled recorded.
+- [ ] Provider versus trained-adapter distinction is explicit.
+- [ ] No secrets, personal chats, private upload URL or submission form details visible.
+- [ ] Export checked for duration, size, container and intelligible audio.
+- [ ] Upload and latest-submission confirmation checked before the deadline.
+
+See [SUBMISSION.md](SUBMISSION.md) for the exact form fields and deadline.

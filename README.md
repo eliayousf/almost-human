@@ -1,150 +1,148 @@
 # Almost Human
 
-*One minute. One stranger. Who's human?*
+*One minute. One stranger. Human or machine?*
 
-**Playtest: [almost-human-playtest.vercel.app](https://almost-human-playtest.vercel.app/).**
-Use this main link for shared testing; older deployment URLs retain older builds.
+**[Play the game](https://almost-human-playtest.vercel.app/) · [Judging evidence](JUDGING.md) · [Two-minute video plan](judging/DEMO.md)**
 
-A social guessing game for the Mubit Night Shift hackathon. The current
-[Expo/web interface](frontend/expo/README.md) pairs two anonymous participants,
-then asks who is human and who is AI. It uses the shared Convex backend and
-includes Ayo's 25 animated characters. The backend's older group mode remains
-available to compatible clients.
+<p>
+  <img src="frontend/expo/assets/cast/loops/face25-04-idle.webp" width="96" alt="Animated portrait from the game's shared character cast" />
+  <img src="frontend/expo/assets/cast/loops/face25-05-smile.webp" width="96" alt="Smiling portrait from the game's shared character cast" />
+  <img src="frontend/expo/assets/cast/loops/face25-09-idle.webp" width="96" alt="Another animated portrait from the game's shared character cast" />
+</p>
 
-**Judges: start with [JUDGING.md](JUDGING.md).** It maps all four criteria to
-sanitised evidence, reproducible checks and an honest demo runbook.
+**Natural-sounding speech still needs natural conversation.** Almost Human uses
+a one-minute human-or-AI guessing game to collect feedback on conversational
+replies. Our goal is to help **voice-agent builders** train faster, more natural
+dialogue models with Mubit.
 
-**Current limit:** a synthetic conversational correction reached completed
-Mubit training, but the trained adapter cannot serve a fresh live answer.
-Improved dialogue and production readiness are not established.
+Chat with an anonymous partner for one minute, decide whether they are human
+or AI, then see the reveal and your score.
+People and AI use the same character cast; portraits do not disclose their roles.
+
+The recurring task is **generating short, natural replies that respond to the
+current conversation**. The game makes repeated dialogue testing engaging and
+supplies a perceived-human-likeness signal for selecting examples to review.
+The current product is **text-only**: voice integration, better spoken dialogue,
+lower latency and customer demand have not yet been demonstrated.
+
+## Judging at a glance
+
+| Criterion | What to inspect | Evidence and boundary |
+| --- | --- | --- |
+| **Use of Mubit · 25%** | Accepted conversational correction → completed adapter v1 | [Training lineage and result](MUBIT_TRAINING_RUN.md). Training completed; fresh trained-adapter serving is blocked. |
+| **Usefulness · 25%** | Conversational examples and feedback aimed at improving the words voice agents say | [User/task rationale](judging/USEFULNESS.md). Text-game collection is implemented; voice deployment, demand, quality and speed gains are unverified. |
+| **Technical execution · 25%** | Live game, private rooms, authoritative scoring and reproducible tests | [Hosted checks](INTEGRATION.md) and [local check receipt](judging/evidence/checks.json). Local mocks are labelled; they do not prove live adapter inference. |
+| **Demo · 25%** | Real game interaction plus recorded correction/training evidence | [Sub-two-minute walkthrough](judging/DEMO.md). The final recording still needs validation and upload. |
+
+**Recorded validation:** 143 backend/client tests, 20 Python checks, all 100 WebP
+assets, TypeScript and frontend/diagnostic builds. The command below reproduces
+the checks and writes a new result with its own source fingerprint.
+These checks cover the text game and its tooling, not spoken-audio quality or speed.
+
+**Machine-readable evidence:** [rubric map](judging/evidence/criteria.json) ·
+[Mubit training snapshot](judging/evidence/mubit-run.json) ·
+[refresh audit](judging/evidence/mubit-refresh.json) ·
+[verification receipt](judging/evidence/checks.json).
+Each summary states its evidence scope and limitations; no judging score is self-awarded.
+
+## What the demo shows
+
+The submission walkthrough focuses on these verified behaviors and recorded
+training results; the final video file must still be checked before upload.
+
+1. **A real game round:** a shared question, conversation, Human/Machine vote,
+   server-controlled reveal and points. A round may already be in progress when
+   recording starts; the normal chat duration is 60 seconds. This demonstrates
+   the text-based collection interface, not a deployed voice agent.
+2. **A recorded Mubit training experiment:** an original synthetic reply,
+   editorial correction, approval of the corrected conversation, and a completed
+   adapter version. Training happened before the recording.
+3. **The current boundary:** the deployed game works through Mubit, while the
+   trained adapter remains unavailable for live inference. The video does not
+   present provider replies as learned-adapter answers.
+
+## What we built with Mubit
+
+All game-model calls go through Mubit's gateway. Credentials stay on the server,
+and request IDs link bot replies to their service receipts.
+
+| Step | Verified result |
+| --- | --- |
+| Generate and correct | A synthetic reply received conversational editorial feedback; the revised conversation was saved and rated Good in Mubit. |
+| Train a model update | Mubit kept 36 synthetic examples and completed Qwen3-4B adapter v1. [Training evidence](MUBIT_TRAINING_RUN.md). |
+| Refresh the examples | A further reviewed batch and trigger example received 31 Good and 10 Bad ratings; the observed task count rose from 43 to 74 kept examples. [Refresh evidence](judging/evidence/mubit-refresh.json). |
+| Serve the trained model | **Blocked:** v1 failed its evaluation and is marked Prompt only. No fresh trained-adapter answer or quality improvement is established. |
+
+The game also uses eligible votes to identify passed/caught **bot-written** lines
+for optional prompt lessons. That prompt-feedback path is separate from the
+recorded adapter-training experiment. We do not claim that live player votes
+already update the model weights serving the game.
+
+## From game feedback to voice-agent dialogue
+
+A Human vote for an AI partner is a **conversation-level believability signal**,
+not proof that every reply is correct, useful or safe. The intended training
+pipeline combines these signals with review of context, relevance, brevity,
+safety and suitability for speech. Texting shortcuts and game-specific bluffing
+would need filtering before use in ordinary voice agents.
+
+Faster responses are a goal to benchmark, not a measured result. The game's
+deliberate 6–12-second display pause is separate from model inference latency.
+Voice validation would compare unseen conversations with a fixed speech system
+and measure both reply quality and end-to-end response time.
+
+Reviewed human-written replies could become another source of training targets
+in future, with separate permission, personal-data filtering and provenance.
+That pipeline is not implemented, and the current [terms](PLAYTEST_TERMS.md)
+explicitly do not authorize importing chat messages as human-authored training
+examples. The completed Mubit experiment used synthetic game conversations.
+
+The [diagnostic report](judging/DIAGNOSTIC.md) separates verified
+application behavior from the unresolved Mubit training/serving step.
+
+## Working game features
+
+- Anonymous 1v1 matchmaking with human or Mubit-powered AI partners.
+- 60-second chat; up to 10 seconds to vote; immediate reveal when all humans vote.
+- 289 question starters/combinations, excluding each player's last 20 questions.
+- 25 animated character sets, responsive phone/laptop layouts and slower bot reply pacing.
+- Server-scored points, private ballots, refresh recovery, replay, Leave, Block and Report.
+- Versioned [playtest terms](PLAYTEST_TERMS.md) explaining vote-based bot feedback.
+
+This is a development playtest. Use invented, nonpersonal messages. Physical-device
+coverage, comprehensive public-launch safeguards and model-quality validation
+remain limited; see the [revision-specific integration evidence](INTEGRATION.md).
+
+## Reproduce the checks
 
 ```sh
 nix develop -c python3 scripts/verify-judging.py --install
 ```
 
-This installs locked dependencies and runs credential-free local checks. It
-does not contact the game or Mubit. See the [check receipt](judging/evidence/checks.json)
-and [demo instructions](judging/DEMO.md) for their separate scopes.
+The repository includes a pinned `flake.nix` and `.envrc` with `use flake`.
+The command installs locked dependencies and runs local tests, fixtures, asset
+checks and builds. The verification steps use mocked services and a network guard;
+they require no Mubit or Convex credentials and do not train or deploy anything.
+After the first install, omit `--install` for a faster repeat.
 
-## How it works today
+The [check receipt](judging/evidence/checks.json) identifies the checked source,
+content fingerprint and actual results. Passing local checks are not proof of
+remote adapter serving. The two Mubit response-contract tests are explicitly
+mocked; they are not a substitute for a real adapter answer.
 
-The main playtest and integration preview now build `frontend/expo/`. Its shared client
-requests strict 1v1 rooms, receives server topics/timers/scores and routes bot
-replies through Mubit. See [INTEGRATION.md](INTEGRATION.md) for exact tested builds.
-The Vite frontend in `frontend/src/` remains as earlier work, not the active build.
+## Source and development
 
-New rounds have 60 seconds of chat and up to 10 seconds to vote. The reveal
-arrives as soon as all human votes are locked, immediately after your choice
-against a bot. The server generates questions from 289 reviewed combinations
-and conversation starters, excluding each player's last 20 questions and
-changing the question style between rounds where possible. Both players see
-the same question; it remains hidden during the countdown.
+Judges should use this repository's **default `main` branch** and the main
+playtest URL above. The submission instructions freeze judged source at 08:00
+London time on 25 October 2026. The video is MP4/MOV, at most two minutes and
+300 MB; see the [submission checklist](judging/SUBMISSION.md).
 
-Vote-based bot improvement is a standard part of the current Expo playtest,
-explained in its terms before joining. There is no separate feedback toggle.
-See [playtest terms and versioning](PLAYTEST_TERMS.md) for the treatment of
-existing players and the separate boundary around human-chat training.
+The active interface is [Expo web](frontend/expo/README.md), backed by
+[Convex](backend/README.md) and the [shared contract](shared/game-contract.ts).
+The older Vite and diagnostic clients remain as implementation history and
+reproduction tools. [TEAM_BRIEF.md](TEAM_BRIEF.md) and
+[CASH_HANDOFF.md](CASH_HANDOFF.md) contain the earlier team handoff.
 
-In the backend's default group mode, matchmaking fills lobbies from the live queue: five or more waiting humans
-match immediately (ten queued players become two five-player games), three or
-four accumulate for a few seconds, and after a waiting period a solo player
-can be seated with bots when server bot inference is enabled and available. Each round runs a
-synchronised countdown, a random topic, one minute of chat, then voting: every
-human guesses Human or AI for each other seat. Scores are server-scored (100
-points per correct seat) and land on a public alias leaderboard.
-
-Bots are first-class seats: a scheduler spawns them with personas, difficulty
-levels, and Mubit-powered chat replies (see [backend/BOTS.md](backend/BOTS.md)).
-Per-round data records each bot's difficulty so we can later measure how it
-affects human guessing accuracy.
-
-## Status
-
-**Working separately? Start with the [shared build brief](TEAM_BRIEF.md),
-[public data contract](shared/game-contract.ts), and [synthetic screen fixtures](shared/fixtures.ts).**
-
-**Connecting the frontend?** [Cash's handoff](CASH_HANDOFF.md) includes the
-React/Vite setup, anonymous auth provider, live hooks, runnable reference, and
-iPhone acceptance checklist.
-
-Project brief, [MVP plan](PLAN.md), development environment, and a small
-[Mubit connectivity probe](MUBIT_VERIFICATION.md). Server-side provider chat
-through Mubit works. A [reviewed synthetic conversational correction and training
-batch](MUBIT_TRAINING_RUN.md) produced a completed adapter job. Its evaluation
-failed and live adapter inference remains blocked; the game is not verified to
-use the trained version. Real-player training ingestion remains unverified.
-
-The **multiplayer backend is implemented with Convex**: anonymous sessions,
-matchmaking for two-to-five-player lobbies, a 3-second countdown, 60-second
-chat, up to 10-second voting, server-scored results, a public leaderboard, and AI bot
-players through the Mubit chat gateway. Cash owns the public frontend.
-[Backend setup and integration](backend/README.md) includes a local diagnostic
-client. Comprehensive moderation and the learning pipeline remain separate
-milestones.
-
-## The game
-
-1. Join random matchmaking and receive an assigned alias; no invite code or real name.
-2. Watch a 3–2–1 countdown, then discover a randomly selected topic.
-3. Chat with the other lobby participants for one minute.
-4. Guess **Human** or **AI** for each of them.
-5. See the reveal, earn points, appear under an alias on the public leaderboard,
-   and play another round.
-
-Everyone knows before playing that a conversation partner may be an AI.
-The reveal identifies human or AI status, never a player's real identity.
-
-## First prototype
-
-- Anonymous random matchmaking for adults, with an operator available during playtests.
-- Public deployment for hackathon attendees and anyone online; no invite gate.
-- Basic functional UI initially; cashpointsoulja owns UI/UX.
-- Text chat with no attachments, clickable links, contact sharing, or follow-up messages.
-- Visible Leave, Block, and Report controls; no penalty for leaving.
-- Moderation of both human and AI messages, with an operator reviewing reports.
-- Vote feedback covered by playtest terms; any human-chat training participation remains separate.
-- Training candidates limited to reviewed, redacted conversations with the required participants' consent.
-- Defined retention and deletion, restricted data access, and no public chat logs.
-
-These are requirements for the build, not claims about existing safeguards.
-
-## Learning goal
-
-Collect opted-in human conversation examples and ordinary end-of-round guesses.
-Players do not write replacement replies. Investigate whether Mubit can ingest
-reviewed human examples and use detection outcomes to improve a task-specific adapter.
-Human-likeness, helpfulness, and safety are separate evaluation criteria.
-
-Before building the learning loop, verify the complete path:
-
-**Approved example → accepted training data → completed adapter training → fresh adapter response.**
-
-Game-model LLM calls must route through Mubit. API credentials stay on the server.
-No game or training data belongs in this public repository.
-
-## Development environment
-
-The pinned Nix flake supplies Node.js 22, Python 3, Git, and common project tools.
-
-```sh
-nix develop
-```
-
-With direnv configured, allow this project's `.envrc`, which contains `use flake`.
-For the multiplayer backend and local test client:
-
-```sh
-cd backend
-nix develop .. -c npm ci --ignore-scripts
-nix develop .. -c npm run dev
-# In another terminal, after configuring backend/.env.local:
-nix develop .. -c npm run build:playtest
-nix develop .. -c npm run playtest
-```
-
-Open `http://127.0.0.1:3219/` in three independent tabs. Use synthetic text.
-See [backend/README.md](backend/README.md) for anonymous auth setup, checks,
-frontend handoff, and remaining public-launch requirements.
-
-Use `nix shell nixpkgs#<package> -c <command>` for temporary tools instead of
-installing them globally.
+For temporary tooling, use `nix shell nixpkgs#<package> -c <command>` rather than
+a global install. Raw conversations, model artifacts and credentials are excluded
+from Git; published evidence contains only the allowlisted summaries.

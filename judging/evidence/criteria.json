@@ -24,14 +24,17 @@
       "id": "usefulness",
       "weight": 0.25,
       "status": "partial",
-      "claim": "The implemented recurring task is short NPC dialogue generation; the proposed beneficiary is a game developer.",
+      "claim": "The text game implements recurring conversational-response generation and believability-feedback collection; the intended downstream users are voice-agent builders.",
       "evidence": [
         "judging/USEFULNESS.md",
         "backend/BOTS.md",
         "backend/convex/ratings.ts"
       ],
       "limitations": [
-        "Developer demand and player benefit were not measured.",
+        "Voice-agent integration and spoken-dialogue transfer are unverified.",
+        "Customer demand, reply-quality gains and latency gains have not been measured.",
+        "Human/AI votes are conversation-level believability signals, not guaranteed per-reply quality labels.",
+        "Human-authored training-target ingestion is not implemented or authorized by the current terms.",
         "Synthetic operator-reviewed examples are not a user study."
       ]
     },
@@ -66,7 +69,7 @@
         "shared/fixtures.ts"
       ],
       "limitations": [
-        "No timed presentation rehearsal or confirmed event demo time limit is claimed.",
+        "No timed presentation rehearsal or validated/uploaded submission video is claimed.",
         "Physical-device validation remains incomplete.",
         "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."
       ]

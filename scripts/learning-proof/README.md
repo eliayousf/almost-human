@@ -1,6 +1,6 @@
 # Prove a correction becomes a model update
 
-Track: **Recurring tasks**. Almost Human repeatedly generates short NPC dialogue. Players expose awkward replies, a reviewer supplies a better reply, and the intended Mubit loop trains a reusable model for that task. The game is the feedback environment; better dialogue for game developers is the proposed benefit. A user study or measured quality comparison is still needed to substantiate that benefit.
+Track: **Recurring tasks**. The intended downstream job is generating concise, natural dialogue for voice-agent builders. Almost Human supplies a text-game collection and evaluation prototype. The existing experiment trains on reviewed synthetic game conversations; it does not establish spoken-dialogue quality, voice integration or lower latency. The proposed voice-data pipeline and validation plan are in [USEFULNESS.md](../../judging/USEFULNESS.md).
 
 The runner captures inference and conversational corrections; console review has
 now produced a completed synthetic training run. **Live adapter inference and
@@ -127,21 +127,16 @@ Official references: [first adapter](https://docs.mubit.ai/guides/first-adapter)
 | Criterion | Demo evidence | Current gap |
 | --- | --- | --- |
 | Use of Mubit | Accepted conversational correction → completed version → fresh live answer from that version | Correction accepted and job completed; live adapter serving blocked |
-| Usefulness | Repeated NPC dialogue; show how developer review improves a recurring player experience | Quality/user-benefit measurement pending |
+| Usefulness | Text-game feedback aimed at better voice-agent wording; describe the intended recurring job | Voice integration, quality/user-benefit and latency measurement pending |
 | Technical execution | Real game prompts, durable receipts, reviewed synthetic data, separate evaluation cases, visible failures | Dialogue grading and trained-model serving need repair |
 | Demo | One clear game exchange, correction, completed version and fresh live answer | Live inference remains blocked; do not substitute a provider reply |
 
 Compare provider and adapter on the **same** held-out inputs. Blindly score each for relevance, naturalness, and the game's short-reply constraints. Report the number of examples, wins/ties/losses, failures, latency and measured cost when available. A small sample is exploratory; do not claim a statistically established improvement. Existing player votes with prompt lessons enabled cannot isolate the effect of adapter training.
 
-Suggested 2:30 demo (adjust to the event's actual limit):
-
-| Time | Show |
-| --- | --- |
-| 0:00–0:25 | One game exchange and the recurring NPC-dialogue problem |
-| 0:25–0:55 | Original reply, reviewed replacement, and accepted training target |
-| 0:55–1:25 | Completed version linked to the correction; disclose that training happened earlier |
-| 1:25–2:05 | Fresh live question answered by the trained version, with provenance |
-| 2:05–2:30 | Small honest comparison and remaining limitations |
+The submission video has a hard two-minute / 300 MB limit. Use the current
+[1:45–1:50 recording plan](../../judging/DEMO.md) and
+[submission checklist](../../judging/SUBMISSION.md). Training shown from saved
+receipts must be labelled as recorded; live adapter inference remains unverified.
 
 ## Local checks
 

@@ -306,9 +306,7 @@ table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:14px;bor
 <tr><td>Usefulness</td><td>Repeated NPC dialogue, tested by players; explain the developer benefit</td><td>Product rationale prepared; user benefit still needs demonstration</td></tr>
 <tr><td>Technical execution</td><td>Real prompts, request receipts, fixed comparisons, held-out cases and honest failures</td><td>Experiment runner implemented; trained-model path pending</td></tr>
 <tr><td>Demo</td><td>Play, show correction, show completed version, ask a fresh question live</td><td class="pending">Rehearse after training works</td></tr></table>
-<h2>Two-minute-thirty-second demo</h2><ol><li>0:00–0:25: play one short exchange and explain the repeated dialogue task.</li>
-<li>0:25–0:55: show a real reply and the reviewed correction.</li><li>0:55–1:25: show that exact example accepted and the completed model version. Label training performed earlier.</li>
-<li>1:25–2:05: ask the trained model a fresh question live; show which model answered.</li><li>2:05–2:30: show measured results and limitations, with sample counts. Never invent improvement, cost or latency.</li></ol>
+<h2>Submission video</h2><p>The hard limit is two minutes and 300 MB. Target 1:45–1:50 and follow judging/DEMO.md in the repository. Show real game interaction and label these saved training receipts as recorded evidence. Never present a provider reply as a trained-adapter response.</p>
 <p>Dashed boxes still need service evidence. The local review file is not a Mubit API payload.</p>'''
     page += f'<small>Frozen source: {esc(result["source_commit"])} · Task fingerprint: {esc(result["system_sha256"])}</small></html>'
     (directory / "report.html").write_text(page, encoding="utf-8")

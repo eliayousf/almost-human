@@ -224,6 +224,39 @@ describe("lobby scaling end to end", () => {
 });
 
 describe("Mubit turns and lifecycle", () => {
+  test.each(["gpt-6-luna", "Qwen/Qwen3-4B-Instruct-2507"])("Mubit response contract completes a game with a synthetic %s label", async returnedModel => {
+    // This is a mocked transport boundary, not inference from either model.
+    // A returned model name alone must never be treated as serving provenance.
+    const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
+    const r = await room(t, 1); await chat(r);
+    const text = "toast deserves a tiny victory parade";
+    const requestId = "mreq_synthetic_contract";
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({
+      model: returnedModel,
+      choices: [{ message: { role: "assistant", content: text }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 60, completion_tokens: 8 },
+    }), { status: 200, headers: { "content-type": "application/json", "x-middleware-request-id": requestId } }));
+    await takeTurn(r, 0);
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const [url, options] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe("https://api.mubit.ai/openai/v1/chat/completions");
+    expect(JSON.parse(String(options?.body)).model).toBe("gpt-6-luna");
+    const view = await r.get();
+    expect(view).toMatchObject({ phase: "chat", messages: [{ text }] });
+    noPrivateFields(view);
+    const calls = await t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).take(2));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].mubitRequestId).toBe(requestId);
+    expect(calls[0].servedBy).toBeUndefined();
+    const round = await t.run(ctx => ctx.db.get(r.roundId));
+    vi.setSystemTime(round!.chatEndsAt);
+    await t.mutation(internal.lifecycle.advance, { roundId: r.roundId });
+    const partner = view.participants.find(seat => seat.id !== view.selfId)!;
+    const result = must(await r.people[0].mutation(api.game.submitVotes, { roundId: r.roundId,
+      input: { ...command(), votes: [{ participantId: partner.id, label: "ai" }] } }));
+    expect(result).toMatchObject({ phase: "reveal", yourResult: { correctGuessCount: 1, guessingPointsEarned: 100 } });
+  });
+
   test("uses Mubit with room context, alternates bot seats, and reserves each turn once", async () => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 1); await chat(r);

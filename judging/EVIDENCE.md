@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | [criteria.json](evidence/criteria.json) | Maps all four equally weighted criteria to evidence and limits. | A judge's score or confirmation that every criterion passes. |
 | [mubit-run.json](evidence/mubit-run.json) | Allowlisted identifiers, states, counts and content hashes from the observed synthetic training run. | Independent service attestation, raw dataset-row access or current live availability. |
+| [mubit-refresh.json](evidence/mubit-refresh.json) and [diagnostic report](DIAGNOSTIC.md) | Verified refresh ratings, observed kept-example increase and conditional application-contract tests. | A new trained version, a proven vendor defect or a fresh adapter answer. |
 | [checks.json](evidence/checks.json) | The recorded local verification outcome, runtimes, source fingerprint and actual test counts. | Deployment, user demand, mobile usability or remote adapter serving. |
 | [Training run report](../MUBIT_TRAINING_RUN.md) | Explains the completed job, inference blocker and quality limitations. | A working production learning loop. |
 | [Main playtest](https://almost-human-playtest.vercel.app/) and [integration report](../INTEGRATION.md) | Current released interface and dated, revision-specific hosted observations, including animated media and real game rounds. | A timed event rehearsal, physical-device certification or trained-adapter serving. |

@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "evidence_kind": "maintainer_console_observation_and_local_receipt_audit",
+  "observed_on": "2026-10-25",
+  "independent_service_attestation": false,
+  "task_id": "ln_e39d1394f50cee0a22baa0e9",
+  "adapter_id": "ad_lane_b5f70965",
+  "frozen_system_sha256": "40daedf3f603cbcce92bae6f6b44f817c48f8888700ac94e337fae4ca3e5ba31",
+  "experiment": {
+    "synthetic_conversations": 33,
+    "corrective_followups": 8,
+    "model_calls": 42,
+    "recorded_candidate_calls": 41,
+    "recording_disabled_evaluation_calls": 1,
+    "request_limit": 44,
+    "saved_good_ratings": 31,
+    "saved_bad_ratings": 10,
+    "approved_corrections": 7,
+    "held_out_questions": 4,
+    "held_out_ratings": 0,
+    "fresh_demo_question_sent": false
+  },
+  "task_observation": {
+    "kept_before_refresh": 43,
+    "kept_after_refresh": 74,
+    "status": "Reviewing examples",
+    "serving_status": "No version answers.",
+    "new_version_threshold": 25,
+    "daily_training_limit": "none",
+    "task_overrides": false,
+    "pass_bar_changed": false,
+    "visible_adapter_version": 1,
+    "adapter_state": "Prompt only",
+    "adapter_test_passed": 0,
+    "adapter_test_total": 12,
+    "adapter_target_percent": 95
+  },
+  "result": {
+    "new_training_job_verified": false,
+    "new_adapter_version_verified": false,
+    "fresh_adapter_answer_verified": false,
+    "quality_improvement_established": false
+  },
+  "scope": "Confirmed ratings and kept-data counts; not a verified new training dataset, trained version, service diagnosis or adapter answer. Conditional game tests use mock completions.",
+  "source_sha256": {
+    "manifest.json": "c694c6704d6de49ec0ed52086b4cfb42c9d09be9dc58b342fa7b67320d1c3aab",
+    "editorial-review.json": "b2031d0004a6b8dc7e3b4d4bcb6a686c2dc932dfa557343780f1b50a90f24e90",
+    "rating-receipts.json": "90bb32b33ab84cf33d25f0b08a7e9dda1f87c9a5313639f5eb81ce602e6feddd",
+    "table-rating-verification.json": "926ce79a1a7413a9767e4d58bc1ca8e299bc1690fe4e9c605d01ef0905eb920b",
+    "manual-trigger-attempt.json": "320905664441e6896bc10c8579757a45713b784ce7e07407ea5135cb98b788cc"
+  }
+}
