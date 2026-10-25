@@ -91,8 +91,9 @@ This guide and checks apply to the checkout that contains them. Record
 [PR #4](https://github.com/eliayousf/almost-human/pull/4), stacked on the earlier
 learning-proof work; a judge opening `main` may see older code.
 
-This branch contains `backend/playtest/`, not Cash's public `frontend/`.
-The separately reviewed frontend branch was a fixture preview and is not
-implicitly certified by these checks. Earlier verification documents retain
+This integration branch contains Ayo's `frontend/` and the diagnostic clients.
+The check command builds the player frontend in live mode against an inert URL;
+that build alone does not prove a live round. See [INTEGRATION.md](INTEGRATION.md)
+for deployment and browser evidence. Earlier verification documents retain
 their dates and historical test counts; the current receipt is authoritative
 for the checks run here.

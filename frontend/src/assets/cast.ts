@@ -5,14 +5,14 @@
  *
  * Resolution order, identical for every seat (it never looks at a role):
  *  1. A valid `faceId` (1-25) carried on the room/participant payload. The
- *     pinned contract has no such field yet; it is read defensively.
+ *     shared contract declares this optional field for older backends.
  *  2. FIXTURE MODE ONLY: a seeded draw from roundId + seat id, so every view of
  *     the same fixture room agrees.
  *  3. Otherwise null: the UI shows a neutral blank plate. A live client must
  *     never draw a face on its own; two clients would disagree.
  *
- * Media files are owner-supplied, served from /cast/ (public/cast/, git-ignored)
- * and never committed. Only this manifest is tracked.
+ * The build enables media only when every manifest file is present under
+ * public/cast/. Until the owner supplies them, all modes show neutral plates.
  */
 import type { Seat } from "@game/game-contract";
 import manifest from "./cast.json";

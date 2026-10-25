@@ -1,5 +1,13 @@
 # Almost Human frontend: handoff (DEV / FIXTURE PREVIEW)
 
+**Integration update:** the original fixture handoff below is historical. On
+`codex/frontend-integration`, both Ayo branches are combined with the current
+backend and judging work. See [INTEGRATION.md](../INTEGRATION.md) for the live
+build, deployment evidence and remaining cast-media dependency. The development
+playtest notice replaces placeholder copy; the shared contract now includes
+`strictPair` and optional `faceId`. Media is activated only when all manifest
+files are present at build time.
+
 > **This is a dev/fixture preview, not a production-ready build.** It runs the
 > 1v1 game loop on synthetic fixtures. It has not been run against the live
 > Convex backend, has not been tested on a physical iPhone, and must not be

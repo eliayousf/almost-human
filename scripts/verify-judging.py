@@ -39,7 +39,7 @@ def main():
     # These commands do not load .env files. The explicit inert build address
     # prevents the diagnostic bundler from reading backend/.env.local.
     env = {k: v for k, v in os.environ.items() if not k.startswith(('MUBIT_', 'CONVEX_', 'VITE_')) and k != 'NODE_OPTIONS'}
-    env.update(CONVEX_URL='https://judging.invalid', CI='true', NO_COLOR='1', PYTHONDONTWRITEBYTECODE='1')
+    env.update(CONVEX_URL='https://judging.invalid', VITE_CONVEX_URL='https://judging.invalid', VITE_STRICT_PAIR='true', CI='true', NO_COLOR='1', PYTHONDONTWRITEBYTECODE='1')
     guarded = {**env, 'NODE_OPTIONS': '--require ' + json.dumps(str(ROOT / 'scripts/judging-no-network.cjs'))}
     report = {
         'schema_version': 1, 'checked_at': now.isoformat(), 'status': 'running',
@@ -66,6 +66,8 @@ def main():
         report['runtime'] = {'node': node, 'python': sys.version.split()[0]}
         if args.install:
             step('locked_dependencies', ['npm', '--prefix', 'backend', 'ci', '--ignore-scripts', '--no-audit', '--no-fund'], env)
+            if (ROOT / 'frontend/package-lock.json').exists():
+                step('frontend_dependencies', ['npm', '--prefix', 'frontend', 'ci', '--ignore-scripts', '--no-audit', '--no-fund'], env)
         elif not (ROOT / 'backend/node_modules/.package-lock.json').exists():
             raise RuntimeError('Dependencies are missing. Repeat with --install.')
         step('evidence', ['python3', 'scripts/check-judging-evidence.py'])
@@ -91,6 +93,11 @@ def main():
             raise RuntimeError('Shared-fixture count missing.')
         report['shared_round_fixtures'] = int(fixture_count.group(1))
         report['diagnostic_bundles'] = 2
+        if (ROOT / 'frontend/package.json').exists():
+            step('frontend_live_build', ['npm', '--prefix', 'frontend', 'run', 'build'])
+            if not (ROOT / 'frontend/dist/index.html').stat().st_size:
+                raise RuntimeError('The player frontend build is empty.')
+            report['frontend_live_bundles'] = 1
         step('diff_whitespace', ['git', 'diff', '--check'])
         if source_fingerprint() != report['source_fingerprint_sha256']:
             raise RuntimeError('Inputs changed during verification; repeat on a stable tree.')
