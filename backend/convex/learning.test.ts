@@ -54,10 +54,14 @@ test('operator capture authorizes one consented turn without console credentials
   const t = init();
   const ordinary = await solo(t, true);
   expect((await t.mutation(internal.botState.claim, { roundId: ordinary.roundId, turn: 0 }))?.trainingEligible).toBe(false);
+  await t.run(async ctx => {
+    const bot = (await ctx.db.query('members').withIndex('by_roundId', q => q.eq('roundId', ordinary.roundId)).take(2)).find(m => m.kind === 'ai')!;
+    await ctx.db.insert('botCalls', { roundId: ordinary.roundId, memberId: bot._id, text: 'A synthetic lesson from another room', createdAt: Date.now(), lessonCount: 0, judgedAt: Date.now(), verdict: 'passed' });
+  });
   const r = await solo(t, true, async (roundId, expectedPlayerId) => {
     await t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId });
   });
-  expect((await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 }))?.trainingEligible).toBe(true);
+  expect(await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 })).toMatchObject({ trainingEligible: true, lessons: { passed: [], caught: [] } });
   expect(await t.query(internal.botState.trainingEligibility, { roundId: r.roundId, turn: 0, now: Date.now() })).toBe(true);
   const stored = (await t.run(ctx => ctx.db.get(r.roundId)))!;
   expect(reviewCaptureAllowed(stored, 1, Date.now())).toBe(false);

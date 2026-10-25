@@ -80,7 +80,8 @@ export const claim = internalMutation({
     // cannot issue another paid request for this turn.
     await ctx.db.patch(roundId, { botTurn: turn + 1, botPending: turn, ...(duel ? { botLastHumanMessageId: latestHumanId } : {}) });
     await ctx.scheduler.runAfter(BOT_WATCHDOG_MS, internal.botState.fail, { roundId, turn });
-    const lessons = await recentLessons(ctx);
+    // An isolated proof must not upload bot text borrowed from other rooms.
+    const lessons = reviewCaptureAllowed(round, turn, now) ? { passed: [], caught: [] } : await recentLessons(ctx);
     return { trainingEligible, memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), chatEndsAt: round.chatEndsAt, transcript, lessons };
   },
 });
