@@ -262,13 +262,14 @@ H.264, silent), filled into the existing frames with `object-fit: cover`.
 
 ## Sizing provenance
 
-Round-screen geometry was matched by overlay on the owner's 4-screen sheet:
-the sheet's 196px content width maps to our 358 CSS px content width (x1.83).
-On air cards are ~173x166 with a 12px gap. Type: header 10px mono; topic
-label 8px, topic text 17px; transcript names 10px mono, body 16px; stage
-titles 27px, subtitles 15.5px; composer 44px tall, SEND 12px mono. Where the
-owner's written list disagreed with the overlay, the sheet won. The composer
-input stays at 16px because smaller inputs trigger iOS focus zoom.
+Round-screen geometry comes from the owner's v4 design source (its 356px
+content viewport normalized to the 390px viewport, x1.0955): 20px side
+insets, 350px content width, on-air cards 170x164 with an 11px gap, 64px
+verdict/reveal thumbs, 13px stamps, and type and radii from the same source
+(values live in `round.css`). This supersedes the earlier targets measured
+from the 4-screen sheet image (173x166, 166x174, 144x148); that sheet is a
+non-uniformly scaled capture, so its measurements are not reliable. The
+composer input stays at 16px because smaller inputs trigger iOS focus zoom.
 
 ## Performance
 
