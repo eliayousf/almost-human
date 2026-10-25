@@ -27,7 +27,7 @@ export const takeTurn = internalAction({
       let mubitRequestId: string | undefined;
       let trainingEligible = false;
       const generate = async () => {
-        trainingEligible = context.trainingEligible && await ctx.runQuery(internal.botState.trainingEligibility, args);
+        trainingEligible = context.trainingEligible && await ctx.runQuery(internal.botState.trainingEligibility, { ...args, now: Date.now() });
         const agent = new Agent<object, Record<string, never>>(components.agent, {
           name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY!, id => { mubitRequestId = id; }, { mode: trainingEligible ? "full" : "metadata", sessionId: String(args.roundId) }),
           instructions: system.content,

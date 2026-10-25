@@ -5,7 +5,7 @@ import agentTest from '@convex-dev/agent/test';
 import rateLimiterTest from '@convex-dev/rate-limiter/test';
 import presenceTest from '@convex-dev/presence/test';
 import schema from './schema';
-import { roundTrainingAllowed } from './learningConsent';
+import { reviewCaptureAllowed, roundTrainingAllowed } from './learningConsent';
 import type { Id } from './_generated/dataModel';
 import { api, internal } from './_generated/api';
 import { CHAT_TRAINING_POLICY_VERSION } from '../../shared/playtest-policy';
@@ -29,13 +29,14 @@ async function player(t: Backend, allowed = false) {
   if (allowed) must(await client.mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: true, policyVersion: CHAT_TRAINING_POLICY_VERSION } }));
   return { client, playerId: session.leaderboardEntryId };
 }
-async function solo(t: Backend, allowed: boolean) {
+async function solo(t: Backend, allowed: boolean, beforeChat?: (roundId: Id<'rounds'>, playerId: Id<'players'>) => Promise<void>) {
   const person = await player(t, allowed);
   const ticket = must(await person.client.mutation(api.game.joinQueue, { input: { ...command(), strictPair: true } }));
   await t.run(ctx => ctx.db.patch(ticket.queueId, { joinedAt: Date.now() - 9_000 }));
   await t.mutation(internal.matchmaking.match, {});
   const queue = must(await person.client.query(api.game.getQueue, { queueId: ticket.queueId }));
   if (queue.status !== 'assigned') throw Error('Not assigned');
+  await beforeChat?.(queue.roundId, person.playerId as Id<'players'>);
   const round = await t.run(ctx => ctx.db.get(queue.roundId));
   vi.setSystemTime(round!.chatStartsAt);
   await t.mutation(internal.lifecycle.advance, { roundId: queue.roundId });
@@ -46,6 +47,57 @@ beforeEach(() => {
   vi.stubEnv('MUBIT_API_KEY', 'synthetic-key'); vi.stubEnv('MUBIT_BOTS_ENABLED', 'true');
   vi.stubEnv('MUBIT_RATINGS_ENABLED', 'true'); vi.stubEnv('MUBIT_PROJECT', 'synthetic-project');
   vi.stubEnv('MUBIT_CONSOLE_COOKIE', '__client=synthetic-cookie');
+});
+
+test('operator capture authorizes one consented turn without console credentials or automatic ratings', async () => {
+  vi.stubEnv('MUBIT_RATINGS_ENABLED', 'false'); vi.stubEnv('MUBIT_PROJECT', ''); vi.stubEnv('MUBIT_CONSOLE_COOKIE', '');
+  const t = init();
+  const ordinary = await solo(t, true);
+  expect((await t.mutation(internal.botState.claim, { roundId: ordinary.roundId, turn: 0 }))?.trainingEligible).toBe(false);
+  await t.run(async ctx => {
+    const bot = (await ctx.db.query('members').withIndex('by_roundId', q => q.eq('roundId', ordinary.roundId)).take(2)).find(m => m.kind === 'ai')!;
+    await ctx.db.insert('botCalls', { roundId: ordinary.roundId, memberId: bot._id, text: 'A synthetic lesson from another room', createdAt: Date.now(), lessonCount: 0, judgedAt: Date.now(), verdict: 'passed' });
+  });
+  const r = await solo(t, true, async (roundId, expectedPlayerId) => {
+    await t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId });
+  });
+  expect(await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 })).toMatchObject({ trainingEligible: true, lessons: { passed: [], caught: [] } });
+  expect(await t.query(internal.botState.trainingEligibility, { roundId: r.roundId, turn: 0, now: Date.now() })).toBe(true);
+  const stored = (await t.run(ctx => ctx.db.get(r.roundId)))!;
+  expect(reviewCaptureAllowed(stored, 1, Date.now())).toBe(false);
+  expect(reviewCaptureAllowed(stored, 0, stored.reviewCapture!.expiresAt)).toBe(false);
+  expect(await t.query(internal.botState.trainingEligibility, { roundId: r.roundId, turn: 0 })).toBe(false);
+  const view = must(await r.client.query(api.game.getRound, { roundId: r.roundId }));
+  expect(JSON.stringify(view)).not.toContain('reviewCapture');
+  await t.mutation(internal.learningCapture.revokeRound, { roundId: r.roundId });
+  expect(await t.query(internal.botState.trainingEligibility, { roundId: r.roundId, turn: 0, now: Date.now() })).toBe(false);
+});
+
+test('operator capture cannot bypass consent or target a different player', async () => {
+  const t = init(); const other = await player(t, true);
+  await solo(t, false, async (roundId, expectedPlayerId) => {
+    await expect(t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId })).rejects.toThrow('permission');
+  });
+  const r = await solo(t, true, async (roundId) => {
+    await expect(t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId: other.playerId as Id<'players'> })).rejects.toThrow('named test player');
+  });
+  await expect(t.mutation(internal.learningCapture.authorizeRound, { roundId: r.roundId, expectedPlayerId: r.playerId as Id<'players'> })).rejects.toThrow('before');
+});
+
+test('withdrawal stops a granted capture and revocation cannot be undone', async () => {
+  vi.stubEnv('MUBIT_RATINGS_ENABLED', 'false'); vi.stubEnv('MUBIT_PROJECT', ''); vi.stubEnv('MUBIT_CONSOLE_COOKIE', '');
+  const t = init();
+  const r = await solo(t, true, async (roundId, expectedPlayerId) => {
+    await t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId });
+  });
+  await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
+  must(await r.client.mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: false, policyVersion: CHAT_TRAINING_POLICY_VERSION } }));
+  expect(await t.query(internal.botState.trainingEligibility, { roundId: r.roundId, turn: 0, now: Date.now() })).toBe(false);
+  await solo(t, true, async (roundId, expectedPlayerId) => {
+    await t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId });
+    await t.mutation(internal.learningCapture.revokeRound, { roundId });
+    await expect(t.mutation(internal.learningCapture.authorizeRound, { roundId, expectedPlayerId })).rejects.toThrow('once');
+  });
 });
 afterEach(() => { vi.clearAllTimers(); vi.useRealTimers(); vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
 

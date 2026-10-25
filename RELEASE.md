@@ -10,6 +10,15 @@ Vercel builds `frontend/expo` from `main`; it does not deploy Convex functions.
 A backend change must be deployed to the named existing backend before its
 matching frontend is released. Credentials and player data never belong in Git.
 
+## Bounded training-capture proof — 25 October 2026
+
+The [game-vote proof](judging/GAME_VOTE_PROOF.md) adds an internal, expiring
+one-turn capture grant for a named consented test player. Both demonstration
+grants were revoked; public-player uploads and automatic external ratings remain
+off. The UI and ordinary game behavior are unchanged. Current verification
+is **158 backend/client tests and 20 Python tests**; the earlier release below
+retains its historical counts.
+
 ## PR #8 and PR #11 release review — 25 October 2026
 
 [PR #8](https://github.com/eliayousf/almost-human/pull/8) adds separate optional

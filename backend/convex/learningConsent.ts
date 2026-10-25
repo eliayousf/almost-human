@@ -12,3 +12,10 @@ export function roundTrainingAllowed(round: Doc<'rounds'>, players: (Doc<'player
   return round.chatTrainingAllowed === true && players.length > 0 && grants?.length === players.length
     && players.every(player => player?.trainingOptIn === true && chatTrainingAllowed(player) && grants.some(grant => grant.playerId === player!._id && grant.revision === player!.chatTrainingConsentRevision));
 }
+
+export function reviewCaptureAllowed(round: Doc<'rounds'>, turn: number, now: number): boolean {
+  const grant = round.reviewCapture;
+  return !!grant && Number.isFinite(now) && round.phase === 'chat'
+    && now >= round.chatStartsAt && now < round.chatEndsAt && now < grant.expiresAt
+    && grant.expiresAt <= round.chatEndsAt && grant.turn === turn;
+}

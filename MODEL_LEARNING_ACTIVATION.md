@@ -46,6 +46,33 @@ The earlier failed serving experiment remains documented in MUBIT_TRAINING_RUN.m
 Existing records without the new grant/eligibility fields are not retroactively
 used. No data migration enables training for old profiles or past calls.
 
+## Bounded proof without a console credential
+
+`learningCapture:authorizeRound` is an internal operator command. It names one
+round and the expected synthetic player; it refuses other players, multiple
+humans, missing pre-round permission, a started round or a previously issued
+grant. It permits only turn zero and expires by chat end (at most 90 seconds).
+The existing retry budget allows at most two capture requests for that turn.
+Prompt lessons from other rooms are excluded from this isolated capture.
+
+The server still rechecks consent before every attempt. Every other room keeps
+metadata-only recording. `learningCapture:revokeRound` expires the grant and
+prevents reauthorization. The grant is private and never enters room snapshots.
+These controls do not change inference credentials, player scores, the UI,
+Mubit quality gates or adapter routing.
+
+After reveal, `ratings:pending` gives the actual game-derived rating and its
+Mubit request ID. An operator can verify the matching synthetic request/reply
+in Mubit and save the rating through the documented console UI. Verify it after
+reopening, then separately check whether Mubit kept the example. A saved Good
+rating is not sufficient evidence of dataset inclusion or completed training.
+This console-mediated path is not unattended application feedback submission.
+
+Keep `MUBIT_RATINGS_ENABLED` off. The experimental cookie bridge is not needed
+for this proof, and no broad browser login is copied to the backend. A supported
+scoped feedback API and operational validation are still required before
+turning on unattended public-player uploads and ratings.
+
 ## Remaining model-learning activation checklist
 
 1. Review and deploy this backend/schema to the game project already serving

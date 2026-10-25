@@ -1,4 +1,4 @@
-import { roundTrainingAllowed } from "./learningConsent";
+import { reviewCaptureAllowed, roundTrainingAllowed } from "./learningConsent";
 import { listMessages, saveMessage } from "@convex-dev/agent";
 import { v } from "convex/values";
 import { env, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
@@ -25,11 +25,12 @@ const turnArgs = { roundId: v.id("rounds"), turn: v.number() };
 // Recheck immediately before each provider attempt, including delayed retries.
 // A permission captured at claim time must not survive a later withdrawal.
 export const trainingEligibility = internalQuery({
-  args: turnArgs, returns: v.boolean(),
-  handler: async (ctx, { roundId, turn }) => {
-    if (env.MUBIT_RATINGS_ENABLED !== "true" || !env.MUBIT_PROJECT?.trim() || !env.MUBIT_CONSOLE_COOKIE) return false;
+  args: { ...turnArgs, now: v.optional(v.number()) }, returns: v.boolean(),
+  handler: async (ctx, { roundId, turn, now }) => {
     const round = await ctx.db.get(roundId);
     if (!round || round.phase !== "chat" || round.botPending !== turn || round.chatTrainingAllowed !== true) return false;
+    const automatic = env.MUBIT_RATINGS_ENABLED === "true" && Boolean(env.MUBIT_PROJECT?.trim()) && Boolean(env.MUBIT_CONSOLE_COOKIE);
+    if (!automatic && !reviewCaptureAllowed(round, turn, now ?? NaN)) return false;
     const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
     const humans = members.filter(member => member.kind === "human");
     return roundTrainingAllowed(round, await Promise.all(humans.map(member => ctx.db.get(member.playerId))));
@@ -70,7 +71,8 @@ export const claim = internalMutation({
       const sender = members.find(member => member._id === message.userId);
       return sender && message.text ? [{ alias: sender.alias, text: message.text }] : [];
     });
-    const learningConfigured = env.MUBIT_RATINGS_ENABLED === "true" && Boolean(env.MUBIT_PROJECT?.trim()) && Boolean(env.MUBIT_CONSOLE_COOKIE);
+    const learningConfigured = (env.MUBIT_RATINGS_ENABLED === "true" && Boolean(env.MUBIT_PROJECT?.trim()) && Boolean(env.MUBIT_CONSOLE_COOKIE))
+      || reviewCaptureAllowed(round, turn, now);
     const humans = members.filter(member => member.kind === "human");
     const trainingEligible = round.chatTrainingAllowed === true && learningConfigured && humans.length > 0
       && roundTrainingAllowed(round, await Promise.all(humans.map(member => ctx.db.get(member.playerId))));
@@ -78,7 +80,8 @@ export const claim = internalMutation({
     // cannot issue another paid request for this turn.
     await ctx.db.patch(roundId, { botTurn: turn + 1, botPending: turn, ...(duel ? { botLastHumanMessageId: latestHumanId } : {}) });
     await ctx.scheduler.runAfter(BOT_WATCHDOG_MS, internal.botState.fail, { roundId, turn });
-    const lessons = await recentLessons(ctx);
+    // An isolated proof must not upload bot text borrowed from other rooms.
+    const lessons = reviewCaptureAllowed(round, turn, now) ? { passed: [], caught: [] } : await recentLessons(ctx);
     return { trainingEligible, memberId: bot._id, alias: bot.alias, persona: bot.persona, difficulty: bot.difficulty, threadId: round.threadId, topic: round.topic.text, aliases: members.map(m => m.alias), chatEndsAt: round.chatEndsAt, transcript, lessons };
   },
 });
