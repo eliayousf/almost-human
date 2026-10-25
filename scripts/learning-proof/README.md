@@ -4,6 +4,48 @@ Track: **Recurring tasks**. Almost Human repeatedly generates short NPC dialogue
 
 The runner currently verifies inference and prepares local corrections. It **does not submit corrections, start training, select an adapter, or prove improvement**. Those stages require a verified Mubit interface. Do not present this preparation as a finished learning loop.
 
+## Conversational-correction experiment
+
+The hosted feedback editor exposes Good/Bad and Comment, without a replacement-answer
+field. A separate, explicit experiment uses ordinary conversational feedback:
+
+1. Capture a synthetic game answer with the frozen production system prompt.
+2. Send that answer plus an editorial correction as the next user turn through
+   the same Mubit gateway. Keep the system instructions unchanged.
+3. Review the resulting answer and, if suitable, rate **that corrected call**
+   Good in the console. The runner never rates answers automatically.
+4. Verify that the corrected call is kept, appears in the training dataset,
+   and contributes to the completed adapter version before claiming training.
+
+This is a corrected conversation, **not** an API that replaces the original
+call's answer. The trace's separate `feedback.correction` field remains null.
+An accepted rating alone does not prove dataset inclusion or a model update.
+
+```sh
+nix develop -c python3 scripts/mubit-learning-proof.py revise candidate-01 \
+  --feedback 'Give a specific unusual talent, in seven words or fewer.'
+```
+
+The original receipt is preserved; the revised receipt links to it and records
+the exact feedback, unchanged prompt hash, and returned answer. This uses the
+same persistent three-attempt discovery ledger. Evaluation cases cannot be revised.
+
+For an explicitly authorized training experiment, prepare a separate bounded
+batch without resetting discovery receipts:
+
+```sh
+nix develop -c node scripts/prepare-learning-proof.mjs --training-batch
+nix develop -c python3 scripts/mubit-learning-proof.py \
+  --directory artifacts/learning-training-batch capture-batch
+```
+
+This freezes 40 distinct synthetic candidates and four held-out questions with
+a 44-request maximum. Capture sends candidates only, skips every already-reserved
+case on continuation, and stops after three failures in one run. Failed calls
+remain counted and are not retried. Every returned answer requires editorial
+review before a Good rating. Keep lessons disabled and evaluation capture off.
+The batch and all model receipts remain under ignored `artifacts/`.
+
 ## Simple flow
 
 ```mermaid

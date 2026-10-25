@@ -146,6 +146,67 @@ class LearningProofTests(unittest.TestCase):
             learning.reserve(self.directory, "candidate-01")
         self.assertTrue((self.directory / ".request.lock").exists())
 
+    def test_conversational_correction_preserves_context_and_provenance(self):
+        original = learning.generate(self.directory, "candidate-01", True, Opener())
+        original_file = (self.directory / "receipts/candidate-01.json").read_bytes()
+        feedback = "Give one specific example, in seven words or fewer."
+        opener = Opener(reply="identifying crisps by the crunch alone")
+        revised = learning.revise(self.directory, "candidate-01", feedback, opener)
+        sent = json.loads(opener.requests[0].data)
+        self.assertEqual(sent["messages"][:2], self.data["cases"][0]["messages"])
+        self.assertEqual(sent["messages"][2], {"role": "assistant", "content": original["reply"]})
+        self.assertEqual(sent["messages"][3], {"role": "user", "content": feedback})
+        self.assertEqual(revised["original_reply_sha256"], original["reply_sha256"])
+        self.assertEqual(revised["workflow"], "conversational_correction")
+        self.assertFalse(revised["replacement_target_api_used"])
+        self.assertEqual(revised["training_inclusion"], "unverified")
+        self.assertEqual((self.directory / "receipts/candidate-01.json").read_bytes(), original_file)
+        self.assertEqual(len(learning.load(self.directory / "ledger.json")["attempts"]), 2)
+        with self.assertRaises(ValueError):
+            learning.revise(self.directory, "candidate-01", feedback, opener)
+        self.assertEqual(len(opener.requests), 1)
+
+    def test_conversational_correction_cannot_capture_evaluation_or_drift(self):
+        learning.generate(self.directory, "eval-01", False, Opener())
+        opener = Opener()
+        with self.assertRaises(ValueError):
+            learning.revise(self.directory, "eval-01", "Make this more specific.", opener)
+        original = learning.generate(self.directory, "candidate-01", True, Opener())
+        original["request"]["messages"][0]["content"] = "different prompt"
+        learning.save(self.directory / "receipts/candidate-01.json", original)
+        with self.assertRaises(ValueError):
+            learning.revise(self.directory, "candidate-01", "Make this more specific.", opener)
+        self.assertFalse(opener.requests)
+        self.assertEqual(len(learning.load(self.directory / "ledger.json")["attempts"]), 2)
+
+    def test_training_budget_is_bounded_and_cannot_reset_an_existing_ledger(self):
+        self.data["request_limit"] = 44
+        learning.save(self.directory / "manifest.json", self.data)
+        with self.assertRaises(ValueError):
+            learning.manifest(self.directory)
+        self.data["mode"] = "reviewed-training-batch"
+        learning.save(self.directory / "manifest.json", self.data)
+        self.assertEqual(learning.manifest(self.directory)["request_limit"], 44)
+        learning.reserve(self.directory, "candidate-01")
+        with self.assertRaises(ValueError):
+            learning.generate(self.directory, "candidate-02", True, Opener())
+        self.assertEqual(learning.load(self.directory / "ledger.json")["limit"], 3)
+        self.data["request_limit"] = 100
+        learning.save(self.directory / "manifest.json", self.data)
+        with self.assertRaises(ValueError):
+            learning.manifest(self.directory)
+
+    def test_batch_skips_reserved_calls_and_never_captures_evaluation(self):
+        self.data.update(mode="reviewed-training-batch", request_limit=44)
+        learning.save(self.directory / "manifest.json", self.data)
+        learning.generate(self.directory, "candidate-01", True, Opener())
+        opener = Opener()
+        with patch("sys.stdout", new=io.StringIO()):
+            self.assertEqual(learning.capture_batch(self.directory, opener), 0)
+            learning.capture_batch(self.directory, opener)
+        self.assertEqual(len(opener.requests), 3)
+        self.assertFalse((self.directory / "receipts/eval-01.json").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

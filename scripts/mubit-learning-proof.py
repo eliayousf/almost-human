@@ -51,6 +51,10 @@ def manifest(directory):
     data = load(directory / "manifest.json")
     if data.get("schema") != 1 or data.get("model") != "gpt-6-luna" or data.get("lessons_enabled") is not False:
         raise ValueError("Unsupported experiment manifest.")
+    limit = data.get("request_limit", MAX_ATTEMPTS)
+    if (type(limit) is not int or not 1 <= limit <= 48
+            or (limit != MAX_ATTEMPTS and data.get("mode") != "reviewed-training-batch")):
+        raise ValueError("Expanded capture requires a bounded reviewed-training-batch manifest.")
     ids, evaluation_inputs, candidate_inputs = set(), set(), set()
     for case in data["cases"]:
         identifier = case.get("id", "")
@@ -72,7 +76,7 @@ def manifest(directory):
     return data
 
 
-def reserve(directory, case_id):
+def reserve(directory, case_id, limit=MAX_ATTEMPTS):
     """A failed or interrupted network request still consumes its reservation."""
     lock = directory / ".request.lock"
     try:
@@ -81,14 +85,14 @@ def reserve(directory, case_id):
         raise ValueError("Another reservation is active. Inspect it; never reset the request ledger.") from None
     try:
         ledger_path = directory / "ledger.json"
-        ledger = load(ledger_path) if ledger_path.exists() else {"limit": MAX_ATTEMPTS, "attempts": []}
-        if ledger.get("limit") != MAX_ATTEMPTS or not isinstance(ledger.get("attempts"), list):
+        ledger = load(ledger_path) if ledger_path.exists() else {"limit": limit, "attempts": []}
+        if ledger.get("limit") != limit or not isinstance(ledger.get("attempts"), list):
             raise ValueError("Invalid request ledger.")
         attempts = ledger["attempts"]
         if any(row["case_id"] == case_id for row in attempts):
             raise ValueError("This case already has a reserved request. Inspect its receipt; it will not be sent twice.")
-        if len(attempts) >= MAX_ATTEMPTS:
-            raise ValueError("The three-attempt discovery budget is exhausted. Do not reset it.")
+        if len(attempts) >= limit:
+            raise ValueError("The experiment request budget is exhausted. Do not reset it.")
         row = {"attempt": len(attempts) + 1, "case_id": case_id, "reserved_at": now()}
         attempts.append(row)
         save(ledger_path, ledger)
@@ -110,20 +114,49 @@ def generate(directory, case_id, capture=False, opener=None):
         raise ValueError("Unknown case.")
     if capture and case["purpose"] != "candidate":
         raise ValueError("Evaluation conversations must never be captured for training.")
+    return send_request(directory, data, case_id, case["messages"], case["purpose"], capture, opener)
+
+
+def revise(directory, case_id, feedback, opener=None):
+    """Capture a conversational correction, not a replacement-target API call."""
+    data = manifest(directory)
+    case = next((c for c in data["cases"] if c["id"] == case_id), None)
+    if not case or case["purpose"] != "candidate":
+        raise ValueError("Only synthetic training candidates may receive corrective follow-ups.")
+    original = load(directory / "receipts" / f"{case_id}.json")
+    feedback = feedback.strip()
+    if (original.get("state") != "answered" or original.get("system_sha256") != data["system_sha256"]
+            or original.get("request", {}).get("messages") != case["messages"]):
+        raise ValueError("A successful original reply with unchanged instructions is required.")
+    if not 10 <= len(feedback) <= 500 or SECRET.search(feedback) or any(ord(c) < 32 for c in feedback):
+        raise ValueError("Supply specific corrective feedback without secrets or control characters.")
+    messages = case["messages"] + [
+        {"role": "assistant", "content": original["reply"]},
+        {"role": "user", "content": feedback},
+    ]
+    lineage = {"workflow": "conversational_correction", "original_case_id": case_id,
+               "original_mubit_request_id": original.get("mubit_request_id"),
+               "original_reply_sha256": original["reply_sha256"],
+               "feedback": feedback, "feedback_author": "codex_assistant_for_project_owner",
+               "replacement_target_api_used": False}
+    return send_request(directory, data, case_id + "-revised", messages, "candidate", True, opener, lineage)
+
+
+def send_request(directory, data, case_id, messages, purpose, capture, opener=None, lineage=None):
     key = os.environ.get("MUBIT_API_KEY")
     if not key:
         raise ValueError("MUBIT_API_KEY is not configured.")
     # Accept environment-injected credentials, including proxy placeholders.
-    body = {"model": data["model"], "messages": case["messages"],
+    body = {"model": data["model"], "messages": messages,
             "max_completion_tokens": 384, "reasoning_effort": "low"}
     request_bytes = json.dumps(body, ensure_ascii=False, separators=(",", ":")).encode()
-    reservation = reserve(directory, case_id)
+    reservation = reserve(directory, case_id, data.get("request_limit", MAX_ATTEMPTS))
     receipt_path = directory / "receipts" / f"{case_id}.json"
     receipt = {**reservation, "state": "pending", "source_commit": data["source_commit"],
                "system_sha256": data["system_sha256"], "request_sha256": hashlib.sha256(request_bytes).hexdigest(),
-               "case_id": case_id, "origin": "synthetic", "purpose": case["purpose"],
+               "case_id": case_id, "origin": "synthetic", "purpose": purpose,
                "capture": "full" if capture else "off", "request": body,
-               "served_by": "unverified", "training_inclusion": "unverified"}
+               "served_by": "unverified", "training_inclusion": "unverified", **(lineage or {})}
     save(receipt_path, receipt)
     request = urllib.request.Request(GATEWAY, data=request_bytes, method="POST", headers={
         "Authorization": "Bearer " + key, "Content-Type": "application/json",
@@ -199,9 +232,29 @@ def status(directory):
             "held_out_cases": sum(c["purpose"] == "evaluation" for c in data["cases"]),
             "requests_reserved": len(load(directory / "ledger.json")["attempts"]) if (directory / "ledger.json").exists() else 0,
             "answered": sum(r.get("state") == "answered" for r in receipts), "corrections_prepared": len(corrections),
+            "conversational_corrections_captured": sum(r.get("workflow") == "conversational_correction" and r.get("state") == "answered" for r in receipts),
             "mubit_correction_acceptance": "not_verified", "adapter_training": "not_verified",
             "fresh_adapter_response": "not_verified", "judging_use_of_mubit_complete": False,
             "receipts": receipts, "corrections": corrections}
+
+
+def capture_batch(directory, opener=None):
+    data = manifest(directory)
+    if data.get("mode") != "reviewed-training-batch":
+        raise ValueError("Batch capture requires its own explicit training manifest and ledger.")
+    existing = load(directory / "ledger.json")["attempts"] if (directory / "ledger.json").exists() else []
+    reserved = {row["case_id"] for row in existing}
+    failures = 0
+    for case in data["cases"]:
+        if case["purpose"] != "candidate" or case["id"] in reserved:
+            continue
+        receipt = generate(directory, case["id"], True, opener)
+        print(json.dumps({k: receipt[k] for k in ("case_id", "state", "reply", "mubit_request_id", "error") if k in receipt}), flush=True)
+        if receipt["state"] != "answered":
+            failures += 1
+            if failures >= 3:
+                raise ValueError("Stopped after three failures. Inspect receipts; no automatic retries.")
+    return failures
 
 
 def report(directory):
@@ -231,6 +284,16 @@ table{border-collapse:collapse;width:100%}td,th{text-align:left;padding:14px;bor
 <div class="flow"><span class="step">Bot writes a reply</span>→<span class="step">Review a better reply</span>→<span class="step waiting">Mubit accepts it</span>→<span class="step waiting">Mubit trains a version</span>→<span class="step waiting">Test a fresh reply</span></div>
 '''
     page += f'<p>{result["answered"]} real replies received · {result["corrections_prepared"]} local corrections · {result["held_out_cases"]} held-out test cases prepared</p>' + cards
+    conversations = [r for r in result["receipts"] if r.get("workflow") == "conversational_correction"]
+    if conversations:
+        page += '<h2>Conversational corrections captured through Mubit</h2><p>These preserve the original answer and add editorial feedback as the next user turn. They do not use a replacement-target API.</p>'
+        for receipt in conversations:
+            original = next((r for r in result["receipts"] if r["case_id"] == receipt["original_case_id"]), {})
+            page += (f'<article><h3>{esc(receipt["case_id"])}</h3>'
+                     f'<p><b>Original:</b> {esc(original.get("reply", "Unavailable"))}</p>'
+                     f'<p><b>Correction:</b> {esc(receipt["feedback"])}</p>'
+                     f'<p><b>Revised answer:</b> {esc(receipt.get("reply", "No usable reply"))}</p>'
+                     '<p class="pending">Saved ratings, dataset inclusion, training completion and adapter serving each require separate service evidence.</p></article>')
     page += '<h2>Live request receipts</h2>'
     for receipt in result["receipts"]:
         page += (f'<article><h3>{esc(receipt["case_id"])}: {esc(receipt["state"])}</h3>'
@@ -258,6 +321,7 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("status")
     commands.add_parser("report")
+    commands.add_parser("capture-batch", help="Capture only synthetic candidates in an explicit bounded training batch; never rates them automatically.")
     call = commands.add_parser("generate")
     call.add_argument("case_id")
     call.add_argument("--capture-training-candidate", action="store_true", help="Allow Mubit to record this synthetic candidate; does not prove acceptance.")
@@ -265,10 +329,16 @@ def main():
     edit.add_argument("case_id")
     edit.add_argument("--replacement", required=True)
     edit.add_argument("--reason", required=True)
+    followup = commands.add_parser("revise", help="Send corrective conversational feedback; acceptance and training still require service evidence.")
+    followup.add_argument("case_id")
+    followup.add_argument("--feedback", required=True)
     args = parser.parse_args()
     try:
-        if args.command == "generate":
-            value = generate(args.directory, args.case_id, args.capture_training_candidate)
+        if args.command == "capture-batch":
+            return 1 if capture_batch(args.directory) else 0
+        if args.command in ("generate", "revise"):
+            value = (generate(args.directory, args.case_id, args.capture_training_candidate)
+                     if args.command == "generate" else revise(args.directory, args.case_id, args.feedback))
             print(json.dumps({k: value[k] for k in ("case_id", "state", "mubit_request_id", "reply", "http_status", "error", "elapsed_ms") if k in value}, indent=2))
             return 0 if value["state"] == "answered" else 1
         if args.command == "correct":
