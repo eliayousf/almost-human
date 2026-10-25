@@ -1,42 +1,44 @@
 /**
  * THE single portrait assets module. Every portrait the UI, the mouth layer,
- * and the datamosh atlas use comes from here, so dropping in final cleared
- * photographic portraits is a one-file change: replace the imports below with
- * AVIF/WebP files (keep a WebP fallback in `fallbackSrc`) and re-measure
- * the mouth anchors. Portraits are never hotlinked.
+ * and the datamosh atlas use comes from here, so swapping in final art is a
+ * one-file change: replace the imports below and re-measure the mouth anchors.
+ * Portraits are bundled with the app and never hotlinked.
  *
- * DEV PLACEHOLDERS: the current files are procedural SVGs, not production art.
- * Portrait choice is by seat order only and never encodes a seat's role.
+ * Source: from the owner's reference demo (AI-generated in his commissioned
+ * design work); final cleared art pending owner decision. These are temporary
+ * placeholder faces until the owner's cast videos (Idle/Talk/Smile states)
+ * replace every face, including YOU, in a follow-up.
+ *
+ * Portrait choice is by seat (you vs. counterpart) only and never encodes a
+ * seat's role.
  */
-import strangerSrc from "./portraits/stranger.svg";
-import selfSrc from "./portraits/self.svg";
+import strangerSrc from "./portraits/stranger.webp";
+import youSrc from "./portraits/altface.webp";
 
 export interface PortraitAsset {
   key: "stranger" | "self";
-  /** Preferred source (AVIF for final photos). */
   src: string;
-  /** Optional fallback source (WebP for final photos). */
+  /** Optional fallback source if `src` fails to decode. */
   fallbackSrc?: string;
-  /** Intrinsic aspect; every portrait is framed as a 4:5 plate. */
   width: number;
   height: number;
   /** Mouth layer anchor as fractions of the 4:5 plate (centre x/y, size w/h). */
   mouth: { x: number; y: number; w: number; h: number };
   alt: string;
-  placeholder: true | false;
+  placeholder: boolean;
 }
 
 export const PORTRAITS = {
   stranger: {
-    key: "stranger", src: strangerSrc, width: 800, height: 1000,
-    mouth: { x: 0.5175, y: 0.581, w: 0.075, h: 0.03 },
+    key: "stranger", src: strangerSrc, width: 640, height: 800,
+    // Teeth line centred near (340, 446) on the 640x800 plate; kept subtle.
+    mouth: { x: 0.531, y: 0.557, w: 0.12, h: 0.03 },
     alt: "The stranger", placeholder: true,
   },
   self: {
-    key: "self", src: selfSrc, width: 800, height: 1000,
-    // Lips centre (208, 293) on the 400x500 plate; enlarged so own-typing
-    // feedback reads on the small seat tile at arm's length.
-    mouth: { x: 0.52, y: 0.586, w: 0.11, h: 0.055 },
+    key: "self", src: youSrc, width: 640, height: 800,
+    // Mouth centred near (333, 428) on the 640x800 plate.
+    mouth: { x: 0.52, y: 0.535, w: 0.15, h: 0.04 },
     alt: "Your seat", placeholder: true,
   },
 } as const satisfies Record<string, PortraitAsset>;
@@ -52,3 +54,4 @@ export function preloadPortraits(): void {
     image.src = PORTRAITS[key].src;
   }
 }
+// END portraits.ts

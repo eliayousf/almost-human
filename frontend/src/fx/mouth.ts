@@ -12,6 +12,8 @@ const FRAME_MS = 85;
 
 export class MouthDriver {
   private el: HTMLElement | null = null;
+  /** The card frame; carries `is-speaking` while the flap runs (drives the equalizer). */
+  private host: HTMLElement | null = null;
   private until = 0;
   private raf = 0;
   private step = 0;
@@ -30,18 +32,20 @@ export class MouthDriver {
     this.unsubscribe?.();
     this.unsubscribe = null;
     this.el = el;
+    this.host = el?.closest<HTMLElement>(".frame") ?? null;
     this.shown = -1;
     if (!el) return;
     this.render(0);
     this.unsubscribe = onReducedMotionChange(() => { if (prefersReducedMotion()) this.stop(); });
   }
 
-  /** Keep talking for at least `ms` from now (local input pulses or a landed line). */
+  /** Keep talking for at least `ms` from now (local input, or the fixture fallback bound in game/speech.ts). */
   speakFor(ms: number): void {
     if (!this.el || prefersReducedMotion()) return;
     this.until = Math.max(this.until, performance.now() + ms);
     if (!this.raf) {
       this.lastStepAt = 0;
+      this.host?.classList.add("is-speaking");
       this.raf = requestAnimationFrame(this.loop);
     }
   }
@@ -50,6 +54,7 @@ export class MouthDriver {
     if (this.raf) cancelAnimationFrame(this.raf);
     this.raf = 0;
     this.until = 0;
+    this.host?.classList.remove("is-speaking");
     this.render(0);
   }
 

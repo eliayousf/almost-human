@@ -22,12 +22,15 @@
    required before this ever ships to players: replace the slots in
    `src/copy/consent.ts` (set `isPlaceholder: false`) and set
    `POLICY_VERSION` to the version the backend accepts for that copy.
-2. **Counterpart typing signal is unbound.** No backend typing API exists. The
-   counterpart's mouth moves only when a message *lands*, for a duration
-   proportional to its length; your own mouth moves only from real local
-   input events. `src/game/speech.ts` is the single isolated signal module
-   and is explicitly marked "awaiting verified backend typing API - do not
-   guess the shape". It assumes no remote field, function, or payload.
+2. **Counterpart typing signal is unbound.** No backend typing API exists.
+   `src/game/speech.ts` is the single bind point for the counterpart's mouth
+   (and its equalizer bars). Its only source today is a labelled FIXTURE
+   FALLBACK: in fixture mode, when a counterpart message lands, the mouth moves
+   for a length-proportional duration. This is not a typing indicator and is
+   never presented as one. It is off in live mode, so the counterpart's mouth
+   stays still there. Your own mouth and bars move only from real local input
+   events. The module is marked "awaiting a verified backend API; do not guess
+   its shape" and assumes no remote field, function, or payload.
 3. **strictPair is not deployable yet.** `strictPair` is accepted only by a
    NOT-yet-deployed backend branch and is not declared in
    `shared/game-contract.ts`. The deployed validator (backend at `5101272`)
@@ -38,9 +41,12 @@
    locally. That flag must stay off (absent) until the strict backend is
    deployed and the contract declares the field. With the flag absent the
    field is compiled out and `joinQueue` sends the plain `CommandInput`.
-4. **Portraits are procedural dev placeholders,** not production-cleared art
-   (`src/assets/portraits/*.svg`). Final cleared photographic portraits are
-   a drop-in via `src/assets/portraits.ts` (see "Portraits" below).
+4. **Portraits are temporary placeholder faces.** `stranger.webp` (counterpart)
+   and `altface.webp` (YOU) are from the owner's reference demo (AI-generated
+   in his commissioned design work); final cleared art pending owner decision.
+   They are flagged `placeholder: true` in `src/assets/portraits.ts`, the
+   one-file swap point. The owner's cast videos (Idle/Talk/Smile per
+   character, including YOU) replace them in a follow-up.
 
 Further items the owner should know before launch:
 
@@ -155,7 +161,7 @@ air / Verdict / Reveal), adapted to 1v1. Every screen has a header strip with
 a red on-air dot, a centred mono label, and MENU (Report / Block / Leave).
 
 1. **Room** (`countdown`): "Your room", portrait tiles facing each other
-   (stranger, then your hatched, amber-edged seat), a big 3-2-1, and the
+   (stranger, then your amber-edged seat with a YOU tag; name chips bottom-left inside), a big 3-2-1, and the
    tonight's-topic card sealed until start.
 2. **On air** (`chat`): "ROUND n · m:ss" with an amber progress bar,
    portrait tiles, the amber topic card, the transcript (mono speaker label
@@ -168,13 +174,17 @@ a red on-air dot, a centred mono label, and MENU (Report / Block / Leave).
 4. **Reveal** (`reveal`): "Who was real?", a card per seat with "You said X
    ✓/✗" and an outline stamp from the server-provided `kind`, one
    reciprocal line, +points (100 per correct call), streak, total, a
-   recognition bar, and Next room. With `fraction === null` the line reads
+   recognition bar captioned "Recognition · humans who called you human" (human
+   judgments only; bot ballots never enter it), and Play again. With `fraction === null` the line reads
    "Unrated. No human judged you this round." and the bar is empty and
    marked "Not rated" (never a verdict).
 
 Deliberate deviations from the reference sheet, required by the brief:
 - No "is typing…" line (no typing API; blocker 2).
-- No audio waveform (no audio exists).
+- White equalizer bars at the card bottom show only while that seat's mouth
+  driver runs (your real typing; the counterpart's fixture-only fallback). They
+  represent no audio, since none exists, and never move in live mode for the
+  counterpart.
 - No per-person attribution ("X voted you the machine"); only the aggregate.
 - No TELL flags (not in the API).
 - No "all votes lock when the timer hits zero" footnote: it would be false
@@ -187,7 +197,8 @@ Deliberate deviations from the reference sheet, required by the brief:
 - Your "read on you" card always shows "? ? ?" before the reveal. After the
   reveal, a bot counterpart yields exactly "Unrated. No human judged you this
   round."; a bot ballot is never shown as a read, a score, or "believed you".
-- Your seat keeps a face under the hatching so own-typing mouth feedback shows.
+- YOU shows a placeholder face (amber edge + YOU tag), not the sheet's faceless
+  "Hollow" plate, per owner direction pending cast videos.
 - Round numbers are a display-only, per-browser-session counter; the API
   has none.
 - Rooms with 3+ seats render one tile/card per seat, the sheet's multi-seat
@@ -226,12 +237,24 @@ are never distorted.
 ## Portraits
 
 `src/assets/portraits.ts` is the only module that knows about portrait
-files. To drop in final cleared photographs: add the AVIF (+ optional WebP
-`fallbackSrc`) files, change the two imports, set `placeholder: false`, and
-re-measure each `mouth` anchor (centre x/y and size as fractions of a 4:5
-plate). The UI, the mouth layer, and the WebGL atlas all read from that
+files. Current files: `portraits/stranger.webp` (counterpart) and
+`portraits/altface.webp` (YOU), both 640x800, mouth anchors measured from
+the images. To drop in final cleared art, replace the files or the two
+imports, set `placeholder: false`, and re-measure each `mouth` anchor (centre
+x/y and size as fractions of the 4:5 plate). The cast videos will need a
+video-capable tile; that change also lives behind this module. The UI, the mouth layer, and the WebGL atlas all read from that
 module. Images load lazily and are prefetched once a player exists. Portrait
 choice is by seat position only and never encodes a role.
+
+## Sizing provenance
+
+Round-screen geometry was matched by overlay on the owner's 4-screen sheet:
+the sheet's 196px content width maps to our 358 CSS px content width (x1.83).
+On air cards are ~173x166 with a 12px gap. Type: header 10px mono; topic
+label 8px, topic text 17px; transcript names 10px mono, body 16px; stage
+titles 27px, subtitles 15.5px; composer 44px tall, SEND 12px mono. Where the
+owner's written list disagreed with the overlay, the sheet won. The composer
+input stays at 16px because smaller inputs trigger iOS focus zoom.
 
 ## Performance
 
@@ -268,7 +291,7 @@ choice is by seat position only and never encodes a role.
 | `src/game/fixtures/twoSeat.ts` | fixture-only 2-seat composition from `shared/fixtures.ts` |
 | `src/game/fixtures/FixturePanel.tsx` | dev controls behind the FIXTURE MODE strip |
 | `src/assets/portraits.ts` | the single portrait assets module |
-| `src/assets/portraits/stranger.svg`, `self.svg` | procedural DEV PLACEHOLDERS |
+| `src/assets/portraits/stranger.webp`, `altface.webp` | temporary placeholder faces (see blocker 4) |
 | `src/fx/datamosh.ts` | shared WebGL2 burst + atlas |
 | `src/fx/mouth.ts` | mouth flap driver |
 | `src/fx/motion.ts` | reduced-motion source |
@@ -299,8 +322,8 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
   ("They believed you.") and the AI-counterpart unrated empty state.
 - Bursts: 3 WebGL bursts (start, lock, reveal) with SwiftShader WebGL2, and 3
   CSS-slice bursts with WebGL disabled.
-- Mouths: your-seat flap fires while typing (open mouth ≈ 19px on the tile);
-  the counterpart flap fires on message arrival.
+- Mouths + equalizer: your-seat flap and bars fire while typing; the
+  counterpart flap fires on message arrival (fixture-mode fallback only).
 - `prefers-reduced-motion: reduce`: 0 bursts, 0 mouth frames, loop intact.
 - Keyboard simulation (viewport height − 336px): the composer stays visible
   and inside the visible area.

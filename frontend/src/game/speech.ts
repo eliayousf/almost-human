@@ -1,17 +1,26 @@
 /**
- * Counterpart speech signal: the single module the counterpart's mouth listens to.
+ * Counterpart mouth signal: the SINGLE bind point for what moves the
+ * counterpart's mouth layer. Screens and the mouth driver never choose a
+ * source themselves.
  *
- * Bound source (only one): a counterpart message LANDING in the round snapshot.
- * The mouth then moves for a duration proportional to the line's length, as if
- * finishing saying it. It is never presented as a live typing indicator.
+ * Current source: a LABELLED FIXTURE FALLBACK. When a counterpart message lands
+ * in a fixture-mode snapshot, the mouth moves for a duration proportional to
+ * the line's length. This is not a typing indicator, says nothing about what
+ * the counterpart is doing now, and is never presented as one. In live mode it
+ * is off: the counterpart mouth stays still.
  *
- * Remote typing presence: UNBOUND. Awaiting verified backend typing API - do not
- * guess the shape. The pinned contract carries no typing state, and nothing here
- * assumes any remote field, function, or payload. When a verified API exists,
- * bind it inside this module only; screens and the mouth layer stay unchanged.
+ * Remote signal: UNBOUND. Awaiting a verified backend API; do not guess its
+ * shape. Replace `FALLBACK` below with that source when it exists.
+ *
+ * (Your own seat's mouth is separate: it is driven by real local input events
+ * in the composer, which is a genuine local signal.)
  */
 import { useEffect, useRef } from "react";
 import type { RoundSnapshot } from "@game/game-contract";
+import { useBinding } from "./binding";
+
+const FALLBACK = "fixture-message-landed" as const;
+export const COUNTERPART_MOUTH_SOURCE: typeof FALLBACK | "none" = FALLBACK;
 
 const MS_PER_CHARACTER = 55;
 const MIN_MS = 650;
@@ -22,21 +31,23 @@ export function speechDurationMs(text: string): number {
 }
 
 /**
- * Calls onSpeak(durationMs) once per counterpart message that arrives while
- * mounted. Messages already present at mount (refresh/resume) stay silent.
+ * Fixture fallback: calls onSpeak(durationMs) once per counterpart message that
+ * lands while mounted. Messages present at mount (refresh/resume) stay silent.
+ * Does nothing outside fixture mode.
  */
 export function useCounterpartSpeech(
   round: RoundSnapshot | undefined,
   counterpartId: string | null,
   onSpeak: (durationMs: number) => void,
 ): void {
+  const enabled = useBinding().mode === "fixtures" && COUNTERPART_MOUTH_SOURCE === FALLBACK;
   const seen = useRef<{ roundId: string; ids: Set<string> } | null>(null);
   const speak = useRef(onSpeak);
   speak.current = onSpeak;
   const messages = round && "messages" in round ? round.messages : null;
   const roundId = round?.roundId ?? null;
   useEffect(() => {
-    if (!roundId || !messages) return;
+    if (!enabled || !roundId || !messages) return;
     if (seen.current?.roundId !== roundId) {
       seen.current = { roundId, ids: new Set(messages.map(message => message.id)) };
       return;
@@ -47,5 +58,6 @@ export function useCounterpartSpeech(
       ids.add(message.id);
       if (message.senderId === counterpartId) speak.current(speechDurationMs(message.text));
     }
-  }, [roundId, messages, counterpartId]);
+  }, [enabled, roundId, messages, counterpartId]);
 }
+// END speech.ts
