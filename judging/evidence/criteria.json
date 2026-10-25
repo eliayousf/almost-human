@@ -25,7 +25,7 @@
       "id": "demo", "weight": 0.25, "status": "prepared_not_rehearsed",
       "claim": "The integrated frontend has a tested live preview, with diagnostic clients, labelled fixtures and a timed honest walkthrough.",
       "evidence": ["judging/DEMO.md", "INTEGRATION.md", "backend/playtest/react-main.tsx", "shared/fixtures.ts"],
-      "limitations": ["No timed presentation rehearsal of this submission is claimed.", "Production promotion and cast-video delivery remain pending.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
+      "limitations": ["No timed presentation rehearsal of this submission is claimed.", "Production promotion and physical-device validation remain pending.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
     }
   ]
 }

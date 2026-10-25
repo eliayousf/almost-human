@@ -2,7 +2,8 @@
 
 **Current status:** Ayo's frontend is integrated and a hosted preview completed
 a real round; see [INTEGRATION.md](../INTEGRATION.md) for source revisions and
-the current preview URL. Cast media is pending. This is not a timed presentation
+the current preview URL. The newer Expo interface includes all 25 animated
+characters and uses the same Convex client. This is not a timed presentation
 rehearsal. The trained adapter is blocked from serving, and the event's actual
 time limit has not been confirmed in this package.
 

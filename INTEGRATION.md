@@ -1,5 +1,44 @@
 # Frontend integration — 25 October 2026
 
+## Current interface: Ayo's Expo/WebP UI
+
+The owner selected the newer interface after upload `248643b` arrived on
+`codex/react-native-webp-ui`. The previously supplied `e558` was the source
+commit in `CashpointSoulja/almost-human`, not a commit in this repository.
+The additive import includes all 25 character sets: 75 animated WebPs and 25
+WebP posters, plus the original MP4/JPEG sources.
+
+The root deployment now builds `frontend/expo/`. Its old polling Render client
+and proxy were replaced by the existing shared Convex auth/game client. The
+visual components are preserved in `frontend/expo/src/screens.tsx`; the live
+controller and pure state mapping are separate. There are no client Mubit keys.
+
+The hosted native-web preview at
+https://almost-human-playtest-p8b3oyywi-eliayousfs-projects.vercel.app/
+(`82191fb`) completed a real 1v1 round: explicit playtest choices, anonymous
+profile, one bot partner, server topic/countdown, Mubit opener and contextual
+reply, preserved transcript after refresh, blocked-contact rejection with input
+preserved, locked vote, role reveal and the correct 100-point award. Recognition
+was correctly unrated for a bot counterpart. Replay queue cancellation preserved
+the 100-point profile. Browser error/warning logs were empty.
+
+All 100 WebPs passed format/dimension/frame/size checks. Browser screenshots of
+the same animated asset changed across frames, confirming playback rather than
+only a loaded still. The gallery and labelled design preview remain separate
+from live play. Character mood changes are decorative, not typing/audio evidence.
+
+A compact-height bug found during verification was fixed: at 375×480 the chat
+input now spans y=410–454, stays visible with an error banner, and the document
+has no horizontal or vertical overflow. This is desktop viewport simulation,
+not physical iPhone/Android verification. A missing vote is labelled unsubmitted
+rather than falsely described as an incorrect guess.
+
+The Vite frontend below is retained as previous work. The main production URL
+has not been promoted; the tested builds remain protected Vercel previews.
+The Mubit trained-adapter serving blocker is unchanged.
+
+## Earlier Vite integration evidence
+
 ## Source and deployment findings
 
 - Ayo's cast branch was `3519e85`; the geometry branch advanced from `6f6e7ec`

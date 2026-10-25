@@ -1,10 +1,12 @@
 # Almost Human
 
-*Two minutes. A handful of strangers. Who's human?*
+*Two minutes. One stranger. Who's human?*
 
-A social guessing game for the Mubit Night Shift hackathon. Players chat
-anonymously in lobbies of two to five with zero, one, or two bots, then
-identify who is human and who is AI.
+A social guessing game for the Mubit Night Shift hackathon. The current
+[Expo/web interface](frontend/expo/README.md) pairs two anonymous participants,
+then asks who is human and who is AI. It uses the shared Convex backend and
+includes Ayo's 25 animated characters. The backend's older group mode remains
+available to compatible clients.
 
 **Judges: start with [JUDGING.md](JUDGING.md).** It maps all four criteria to
 sanitised evidence, reproducible checks and an honest demo runbook.
@@ -23,7 +25,12 @@ and [demo instructions](judging/DEMO.md) for their separate scopes.
 
 ## How it works today
 
-Matchmaking fills lobbies from the live queue: five or more waiting humans
+The deployed integration preview now builds `frontend/expo/`. Its shared client
+requests strict 1v1 rooms, receives server topics/timers/scores and routes bot
+replies through Mubit. See [INTEGRATION.md](INTEGRATION.md) for exact tested builds.
+The Vite frontend in `frontend/src/` remains as earlier work, not the active build.
+
+In the backend's default group mode, matchmaking fills lobbies from the live queue: five or more waiting humans
 match immediately (ten queued players become two five-player games), three or
 four accumulate for a few seconds, and after a waiting period a solo player
 can be seated with bots when server bot inference is enabled and available. Each round runs a

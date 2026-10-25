@@ -1,5 +1,10 @@
 # Almost Human frontend: handoff (DEV / FIXTURE PREVIEW)
 
+**Current interface:** the owner selected the newer Expo UI in `frontend/expo/`,
+now connected to the shared Convex client. The root Vercel build targets it.
+This document describes the retained Vite interface; see
+[the Expo guide](expo/README.md) and [INTEGRATION.md](../INTEGRATION.md).
+
 **Integration update:** the original fixture handoff below is historical. On
 `codex/frontend-integration`, both Ayo branches are combined with the current
 backend and judging work. See [INTEGRATION.md](../INTEGRATION.md) for the live
