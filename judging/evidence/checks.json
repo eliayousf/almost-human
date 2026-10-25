@@ -1,19 +1,14 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-25T02:18:59.428682+00:00",
+  "checked_at": "2026-10-25T02:37:31.386271+00:00",
   "status": "passed",
-  "source_commit": "7506f369b459a87181a5b87b5584aa9954220399",
-  "source_fingerprint_sha256": "9844cd76250e81eba54adefa0fe1edae0d1b084495ab450f6cbce3a5f9e6affa",
+  "source_commit": "55c97ff598555c5566dfc29886d8dde9e71a1679",
+  "source_fingerprint_sha256": "f0aeea9b45ffb656c766934f596a9de313f395800fd1109c6bc089e6298f97f6",
   "fingerprint_scope": "Git-listed and nonignored files, excluding this public checks receipt; file names and content hashes in sorted order.",
   "nix_shell": true,
   "scope": "Local code, fixtures, builds and sanitised summary consistency. Does not verify current deployment, remote Mubit state, user demand or live demo success.",
-  "dependency_install_requested": true,
+  "dependency_install_requested": false,
   "steps": [
-    {
-      "name": "locked_dependencies",
-      "exit_code": 0,
-      "status": "passed"
-    },
     {
       "name": "evidence",
       "exit_code": 0,
@@ -45,6 +40,11 @@
       "status": "passed"
     },
     {
+      "name": "frontend_live_build",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
       "name": "diff_whitespace",
       "exit_code": 0,
       "status": "passed"
@@ -56,8 +56,8 @@
     "python": "3.13.13"
   },
   "backend_tests": {
-    "numTotalTests": 122,
-    "numPassedTests": 122,
+    "numTotalTests": 124,
+    "numPassedTests": 124,
     "numFailedTests": 0,
     "numPendingTests": 0
   },
@@ -65,5 +65,6 @@
     "passed": 19
   },
   "shared_round_fixtures": 9,
-  "diagnostic_bundles": 2
+  "diagnostic_bundles": 2,
+  "frontend_live_bundles": 1
 }
