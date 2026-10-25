@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-25T03:37:12.757549+00:00",
+  "checked_at": "2026-10-25T03:50:06.391326+00:00",
   "status": "passed",
-  "source_commit": "5560e67d16cd67146dbd4246bb5541ddba6f6847",
-  "source_fingerprint_sha256": "cced9b2e33bd4205c37e40efec59b15545fe90393aa51d561b79ff532f7cb66d",
+  "source_commit": "86e99025c8f674c6a31555d7cdd9abb62daaf02c",
+  "source_fingerprint_sha256": "760997d7cc51ebc40c40f108632c372740fedc590097d38ac9c3a4c3aa1e0232",
   "fingerprint_scope": "Git-listed and nonignored files, excluding this public checks receipt; file names and content hashes in sorted order.",
   "nix_shell": true,
   "scope": "Local code, fixtures, builds and sanitised summary consistency. Does not verify current deployment, remote Mubit state, user demand or live demo success.",
