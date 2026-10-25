@@ -1,0 +1,16 @@
+digraph Learning {
+  graph [rankdir=TB, bgcolor="#F5F3EC", pad=0.4, nodesep=0.35, ranksep=0.45,
+         label="ALMOST HUMAN\nHow a correction should improve the bot", labelloc=t,
+         fontname="DejaVu Sans", fontsize=22, fontcolor="#183527"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=17,
+        margin="0.22,0.18", width=4.8, color="#297148", fillcolor="#E1F1E7", fontcolor="#183527"];
+  edge [color="#65766D", arrowsize=0.8];
+  reply [label="1. The bot writes a reply\nVerified with a synthetic conversation"];
+  correction [label="2. We review and correct it\nSaved locally"];
+  node [style="rounded,filled,dashed", color="#A56516", fillcolor="#FFF2DF", fontcolor="#58370E"];
+  accepted [label="3. Mubit accepts the better reply\nNot yet verified"];
+  trained [label="4. Mubit trains a new version\nNot yet verified"];
+  fresh [label="5. That version answers a new question\nNot yet verified"];
+  reply -> correction;
+  correction -> accepted -> trained -> fresh [style=dashed];
+}

@@ -1,6 +1,8 @@
 # How the bots learn from each round
 
-At the end of every round, the votes decide whether each bot passed as human or got found out. That verdict feeds two loops.
+**Training status: unverified.** The local test described below demonstrated ratings and a rising kept-example count. It did not demonstrate an accepted replacement reply, a completed training job, or a trained adapter answering the game. External ratings are disabled by default. See [the learning-proof runner and dashboard verification steps](scripts/learning-proof/README.md) for the current experiment and demo requirements.
+
+At the end of every round, the votes decide whether each bot passed as human or got found out. That verdict can feed two loops; only the prompt-lesson loop is enabled by default.
 
 ```
 round settles ──► votes from training-opted-in players only
@@ -9,8 +11,8 @@ round settles ──► votes from training-opted-in players only
         ├─► fast loop (next round): the newest passed and caught bot lines go into the
         │   next bot prompts ("sound more like these, less like those")
         │
-        └─► slow loop (Mubit): each verdict is sent to Mubit as a Good/Bad rating on that
-            exact call; Mubit trains its adapter from the calls it keeps
+        └─► experimental slow loop (off by default): send a Good/Bad rating on that
+            exact call; acceptance, completed training and adapter use need verification
 ```
 
 - Code: `backend/convex/ratings.ts` (verdicts, lessons, progress) and `backend/convex/mubitConsole.ts` (Mubit ratings).
@@ -19,6 +21,8 @@ round settles ──► votes from training-opted-in players only
 - Lessons are bot-written lines only, never players' messages.
 
 ## Switches (Convex environment variables)
+
+The console-cookie setup and policy route below are historical experimental instructions, not a supported correction-submission contract. Do not treat enabling them as proof of a model update. Inspect the signed-in dashboard before changing training or rating policies.
 
 | Variable | Default | Meaning |
 |---|---|---|

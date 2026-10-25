@@ -42,8 +42,13 @@ describe("strictPair opt-in 1v1", () => {
   beforeEach(() => {
     vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
     vi.stubEnv("MUBIT_API_KEY", "mbt_synthetic_test_key"); vi.stubEnv("MUBIT_BOTS_ENABLED", "true");
+    // Advancing the matchmaking clock also runs scheduled bot replies.
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      choices: [{ message: { role: "assistant", content: "a short synthetic reply" }, finish_reason: "stop" }],
+      usage: { prompt_tokens: 60, completion_tokens: 5 },
+    }), { status: 200, headers: { "content-type": "application/json" } })));
   });
-  afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
+  afterEach(() => { vi.clearAllTimers(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
   test("a lone strict human waits one accumulate window, then seats with exactly one bot", async () => {
     const t = init();
