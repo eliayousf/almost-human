@@ -19,6 +19,10 @@ question from 289 starters/combinations, excluding each player's last 20.
 Vote feedback is included in the [versioned playtest terms](PLAYTEST_TERMS.md).
 The live game's replies use provider inference through Mubit.
 
+The team's organizer instructions confirm a **two-minute video limit**, **300 MB maximum**,
+and **08:00 London-time submission/code cutoff** on 25 October 2026. Judges read
+`main`, the README and the uploaded video. See [submission details](judging/SUBMISSION.md).
+
 ## Review in five minutes
 
 1. Read the four-criterion table below.
@@ -27,7 +31,7 @@ The live game's replies use provider inference through Mubit.
 3. Run the credential-free verification command. Compare the new result with
    the [recorded local check receipt](judging/evidence/checks.json).
 4. Follow the [demo runbook](judging/DEMO.md) for the main game and
-   honest 2:20 walkthrough. The [integration report](INTEGRATION.md) identifies
+   honest sub-two-minute walkthrough. The [integration report](INTEGRATION.md) identifies
    the current [main playtest](https://almost-human-playtest.vercel.app/) and
    the source revisions covered by earlier live checks.
 
@@ -51,7 +55,7 @@ The [organizer's event page](https://luma.com/nightshift-london), checked on
 | **Use of Mubit — 25%** | Real gateway calls; a reviewed conversational correction; 36 kept synthetic examples from 36 sessions; completed Qwen3-4B training job and v1 evaluation. [Snapshot](judging/evidence/mubit-run.json), [run report](MUBIT_TRAINING_RUN.md), [runner](scripts/mubit-learning-proof.py). | Fresh live trained-adapter answer; improved quality; automatic learning from real players; a replacement-target API. |
 | **Usefulness — 25%** | Implemented recurring dialogue generation and game feedback collection. [User/job rationale and validation protocol](judging/USEFULNESS.md), [bot behavior](backend/BOTS.md). | Customer demand, retention, willingness to pay, or measured improvement in the player experience. |
 | **Technical execution — 25%** | Released Expo game, all 100 WebP assets checked, verified hosted chat/vote/reveal and replay, plus reproducible backend/client tests and builds. [Check receipt](judging/evidence/checks.json), [integration evidence](INTEGRATION.md), [responsive layout and concurrency checks](frontend/expo/MOBILE_MULTIPLAYER.md). | Comprehensive moderation, public-launch hardening, measured live concurrency capacity or physical-iPhone verification. |
-| **Demo — 25%** | Public main playtest, earlier verified live rounds, diagnostic clients, labelled fixtures, a proposed timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal, the confirmed event time limit, or a live learned-model demo. |
+| **Demo — 25%** | Public main playtest, earlier verified live rounds, diagnostic clients, labelled fixtures, a proposed timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal or a live learned-model demo. |
 
 Machine-readable mapping: [criteria.json](judging/evidence/criteria.json).
 Statuses describe evidence coverage; they are not self-awarded judging scores.
