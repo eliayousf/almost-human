@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import type { ReportReason } from '../../../shared/game-contract';
 import { consentCopy } from '../../src/copy/consent';
-import { playtestTerms, voteFeedbackSummary } from '../../../shared/playtest-policy';
+import { chatTrainingNotice, playtestTerms, voteFeedbackSummary } from '../../../shared/playtest-policy';
 import { useLiveGame } from './game';
 import { randomCharacterId } from './random';
 import { useVisibleHeight } from './viewport';
@@ -15,7 +15,7 @@ function Check({ label, checked, onChange, disabled = false }: { label: string; 
   </Pressable>;
 }
 
-function Terms({ close }: { close: () => void }) {
+function Terms({ close, controller }: { close: () => void; controller: ReturnType<typeof useLiveGame> }) {
   const visibleHeight = useVisibleHeight();
   return <Modal transparent animationType="fade" onRequestClose={close}>
     <View style={{ flex: 1, backgroundColor: '#000b', justifyContent: 'center', padding: 20 }}>
@@ -23,6 +23,11 @@ function Terms({ close }: { close: () => void }) {
         <Text style={s.heading}>Almost Human playtest terms</Text>
         <Text style={s.disclosure}>Updated 25 October 2026</Text>
         {playtestTerms.map(section => <View key={section.title}><Text style={[s.body, { color: C.gold, fontWeight: '600' }]}>{section.title}</Text><Text style={s.body}>{section.text}</Text></View>)}
+        {controller.session?.chatTrainingOptIn !== undefined && <>
+          <Text style={[s.body, { color: C.gold, fontWeight: '600' }]}>Model training (optional)</Text>
+          <Check label={chatTrainingNotice} checked={controller.session.chatTrainingOptIn} disabled={controller.busy || Boolean(controller.roundId) && !controller.session.chatTrainingOptIn} onChange={() => { void controller.chatTraining(!controller.session!.chatTrainingOptIn); }} />
+          {controller.error ? <Text accessibilityRole="alert" style={s.error}>{controller.error}</Text> : null}
+        </>}
         <Button title="Close terms" onPress={close} />
       </ScrollView>
     </View>
@@ -77,6 +82,7 @@ function Safety({ controller, close }: { controller: ReturnType<typeof useLiveGa
         {controller.error ? <Text accessibilityRole="alert" style={s.error}>{controller.error}</Text> : null}
         <Button title="Block and leave" disabled={controller.busy} onPress={() => { void controller.block().then(ok => { if (ok) close(); }); }} />
         <Button title="Leave round" disabled={controller.busy} onPress={() => { void controller.leave().then(close); }} />
+        {controller.session?.chatTrainingOptIn && <Button title="Stop new chat-training uploads" disabled={controller.busy} onPress={() => { void controller.chatTraining(false); }} />}
         <Button title="Close" onPress={close} />
       </ScrollView>
     </View>
@@ -118,6 +124,6 @@ export function LiveGame() {
     {error ? <Text accessibilityRole="alert" style={s.error}>{error}</Text> : null}
     {content}
     {menu && <Safety controller={controller} close={() => setMenu(false)} />}
-    {terms && <Terms close={() => setTerms(false)} />}
+    {terms && <Terms close={() => setTerms(false)} controller={controller} />}
   </View>;
 }

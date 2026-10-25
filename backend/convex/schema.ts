@@ -8,6 +8,7 @@ export default defineSchema({
   players: defineTable({
     userId: v.id("users"), alias: v.string(), trainingOptIn: v.boolean(), policyVersion: v.string(),
     // Versioned terms acceptance and prospective vote eligibility; no bulk opt-in migration.
+    chatTrainingConsentRevision: v.optional(v.number()), chatTrainingOptIn: v.optional(v.boolean()), chatTrainingPolicyVersion: v.optional(v.string()), chatTrainingAcceptedAt: v.optional(v.number()),
     termsAcceptedAt: v.optional(v.number()), voteFeedbackSince: v.optional(v.number()),
     recentTopicIds: v.optional(v.array(v.string())),
     guessingPoints: v.number(), roundsPlayed: v.number(), guessesSubmitted: v.number(), correctGuesses: v.number(),
@@ -19,6 +20,7 @@ export default defineSchema({
   rounds: defineTable({
     phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
     topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
+    chatTrainingAllowed: v.optional(v.boolean()), chatTrainingConsents: v.optional(v.array(v.object({ playerId: v.id("players"), revision: v.number() }))),
     botTurn: v.optional(v.number()), botPending: v.optional(v.number()),
     // Latest human message included in a claimed two-seat turn; null for an opener.
     botLastHumanMessageId: v.optional(v.union(v.string(), v.null())),
@@ -32,6 +34,7 @@ export default defineSchema({
   // seat (training-opted-in votes only) and what Mubit reported about the call.
   botCalls: defineTable({
     roundId: v.id("rounds"), memberId: v.id("members"), text: v.string(), createdAt: v.number(), lessonCount: v.number(),
+    trainingEligible: v.optional(v.boolean()),
     mubitRequestId: v.optional(v.string()),
     judgedAt: v.optional(v.number()), judgedHuman: v.optional(v.number()), judgedAi: v.optional(v.number()),
     verdict: v.optional(v.union(v.literal("passed"), v.literal("caught"))),

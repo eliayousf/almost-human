@@ -1,3 +1,5 @@
+export const CHAT_TRAINING_POLICY_VERSION = "optional-chat-training-v1";
+export const chatTrainingNotice = "Optional: allow my future game conversations and AI replies to be recorded by Mubit and used to train AI models. Play is available without this. Turning this off stops new training uploads; it does not erase training already completed.";
 /** Product terms versions. Acceptance is not labelled as a GDPR lawful basis. */
 export const LEGACY_PLAYTEST_POLICY = "playtest-v1";
 export const VOTE_FEEDBACK_TERMS_VERSION = "playtest-v2-vote-feedback";

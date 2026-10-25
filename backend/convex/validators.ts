@@ -10,6 +10,7 @@ export const commandV = v.object({ clientRequestId: v.string() });
 export const joinQueueV = v.object({ clientRequestId: v.string(), strictPair: v.optional(v.boolean()) });
 export const createSessionV = v.object({ clientRequestId: v.string(), adultConfirmed: v.literal(true), rulesAccepted: v.literal(true), policyVersion: v.string(), trainingOptIn: v.boolean() });
 export const consentV = v.object({ clientRequestId: v.string(), policyVersion: v.string(), trainingOptIn: v.boolean() });
+export const chatTrainingConsentV = v.object({ clientRequestId: v.string(), allowed: v.boolean(), policyVersion: v.string() });
 export const guessV = v.object({ participantId: v.id("members"), label: labelV });
 export const sendMessageV = v.object({ clientRequestId: v.string(), text: v.string() });
 export const submitVotesV = v.object({ clientRequestId: v.string(), votes: v.array(guessV) });
@@ -35,7 +36,7 @@ export const roundV = v.union(
   v.object({ ...base, phase: v.literal("cancelled"), reason: cancelReasonV, message: v.string() }),
 );
 export const sessionV = v.object({
-  serverNow: v.string(), leaderboardEntryId: v.id("players"), leaderboardAlias: v.string(), totalGuessingPoints: v.number(), trainingOptIn: v.boolean(), policyVersion: v.optional(v.string()),
+  serverNow: v.string(), leaderboardEntryId: v.id("players"), leaderboardAlias: v.string(), totalGuessingPoints: v.number(), trainingOptIn: v.boolean(), policyVersion: v.optional(v.string()), chatTrainingOptIn: v.optional(v.boolean()),
   activeRoundId: v.optional(v.id("rounds")), activeQueueId: v.optional(v.id("queue")),
 });
 export const queueV = v.union(

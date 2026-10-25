@@ -26,7 +26,7 @@ export const takeTurn = internalAction({
       });
       let mubitRequestId: string | undefined;
       const agent = new Agent<object, Record<string, never>>(components.agent, {
-        name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY, id => { mubitRequestId = id; }),
+        name: "almost-human-bot", languageModel: createMubitModel(env.MUBIT_API_KEY, id => { mubitRequestId = id; }, { mode: context.trainingEligible ? "full" : "metadata", sessionId: String(args.roundId) }),
         instructions: system.content,
       });
       let result;
@@ -48,7 +48,7 @@ export const takeTurn = internalAction({
       // Only the transactional commit can publish a moderated reply, and only
       // while the claimed turn still belongs to an active chat window.
       await ctx.runMutation(internal.botState.prepareReply, {
-        ...args, text: result.text, mubitRequestId, lessonCount: context.lessons.passed.length + context.lessons.caught.length,
+        ...args, text: result.text, mubitRequestId, trainingEligible: context.trainingEligible, lessonCount: context.lessons.passed.length + context.lessons.caught.length,
       });
     } catch (error) {
       console.error("bot turn failed:", error instanceof Error ? error.message : String(error));

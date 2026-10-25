@@ -25,20 +25,21 @@ function init() {
   return t;
 }
 type Backend = ReturnType<typeof init>;
-async function player(t: Backend, trainingOptIn = false) {
+async function player(t: Backend, trainingOptIn = false, chatTraining = false) {
   const userId = await t.run(ctx => ctx.db.insert("users", { isAnonymous: true }));
   const client = t.withIdentity({ subject: `${userId}|test-session` });
   must(await client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v1", trainingOptIn } }));
+  if (chatTraining) must(await client.mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: true, policyVersion: "optional-chat-training-v1" } }));
   return client;
 }
 
 // Match `humans` players into one room under the lobby rules: 3-4 accumulate
 // briefly, 1-2 wait out the honest window (staying online) before bots fill.
-async function room(t: Backend, humans: number, trainingOptIn = false) {
+async function room(t: Backend, humans: number, trainingOptIn = false, chatTraining = false) {
   const people: Awaited<ReturnType<typeof player>>[] = [];
   const tickets = [];
   for (let i = 0; i < humans; i++) {
-    const person = await player(t, trainingOptIn); people.push(person);
+    const person = await player(t, trainingOptIn, chatTraining); people.push(person);
     tickets.push(must(await person.mutation(api.game.joinQueue, { input: command() })));
   }
   if (humans >= 3) {
@@ -960,11 +961,12 @@ function fakeMubit() {
 // Each bot speaks once; the first human votes one human and one AI. Tests
 // changing preferences after a vote keep a second human unvoted until timeout.
 async function judgedRound(t: Backend, trainingOptIn: boolean, hooks: {
+  chatTraining?: boolean;
   beforeVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
   afterVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
 } = {}) {
   vi.spyOn(Math, "random").mockReturnValue(0.99);
-  const r = await room(t, hooks.afterVote ? 2 : 1, trainingOptIn); await chat(r);
+  const r = await room(t, hooks.afterVote ? 2 : 1, trainingOptIn, hooks.chatTraining ?? true); await chat(r);
   await takeTurn(r, 0);
   await takeTurn(r, 1);
   const round = await r.t.run(ctx => ctx.db.get(r.roundId));
@@ -1079,6 +1081,12 @@ describe("round verdicts teach the bots and Mubit", () => {
     vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
     const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
     const { r } = await judgedRound(t, true);
+    const captures = mubit.fn.mock.calls.filter(([url]) => String(url).startsWith("https://api.mubit.ai/"));
+    expect(captures).toHaveLength(2);
+    for (const [, request] of captures) {
+      expect(request?.headers).toMatchObject({ "x-middleware-record": "full" });
+      expect(JSON.parse(String(request?.body)).metadata.session_id).toBe(r.roundId);
+    }
     const scheduled = await r.t.run(ctx => ctx.db.system.query("_scheduled_functions").collect());
     expect(scheduled.some(job => job.name.includes("rateRound") && job.state.kind === "pending")).toBe(true);
     await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
@@ -1097,6 +1105,17 @@ describe("round verdicts teach the bots and Mubit", () => {
     expect(report.byServedBy).toEqual([{ servedBy: "provider", seats: 2, votes: 2, fooledRate: 0.5 }]);
     expect(report.byLessons).toEqual([{ lessons: "without", seats: 2, votes: 2, fooledRate: 0.5 }]);
     expect(report.mubitRatings).toEqual({ sent: 2, failed: 0, notFound: 0, notSent: 0 });
+  });
+
+  test("vote feedback alone never uploads a transcript for training or sends a trainable rating", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
+    const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
+    const { r, judged } = await judgedRound(t, true, { chatTraining: false });
+    expect(judged.every(call => call.trainingEligible === false)).toBe(true);
+    for (const [, request] of mubit.fn.mock.calls) expect(request?.headers).toMatchObject({ "x-middleware-record": "metadata" });
+    await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
+    expect(mubit.consoleCalls()).toBe(0);
+    expect(mubit.feedback).toHaveLength(0);
   });
 
   test("a refused console login sends nothing and is retried, never exposing the cookie", async () => {

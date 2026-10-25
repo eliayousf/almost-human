@@ -5,7 +5,7 @@
  */
 import { GAME_DEFAULTS } from "@game/game-contract";
 import type {
-  ApiError, ApiResult, ChatMessage, CommandInput, CreateSessionInput, Guess, HumanOrAi,
+  ApiError, ApiResult, ChatTrainingConsentInput, ChatMessage, CommandInput, CreateSessionInput, Guess, HumanOrAi,
   LeaderboardView, QueueTicket, RevealedSeat, RoundSnapshot, SendMessageInput, SessionView,
   SubmitVotesInput, TrainingConsentInput, YourRoundResult,
 } from "@game/game-contract";
@@ -81,6 +81,15 @@ export class FixtureGameClient implements PlayClient {
     return this.once(input, () => {
       if (!this.session) return unauthenticated<SessionView>();
       this.session = { ...this.session, trainingOptIn: input.trainingOptIn };
+      this.emit();
+      return this.readSession();
+    });
+  }
+
+  async setChatTrainingConsent(input: ChatTrainingConsentInput) {
+    return this.once(input, () => {
+      if (!this.session) return unauthenticated<SessionView>();
+      this.session = { ...this.session, chatTrainingOptIn: input.allowed };
       this.emit();
       return this.readSession();
     });
