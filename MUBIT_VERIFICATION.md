@@ -1,5 +1,10 @@
 # Mubit integration verification
 
+This is the historical connectivity investigation. The later
+[training run report](MUBIT_TRAINING_RUN.md) verifies completed synthetic
+conversational-correction training and documents the remaining serving blocker.
+[JUDGING.md](JUDGING.md) is the current review entry point.
+
 Checked 24 October 2026 against the hosted service and signed-in console.
 
 **The corrected-reply → trained adapter → application response path is not

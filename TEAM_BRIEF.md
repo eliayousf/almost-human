@@ -7,9 +7,11 @@ agreement. [PLAN.md](PLAN.md) has the fuller product and safety requirements.
 **Cash's implementation guide:** [CASH_HANDOFF.md](CASH_HANDOFF.md), including
 the Vite/iPhone path, ready-made React provider/hooks, and live reference screens.
 
-Status: the all-human Convex backend and diagnostic test client are implemented.
-Cash owns the public frontend. Mubit provider chat works; learning and trained
-adapter use remain unverified. See [MUBIT_VERIFICATION.md](MUBIT_VERIFICATION.md).
+Current review entry point: [JUDGING.md](JUDGING.md). The Convex backend and
+diagnostic clients implement human and Mubit-bot rooms. Cash owns the public
+frontend. Synthetic adapter training completed, but live trained-adapter serving
+is blocked; see [MUBIT_TRAINING_RUN.md](MUBIT_TRAINING_RUN.md). Older verification
+and handoff sections retain their historical scope and test counts.
 
 ## The game we are building
 
