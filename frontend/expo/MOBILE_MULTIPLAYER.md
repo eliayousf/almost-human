@@ -80,3 +80,16 @@ new terms.
 
 The 40-room AI result above remains simulated; this live check does not establish
 40 simultaneous paid-model replies, provider quota headroom, or production latency.
+
+## Safari document shell
+
+The web export now writes `viewport-fit=cover`, a dark browser theme and the
+scrollable document shell directly into HTML before JavaScript hydration. The
+runtime root is bounded by `100svh` as well as the current visual viewport.
+Viewport measurements refresh on page restoration, orientation, scroll and
+resize. HTML revalidates on reload; hashed image assets can stay cached.
+
+Safari on macOS loaded the corrected page and exposed Enter room in its native
+accessibility tree. Phone-sized browser checks remain simulations; they do not
+prove the iPhone's floating-toolbar behavior. Older immutable Vercel preview
+URLs keep their old builds. Use the main playtest URL for the current release.
