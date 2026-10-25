@@ -6,7 +6,8 @@ import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
 import { messageAllowed } from "./lib";
 import { MAX_LOBBY, botTypingDelayMs } from "./botlogic";
-import { BOT_MIN_TYPING_MS, BOT_START_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
+import { BOT_START_BUDGET_MS, BOT_WATCHDOG_MS } from "./botTiming";
+import { setTypingPresence } from "./connections";
 import { recentLessons } from "./ratings";
 
 export const MAX_BOT_TURNS = 10;
@@ -79,14 +80,18 @@ export const prepareReply = internalMutation({
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
-    // Sample one reading/typing pause for this publication. Even near the round
-    // deadline, a reply must retain the minimum pause instead of rushing out.
-    const delay = Math.min(botTypingDelayMs(trimmed, Math.random()), Math.max(BOT_MIN_TYPING_MS, round.chatEndsAt - now - 1000));
+    // Never compress a long message's typing to squeeze it into the deadline.
+    const delay = botTypingDelayMs(trimmed, Math.random());
     if (now + delay >= round.chatEndsAt) {
       // Keep at least the minimum typing delay and never publish into voting.
       await ctx.db.patch(roundId, { botPending: undefined });
       return null;
     }
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+    const bots = members.filter(member => member.kind === "ai");
+    const bot = bots[turn % bots.length];
+    if (!bot) return null;
+    await setTypingPresence(ctx, round, bot._id, now + delay);
     // Keep the claim reserved through typing. The durable callback rechecks
     // membership, moderation and phase before exposing text to the transcript.
     await ctx.scheduler.runAfter(delay, internal.botState.commit, { roundId, turn, text: trimmed, mubitRequestId, lessonCount });
@@ -110,6 +115,7 @@ export const commit = internalMutation({
     const bots = members.filter(member => member.kind === "ai");
     if (!bots.length) return null;
     const bot = bots[turn % bots.length];
+    await setTypingPresence(ctx, round, bot._id, 0);
     let continueTurns = members.length > 2;
     if (!continueTurns) {
       const stored = await listMessages(ctx, components.agent, {

@@ -19,6 +19,7 @@ export default defineSchema({
   rounds: defineTable({
     phase: phaseV, revision: v.number(), createdAt: v.number(), updatedAt: v.number(), chatStartsAt: v.number(), chatEndsAt: v.number(), votingEndsAt: v.number(),
     topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
+    typingRoomToken: v.optional(v.string()),
     botTurn: v.optional(v.number()), botPending: v.optional(v.number()),
     // Latest human message included in a claimed two-seat turn; null for an opener.
     botLastHumanMessageId: v.optional(v.union(v.string(), v.null())),

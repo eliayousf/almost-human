@@ -2,8 +2,8 @@
 import { BOT_MIN_TYPING_MS, BOT_MAX_TYPING_MS } from "./botTiming";
 
 export function botTypingDelayMs(text: string, variation = 0): number {
-  const pause = Math.floor(Math.max(0, Math.min(1, variation)) * 2000);
-  return Math.min(BOT_MAX_TYPING_MS, BOT_MIN_TYPING_MS + [...text.trim()].length * 80 + pause);
+  const millisecondsPerCharacter = 125 + Math.max(0, Math.min(1, variation)) * 50;
+  return Math.min(BOT_MAX_TYPING_MS, Math.max(BOT_MIN_TYPING_MS, Math.round([...text.trim()].length * millisecondsPerCharacter)));
 }
 
 // Just past the presence grace period (2.5x the 10s heartbeat interval), so a

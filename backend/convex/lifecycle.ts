@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalMutation, type MutationCtx } from "./_generated/server";
-import { internal } from "./_generated/api";
+import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { recognition } from "./lib";
 import { MAX_LOBBY } from "./botlogic";
@@ -15,6 +15,7 @@ export async function cancelRound(ctx: MutationCtx, round: Doc<"rounds">, reason
   round = (await ctx.db.get(round._id))!;
   if (round.phase === "reveal" || round.phase === "cancelled") return;
   const now = Date.now();
+  if (round.typingRoomToken) await ctx.runMutation(components.presence.public.removeRoom, { roomId: round._id });
   await ctx.db.patch(round._id, { phase: "cancelled", cancelReason: reason, revision: round.revision + 1, updatedAt: now });
   const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", round._id)).take(MAX_LOBBY + 3);
   for (const member of members) {
@@ -55,6 +56,7 @@ async function settle(ctx: MutationCtx, round: Doc<"rounds">) {
       ...(player.activeRoundId === round._id ? { activeRoundId: undefined, activeQueueId: undefined } : {}),
     });
   }
+  if (round.typingRoomToken) await ctx.runMutation(components.presence.public.removeRoom, { roomId: round._id });
   await judgeBots(ctx, round, members, ballots);
   await ctx.db.patch(round._id, { phase: "reveal", settled: true, revision: round.revision + 1, updatedAt: now });
 }
@@ -76,6 +78,7 @@ export async function advanceRound(ctx: MutationCtx, roundId: Id<"rounds">) {
   const now = Date.now();
   if (now >= round.votingEndsAt) { await settle(ctx, round); return; }
   if (now >= round.chatEndsAt && round.phase !== "voting") {
+    if (round.typingRoomToken) await ctx.runMutation(components.presence.public.removeRoom, { roomId: round._id });
     await ctx.db.patch(roundId, { phase: "voting", revision: round.revision + 1, updatedAt: now });
     await ctx.scheduler.runAt(round.votingEndsAt, internal.lifecycle.advance, { roundId });
   } else if (now >= round.chatStartsAt && round.phase === "countdown") {

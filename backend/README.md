@@ -214,3 +214,21 @@ route, and frontend integration. Raw chats and real player data stay out of Git.
 Training consent is recorded and revocable; it does not trigger any training.
 Mubit bot inference and learning integration remain separate, with no claimed
 adapter improvement. All game LLM calls route through Mubit.
+
+### Typing indicators
+
+Chat snapshots optionally include `typing: [{ participantId, until }]`. Only current
+room members can call `game.setTyping({ roundId, typing })`; identity comes from
+Convex Auth. Draft content is never sent. Clients throttle activity to once per
+1.5 seconds, stop after 2.5 seconds of inactivity, and hide expired signals using
+the calibrated server clock (four-second server expiry). Sending clears activity
+atomically. Human and prepared AI replies share the same role-free shape.
+
+AI publication waits 125–175 ms per Unicode character, bounded to 1–12 seconds.
+A reply that cannot finish its full delay before chat closes is dropped. Presence
+metadata is isolated per room and removed on voting/cancellation/reveal.
+
+Deploy the Convex schema/functions from the same revision before enabling this in
+production. The frontend detects support from the `typing` field and remains
+compatible with an older backend. A Vercel frontend deployment alone cannot
+activate typing or change server-side AI pacing.

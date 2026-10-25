@@ -68,6 +68,8 @@ export interface CountdownRound extends RoundBase {
 }
 
 export interface ChatRound extends RoundBase {
+  /** Ephemeral activity only; no draft text or hidden roles. Older servers omit it. */
+  typing?: readonly { participantId: ParticipantId; until: IsoDate }[];
   phase: "chat";
   topic: Topic;
   messages: readonly ChatMessage[];
@@ -209,6 +211,7 @@ export interface GameClient {
   getQueue(queueId: string): Promise<ApiResult<QueueTicket>>;
   leaveQueue(queueId: string, input: CommandInput): Promise<ApiResult<LeftResult>>;
   getRound(roundId: string): Promise<ApiResult<RoundSnapshot>>;
+  setTyping?(roundId: string, typing: boolean): Promise<ApiResult<null>>;
   sendMessage(roundId: string, input: SendMessageInput): Promise<ApiResult<ChatMessage>>;
   submitVotes(roundId: string, input: SubmitVotesInput): Promise<ApiResult<RoundSnapshot>>;
   leaveRound(roundId: string, input: CommandInput): Promise<ApiResult<LeftResult>>;
