@@ -1,6 +1,69 @@
 {
   "schema_version": 1,
-  "status": "not_run",
-  "scope": "Pending verification of the judging package.",
-  "mubit_live_serving_verified": false
+  "checked_at": "2026-10-25T02:18:59.428682+00:00",
+  "status": "passed",
+  "source_commit": "7506f369b459a87181a5b87b5584aa9954220399",
+  "source_fingerprint_sha256": "9844cd76250e81eba54adefa0fe1edae0d1b084495ab450f6cbce3a5f9e6affa",
+  "fingerprint_scope": "Git-listed and nonignored files, excluding this public checks receipt; file names and content hashes in sorted order.",
+  "nix_shell": true,
+  "scope": "Local code, fixtures, builds and sanitised summary consistency. Does not verify current deployment, remote Mubit state, user demand or live demo success.",
+  "dependency_install_requested": true,
+  "steps": [
+    {
+      "name": "locked_dependencies",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "evidence",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "typescript",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "backend_tests",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "python_tests",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "diagnostic_builds",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "shared_contract",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "diff_whitespace",
+      "exit_code": 0,
+      "status": "passed"
+    }
+  ],
+  "mubit_live_serving_verified": false,
+  "runtime": {
+    "node": "v22.22.3",
+    "python": "3.13.13"
+  },
+  "backend_tests": {
+    "numTotalTests": 122,
+    "numPassedTests": 122,
+    "numFailedTests": 0,
+    "numPendingTests": 0
+  },
+  "python_tests": {
+    "passed": 19
+  },
+  "shared_round_fixtures": 9,
+  "diagnostic_bundles": 2
 }
