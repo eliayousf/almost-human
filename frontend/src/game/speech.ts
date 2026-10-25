@@ -19,6 +19,16 @@ import type { RoundSnapshot } from "@game/game-contract";
 export const REMOTE_SIGNAL: "fixture-message-landing" | null =
   import.meta.env.MODE === "fixtures" ? "fixture-message-landing" : null;
 
+/**
+ * Style-only cues (equalizer bars, READING YOU) render only while a remote
+ * signal source is bound. Today that is the fixture fallback alone, so they
+ * never render in live mode.
+ */
+export const STYLE_CUES = REMOTE_SIGNAL !== null;
+
+/** How long the counterpart card reads as listening after its Talk loop ends. */
+export const LISTEN_MS = 6_000;
+
 const MS_PER_CHARACTER = 55;
 const MIN_MS = 650;
 const MAX_MS = 6_500;
@@ -58,12 +68,13 @@ export function useCounterpartSpeech(
 }
 
 /**
- * Style-only READING YOU caption on the focused counterpart, bound to the same
- * fixture trigger: shown while your line is the latest message and their Talk
- * loop is not playing. Message order only; not a typing/presence indicator.
- * Always false outside fixture mode.
+ * Style-only READING YOU caption on the focused counterpart. Driven ONLY by the
+ * same fixture trigger as its Talk loop (its own message landing): once that
+ * Talk ends, the card reads as listening for LISTEN_MS. Your own keystrokes and
+ * your own messages never turn it on. Not a typing/presence indicator; always
+ * false outside fixture mode.
  */
-export function showsReadingYou(lastSenderId: string | null, selfId: string, counterpartTalking: boolean): boolean {
-  return REMOTE_SIGNAL !== null && lastSenderId === selfId && !counterpartTalking;
+export function showsReadingYou(counterpartListening: boolean, counterpartTalking: boolean): boolean {
+  return STYLE_CUES && counterpartListening && !counterpartTalking;
 }
 // END speech.ts

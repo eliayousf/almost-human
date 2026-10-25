@@ -3,7 +3,7 @@ import type { ChatMessage, RoundSnapshot, Seat } from "@game/game-contract";
 import { castFaces } from "../../assets/cast";
 import { useTalk } from "../../fx/talk";
 import type { PlayClient } from "../../game/binding";
-import { useCounterpartSpeech } from "../../game/speech";
+import { LISTEN_MS, useCounterpartSpeech } from "../../game/speech";
 import "./round.css";
 import { OnAir } from "./OnAir";
 import { Paired } from "./Paired";
@@ -48,15 +48,19 @@ export function Round({ game, round, seconds, busy, roundNumber, onPlayAgain, on
   const focus = focusedCounterpart(others, messages);
   const selfTalk = useTalk();
   const strangerTalk = useTalk();
+  const strangerListen = useTalk();
   const burst = useBursts(round);
   const [sheetOpen, setSheetOpen] = useState(false);
   // Labelled fixture fallback only; inert outside fixture mode (see speech.ts).
-  useCounterpartSpeech(round, focus?.id ?? null, ms => strangerTalk.speakFor(ms));
+  useCounterpartSpeech(round, focus?.id ?? null, ms => {
+    strangerTalk.speakFor(ms);
+    strangerListen.speakFor(ms + LISTEN_MS);
+  });
   const faces = useMemo(() => castFaces(round.roundId, round.participants), [round.roundId, round.participants]);
 
   const visuals = useMemo<SeatVisuals>(() => ({
-    selfId: round.selfId, focusId: focus?.id ?? null, faces, selfTalk, strangerTalk, burst,
-  }), [round.selfId, focus?.id, faces, selfTalk, strangerTalk, burst]);
+    selfId: round.selfId, focusId: focus?.id ?? null, faces, selfTalk, strangerTalk, strangerListen, burst,
+  }), [round.selfId, focus?.id, faces, selfTalk, strangerTalk, strangerListen, burst]);
   const live = round.phase === "countdown" || round.phase === "chat" || round.phase === "voting";
   const props: ScreenProps = {
     game, seconds, roundNumber, visuals, ordered, others,

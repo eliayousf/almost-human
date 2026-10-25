@@ -1,7 +1,7 @@
 import type { CSSProperties } from "react";
 import { GAME_DEFAULTS, type ChatRound } from "@game/game-contract";
 import { useTalking } from "../../fx/talk";
-import { showsReadingYou } from "../../game/speech";
+import { STYLE_CUES, showsReadingYou } from "../../game/speech";
 import { Composer } from "./Composer";
 import { Hud, SeatTile, TopicCard } from "./parts";
 import { formatSeconds, type ScreenProps } from "./Round";
@@ -11,7 +11,7 @@ import { Transcript } from "./Transcript";
 export function OnAir({ game, round, seconds, roundNumber, visuals, ordered, onMenu }: ScreenProps & { round: ChatRound }) {
   const remaining = seconds === null ? 1 : Math.min(1, seconds / (GAME_DEFAULTS.chatMs / 1000));
   const lastSender = round.messages.at(-1)?.senderId ?? null;
-  const readingYou = showsReadingYou(lastSender, round.selfId, useTalking(visuals.strangerTalk));
+  const readingYou = showsReadingYou(useTalking(visuals.strangerListen), useTalking(visuals.strangerTalk));
   const aliasOf =(id: string) => id === round.selfId ? "You" : round.participants.find(seat => seat.id === id)?.alias ?? "—";
   return <>
     <Hud label={`Round ${roundNumber} · ${formatSeconds(seconds)}`} onMenu={onMenu} />
@@ -24,7 +24,7 @@ export function OnAir({ game, round, seconds, roundNumber, visuals, ordered, onM
           live={seat.id === lastSender}
           // Style-only fixture caption (speech.ts): not a typing/presence
           // indicator; always off outside fixture mode.
-          status={seat.id === visuals.focusId && readingYou ? "Reading you" : undefined} />)}
+          status={STYLE_CUES && seat.id === visuals.focusId && readingYou ? "Reading you" : undefined} />)}
       </div>
       <TopicCard text={round.topic.text} />
       <Transcript messages={round.messages} selfId={round.selfId} aliasOf={aliasOf} />

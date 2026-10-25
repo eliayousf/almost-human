@@ -70,7 +70,6 @@
   background: linear-gradient(to top, rgba(12, 11, 9, 0.85) 0%, transparent 38%);
 }
 .plate { position: absolute; inset: 0; }
-.plate--mirrored { transform: scaleX(-1); }
 .plate__media {
   position: absolute;
   inset: 0;
@@ -85,17 +84,6 @@
 .plate__media[data-pending] { opacity: 0; }
 /* No face supplied by the payload (live mode): a neutral blank plate, never an invented face. */
 .plate__blank { position: absolute; inset: 0; background: radial-gradient(80% 70% at 50% 40%, #1d1b17 0%, #0f0e0c 100%); }
-.frame--hatched .plate { opacity: 0.72; }
-.frame--hatched::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(45deg, rgba(239, 234, 224, 0.07) 0 1px, transparent 1px 7px),
-    repeating-linear-gradient(-45deg, rgba(239, 234, 224, 0.07) 0 1px, transparent 1px 7px);
-}
 .mosh-canvas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; }
 .slices { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
 .slice { position: absolute; inset: 0; overflow: hidden; animation-name: slice; animation-timing-function: steps(3, end); animation-fill-mode: both; }

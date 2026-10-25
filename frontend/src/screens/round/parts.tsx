@@ -2,6 +2,7 @@ import type { Seat } from "@game/game-contract";
 import type { FaceId } from "../../assets/cast";
 import { Portrait, type BurstSignal } from "../../components/Portrait";
 import { useTalking, type TalkSignal } from "../../fx/talk";
+import { STYLE_CUES } from "../../game/speech";
 
 /** Reference-sheet header: red on-air dot, centred mono label, MENU. */
 export function Hud({ label, onMenu }: { label: string; onMenu?: () => void }) {
@@ -30,6 +31,8 @@ export interface SeatVisuals {
   selfTalk: TalkSignal;
   /** Focused counterpart's Talk: fixture fallback only (game/speech.ts). */
   strangerTalk: TalkSignal;
+  /** Focused counterpart's listening window after its Talk: fixture fallback only. */
+  strangerListen: TalkSignal;
   burst: BurstSignal;
 }
 
@@ -40,11 +43,10 @@ export interface SeatVisuals {
  * verdict/reveal screens, otherwise talk while the seat's signal is on, else
  * idle.
  */
-export function SeatTile({ seat, visuals, variant, mirrored = false, label, status, live = false, smile = false }: {
+export function SeatTile({ seat, visuals, variant, label, status, live = false, smile = false }: {
   seat: Seat;
   visuals: SeatVisuals;
   variant: "room" | "air" | "thumb";
-  mirrored?: boolean;
   label?: "top" | "bottom" | "none";
   /** Small corner tag; callers derive it from snapshot data only. */
   status?: string;
@@ -62,12 +64,13 @@ export function SeatTile({ seat, visuals, variant, mirrored = false, label, stat
     className={`tile tile--${variant}${self ? " tile--you" : ""}${live ? " tile--live" : ""}${talking ? " is-speaking" : ""}`}
     label={self ? "Your seat" : `${seat.alias}'s portrait`}
     burst={focus ? visuals.burst : undefined}
-    mirrored={mirrored}>
+>
     {self && variant !== "thumb" && <span className="tile__you mono">You</span>}
     {placement !== "none" && <span className={`tile__name tile__name--${placement} mono`}>{seat.alias}</span>}
-    {/* Equalizer: shown only while this seat's Talk signal is on (the same
-        signal as its talk loop). It represents no audio; none exists. */}
-    {(self || focus) && variant === "air" && <span className="eq" aria-hidden="true">
+    {/* Equalizer: STYLE-ONLY fixture cue, visible only while this seat's own
+        Talk signal is on (the same signal as its talk loop). It represents no
+        audio, attention, or presence. Never rendered outside fixture mode. */}
+    {STYLE_CUES && (self || focus) && variant === "air" && <span className="eq" aria-hidden="true">
       {Array.from({ length: 12 }, (_, index) => <i key={index} style={{ animationDelay: `${(index * 53) % 240}ms` }} />)}
     </span>}
     {status && <span className="tile__status mono">{status}</span>}

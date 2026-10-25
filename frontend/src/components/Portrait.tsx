@@ -20,9 +20,6 @@ interface Props {
   label: string;
   /** Only the character portrait panel receives bursts. */
   burst?: BurstSignal;
-  mirrored?: boolean;
-  /** Hatched treatment for your own seat (reference sheet). */
-  hatched?: boolean;
   children?: ReactNode;
 }
 
@@ -32,7 +29,7 @@ interface Props {
  * overlay children, which always stay clean. Video mounts only while the
  * frame is on screen and motion is allowed; otherwise the poster still shows.
  */
-export function Portrait({ faceId, state, className, label, burst, mirrored = false, hatched = false, children }: Props) {
+export function Portrait({ faceId, state, className, label, burst, children }: Props) {
   const frame = useRef<HTMLDivElement>(null);
   const mounted = useRef(true);
   const [fallbackBurst, setFallbackBurst] = useState(0);
@@ -56,15 +53,14 @@ export function Portrait({ faceId, state, className, label, burst, mirrored = fa
       .then(ran => { if (!ran && mounted.current) setFallbackBurst(burstKey); });
   }, [burstKey, burst, faceId]);
 
-  const plateClass = `plate${mirrored ? " plate--mirrored" : ""}`;
   const poster = faceId === null ? null : castMedia(faceId, state).poster;
   const fallback = poster
     ? <img className="plate__media" src={poster} alt="" width={512} height={512} loading="lazy" decoding="async" draggable={false} />
     : <div className="plate__blank" />;
 
-  return <div ref={frame} className={`frame ${className}${hatched ? " frame--hatched" : ""}`}
+  return <div ref={frame} className={`frame ${className}`}
     data-face={faceId ?? "none"} data-cast-state={state}>
-    <div className={plateClass} role="img" aria-label={label}>
+    <div className="plate" role="img" aria-label={label}>
       {faceId !== null && visible && !still ? <CastVideo key={faceId} faceId={faceId} state={state} /> : fallback}
     </div>
     {fallbackBurst > 0 && <div className="slices" aria-hidden="true" key={fallbackBurst}
@@ -74,7 +70,7 @@ export function Portrait({ faceId, state, className, label, burst, mirrored = fa
         "--dx": `${(index % 2 ? -1 : 1) * (4 + ((index * 37) % 11))}%`,
         animationDuration: `${BURST_MS}ms`,
       } as CSSProperties}>
-        <div className={plateClass}>{fallback}</div>
+        <div className="plate">{fallback}</div>
       </div>)}
     </div>}
     {children && <div className="frame__overlay">{children}</div>}
@@ -102,11 +98,22 @@ function muteForAutoplay(video: HTMLVideoElement | null) {
   if (video) video.defaultMuted = video.muted = true;
 }
 
-/** Burst texture: the playing video frame, else this face's poster still. */
+const FRAME_WAIT_MS = 450;
+
+/**
+ * Burst texture: a live video frame. A screen that just mounted (round start,
+ * reveal) gets up to FRAME_WAIT_MS for its loop to decode a frame; only then
+ * does it fall back to this face's poster still.
+ */
 async function burstSource(host: HTMLElement, faceId: FaceId | null): Promise<HTMLVideoElement | HTMLImageElement | null> {
   if (faceId === null) return null;
-  const video = host.querySelector<HTMLVideoElement>("video:not([data-pending])");
-  if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return video;
+  const until = performance.now() + FRAME_WAIT_MS;
+  while (host.isConnected) {
+    const video = host.querySelector<HTMLVideoElement>("video:not([data-pending])");
+    if (video && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return video;
+    if (performance.now() >= until) break;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+  }
   const image = new Image();
   image.src = castMedia(faceId, "idle").poster;
   try {

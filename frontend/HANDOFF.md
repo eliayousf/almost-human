@@ -23,12 +23,14 @@
    `src/copy/consent.ts` (set `isPlaceholder: false`) and set
    `POLICY_VERSION` to the version the backend accepts for that copy.
 2. **Counterpart typing signal is unbound.** No backend typing API exists.
-   Your card's Talk loop runs only from real local input events. In FIXTURE
-   MODE ONLY, the counterpart's Talk loop and the style-only READING YOU
-   caption run from a labelled fallback: a message *landing* (talk for a
-   duration proportional to its length). That is not a typing, presence,
+   Your card's Talk loop runs only from real local input events, and only on
+   your card. In FIXTURE MODE ONLY, the counterpart's Talk loop and the
+   style-only READING YOU caption run from one labelled fallback: the
+   counterpart's own message *landing* (talk for a length-proportional
+   duration, then READING YOU for 6s). That is not a typing, presence,
    attention, or audio indicator. Outside fixture mode `REMOTE_SIGNAL` is
-   null, so the counterpart stays idle and READING YOU stays off.
+   null, so the counterpart stays idle and the style cues (equalizer, READING
+   YOU) never render.
    `src/game/speech.ts` is the single isolated signal module, marked
    "awaiting a verified backend signal - do not guess the shape". It assumes
    no remote field, function, or payload.
@@ -182,25 +184,26 @@ a red on-air dot, a centred mono label, and MENU (Report / Block / Leave).
 
 Deliberate deviations from the reference sheet, required by the brief:
 - No "is typing…" line (no typing API; blocker 2).
-- White equalizer bars at the card bottom show only while that seat's mouth
-  driver runs (your real typing; the counterpart's fixture-only fallback). They
-  represent no audio, since none exists, and never move in live mode for the
-  counterpart.
+- White equalizer bars at the card bottom are a style-only fixture cue: they
+  show only while that card's own Talk loop plays (your keystrokes on your
+  card; the counterpart's landing fallback on theirs). They represent no audio,
+  since none exists, and are not rendered at all outside fixture mode.
 - No per-person attribution ("X voted you the machine"); only the aggregate.
 - No TELL flags (not in the API).
 - No "all votes lock when the timer hits zero" footnote: it would be false
   here. Nothing auto-submits at zero (CASH_HANDOFF: reaching zero never
   submits votes) and an unlocked call scores 0, so there is an explicit Lock
   and the footnote reads "Lock your call before the timer hits zero".
-- The "READING YOU" tag is a style-only fixture caption: shown in fixture
-  mode while your line is the latest message and the counterpart's Talk loop
-  is not playing; never shown outside fixture mode. It is not a presence or
-  typing signal. There is no equalizer element in this UI.
+- The "READING YOU" tag is a style-only fixture caption on the counterpart's
+  card: it follows only their landing fallback (shown for 6s once their Talk
+  loop ends; your keystrokes and your own messages never turn it on). Never
+  shown outside fixture mode. It is not a presence or typing signal.
 - Your "read on you" card always shows "? ? ?" before the reveal. After the
   reveal, a bot counterpart yields exactly "Unrated. No human judged you this
   round."; a bot ballot is never shown as a read, a score, or "believed you".
-- YOU shows its assigned cast face (amber edge + YOU tag), not the sheet's
-  faceless "Hollow" plate, per owner direction.
+- YOU renders exactly like any other card (clean cast video, no hatch,
+  dimming, or mirroring), marked only by the amber edge and YOU tag; the
+  sheet's faceless "Hollow" plate is retired per owner direction.
 - Round numbers are a display-only, per-browser-session counter; the API
   has none.
 - Rooms with 3+ seats render one tile/card per seat, the sheet's multi-seat
@@ -230,8 +233,9 @@ and never under reduced motion, which shows the poster still instead.
 **Datamosh burst**: `src/fx/datamosh.ts`. It runs for 480ms on the stranger
 portrait panel only, on round start, verdict lock, and reveal; resumed
 snapshots don't burst. It uses one shared WebGL2 context/canvas, moved into
-the bursting frame, and uploads the frame's current video frame (or the
-face's poster still, if the video is not ready yet) once per burst. The fragment shader does block motion vectors with directional smear,
+the bursting frame, and uploads the frame's current video frame once per
+burst; a freshly mounted screen waits up to 450ms for its loop to decode a
+frame before falling back to the face's poster still. The fragment shader does block motion vectors with directional smear,
 stale macroblocks, and chroma bleed under an intensity uniform. The rAF loop
 runs only during the burst, and frames allocate nothing. It falls back to
 CSS clip-path slices animated with `translateX` when there is no WebGL2,
@@ -334,12 +338,14 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
   ("They believed you.") and the AI-counterpart unrated empty state.
 - Bursts: 3 WebGL bursts (start, lock, reveal) with SwiftShader WebGL2, and 3
   CSS-slice bursts with WebGL disabled.
-- Cast (fixtures, Chromium, 390×844): Room/On air idle, your card talk while
-  typing, counterpart talk when its line lands, READING YOU only while the
-  counterpart is idle, smile on Verdict/Reveal; every visible video playing
-  (currentTime > 0, readyState 4, muted). Headless SwiftShader logs a "GPU
-  stall due to ReadPixels" driver warning when a video frame is uploaded for
-  a burst.
+- Cast (fixtures, Chromium, 390×844, scripted assertions): Room idle; typing
+  puts only your card in talk + equalizer while the counterpart stays idle;
+  your own message landing shows no READING YOU; the counterpart's line puts
+  only their card in talk + equalizer, then READING YOU once it ends; smile on
+  Verdict/Reveal; every visible video playing (currentTime > 0, muted). The
+  round-start, lock, and reveal bursts all uploaded a live video frame (the
+  reveal burst a smile loop frame). Headless SwiftShader logs a "GPU stall
+  due to ReadPixels" driver warning when a video frame is uploaded.
 - `prefers-reduced-motion: reduce`: 0 bursts, 0 videos (posters only), loop intact.
 - WebGL disabled: CSS-slice burst using the poster still.
 - Keyboard simulation (viewport height − 336px): the composer stays visible
