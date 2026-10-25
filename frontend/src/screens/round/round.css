@@ -111,15 +111,14 @@
 .frame__overlay { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
 
 /* ---------- tiles ---------- */
-/* Sizes from the owner's sheet measurements. On air cards follow the owner's
-   explicit target: 166w x 174h with a 26px gap (2 x 166 + 26 = 358 content px). */
+/* Sheet phone width 247px = 390 css px (x1.579); sheet content width 196px = 310 css px. */
 .tiles { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: 12px; }
 .tiles--room { gap: 16px; }
 .room[data-seats="2"] .tiles--room { width: min(100%, 262px); margin: 6px auto 0; }
 .tile { border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
 .tile--room { aspect-ratio: 123 / 143; }
-.tiles--air { flex: none; grid-template-columns: repeat(var(--n, 2), minmax(0, 166px)); gap: 26px; justify-content: center; }
-.tile--air { height: 174px; }
+.tiles--air { flex: none; grid-template-columns: repeat(var(--n, 2), minmax(0, 144px)); gap: 22px; justify-content: center; }
+.tile--air { height: 148px; }
 .tile--thumb { flex: none; width: 70px; height: 70px; border-radius: 8px; }
 .tile--thumb::after { display: none; }
 .tile--you { box-shadow: 0 0 0 1px rgba(224, 165, 72, 0.7); }
