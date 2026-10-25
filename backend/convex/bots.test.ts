@@ -355,6 +355,24 @@ describe("Mubit turns and lifecycle", () => {
     noPrivateFields(await r.get());
   });
 
+  test("withdrawal during a transient failure makes the retry metadata-only", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "synthetic-project");
+    const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
+    const r = await room(t, 1, true, true); await chat(r);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("synthetic transient failure", { status: 503 }));
+    const running = r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { interval: 1, timeout: 1000 });
+    expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({ "x-middleware-record": "full" });
+    must(await r.people[0].mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: false, policyVersion: "optional-chat-training-v1" } }));
+    await vi.advanceTimersByTimeAsync(BOT_RETRY_DELAY_MS + 1); await running; await publishReply(r);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls[1][1]?.headers).toMatchObject({ "x-middleware-record": "metadata" });
+    expect(await r.get()).toMatchObject({ phase: "chat", messages: [expect.objectContaining({ text: "Moon shop idea: emergency cheese." })] });
+    const calls = await t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).take(2));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].trainingEligible).toBe(false);
+  });
+
   test.each([400, 401, 403, 408])("HTTP %i is never retried", async status => {
     const t = init(); vi.spyOn(Math, "random").mockReturnValue(0.9);
     const r = await room(t, 1); await chat(r);

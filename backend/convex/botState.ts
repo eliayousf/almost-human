@@ -1,7 +1,7 @@
 import { roundTrainingAllowed } from "./learningConsent";
 import { listMessages, saveMessage } from "@convex-dev/agent";
 import { v } from "convex/values";
-import { env, internalMutation, type MutationCtx } from "./_generated/server";
+import { env, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { components, internal } from "./_generated/api";
 import { cancelRound } from "./lifecycle";
@@ -21,6 +21,19 @@ export async function scheduleBotTurn(ctx: MutationCtx, round: Doc<"rounds">, tu
 }
 
 const turnArgs = { roundId: v.id("rounds"), turn: v.number() };
+// Recheck immediately before each provider attempt, including delayed retries.
+// A permission captured at claim time must not survive a later withdrawal.
+export const trainingEligibility = internalQuery({
+  args: turnArgs, returns: v.boolean(),
+  handler: async (ctx, { roundId, turn }) => {
+    if (env.MUBIT_RATINGS_ENABLED !== "true" || !env.MUBIT_PROJECT?.trim() || !env.MUBIT_CONSOLE_COOKIE) return false;
+    const round = await ctx.db.get(roundId);
+    if (!round || round.phase !== "chat" || round.botPending !== turn || round.chatTrainingAllowed !== true) return false;
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(MAX_LOBBY + 3);
+    const humans = members.filter(member => member.kind === "human");
+    return roundTrainingAllowed(round, await Promise.all(humans.map(member => ctx.db.get(member.playerId))));
+  },
+});
 export const botContextV = v.object({
   trainingEligible: v.boolean(),
   memberId: v.id("members"), alias: v.string(), persona: v.number(), difficulty: v.union(v.literal("easy"), v.literal("medium"), v.literal("hard")),
