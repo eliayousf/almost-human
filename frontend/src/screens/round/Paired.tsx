@@ -3,12 +3,12 @@ import { Hud, SeatTile, TopicCard } from "./parts";
 import type { ScreenProps } from "./Round";
 
 /** 1 · Room: the seats face each other, 3-2-1, topic sealed. */
-export function Paired({ seconds, roundNumber, visuals, ordered, others, onMenu }: ScreenProps) {
+export function Paired({ seconds, visuals, ordered, others, onMenu }: ScreenProps) {
   const subtitle = others.length === 1
     ? "One stranger. Convince them you're real."
     : `${others.length + 1} voices. Convince them you're real.`;
   return <>
-    <Hud label={`Round ${roundNumber}`} onMenu={onMenu} />
+    <Hud label="Room" onMenu={onMenu} />
     <div className="room__body room__body--paired">
       <h1 className="room__title">Your room</h1>
       <p className="room__sub">{subtitle}</p>

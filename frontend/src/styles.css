@@ -225,8 +225,12 @@ button .placeholder { border: 0; padding: 0; background: none; color: inherit; f
 }
 
 /* Fixture-mode shell (fixture adapter only). */
-.fixture-shell { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.fixture-shell { position: absolute; inset: 0; display: flex; flex-direction: column; } /* follows #root (--app-h) */
 .fixture-shell__app { position: relative; flex: 1; min-height: 0; --safe-top: 0px; }
+/* Fill the sized app area without relying on percentage-height resolution
+   through a flex item (unreliable in older WebKit): keeps .room/.screen
+   inside --app-h so the keyboard-open composer stays docked. */
+.fixture-shell__app > * { position: absolute; inset: 0; height: auto; min-height: 0; }
 .fixture { position: relative; z-index: 90; padding-top: var(--safe-top); background: #0e0d0b; border-bottom: 1px dashed rgba(224, 165, 72, 0.5); }
 .fixture__tag {
   display: block;

@@ -71,8 +71,9 @@ export function VerdictScreen({ game, round, seconds, visuals, others, onMenu }:
         <SeatTile seat={self} visuals={visuals} variant="thumb" />
         <div className="card__who">
           <p className="card__name">You · {self.alias}</p>
-          <p className="card__meta mono">The room's read on you</p>
+          <p className="card__meta mono">{others.length === 1 ? "The stranger's read on you" : "The room's read on you"}</p>
         </div>
+        {/* Always unknown before reveal: no judgment exists to show. */}
         <span className="card__unknown mono" aria-label="Unknown until the reveal">? ? ?</span>
       </div>}
 

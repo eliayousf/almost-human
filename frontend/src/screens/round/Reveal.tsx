@@ -62,7 +62,7 @@ export function RevealScreen({ round, visuals, others, busy, onPlayAgain, onLobb
       </div>
 
       <div className="recog">
-        <p className="recog__label mono">Recognition · how often they read you right</p>
+        <p className="recog__label mono">Recognition — how often they read you right</p>
         <div className="recog__bar" role="meter" aria-label="Recognition this round"
           aria-valuemin={0} aria-valuemax={1} aria-valuenow={fraction ?? undefined}
           aria-valuetext={fraction === null ? "Not rated" : `${Math.round(fraction * 100)}%`}>
@@ -71,8 +71,8 @@ export function RevealScreen({ round, visuals, others, busy, onPlayAgain, onLobb
         {fraction === null && <p className="recog__label mono">Not rated</p>}
       </div>
 
-      <button type="button" className="cta" disabled={busy} onClick={onPlayAgain}>Next room</button>
-      <button type="button" className="cta cta--quiet" onClick={onLobby}>Lobby</button>
+      <button type="button" className="cta" disabled={busy} onClick={onPlayAgain}>Play again</button>
+      <button type="button" className="cta cta--quiet mono" onClick={onLobby}>Lobby</button>
     </div>
   </>;
 }

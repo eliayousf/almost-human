@@ -177,7 +177,16 @@ Deliberate deviations from the reference sheet, required by the brief:
 - No audio waveform (no audio exists).
 - No per-person attribution ("X voted you the machine"); only the aggregate.
 - No TELL flags (not in the API).
-- An explicit Lock replaces "all votes lock when the timer hits zero".
+- No "all votes lock when the timer hits zero" footnote: it would be false
+  here. Nothing auto-submits at zero (CASH_HANDOFF: reaching zero never
+  submits votes) and an unlocked call scores 0, so there is an explicit Lock
+  and the footnote reads "Lock your call before the timer hits zero".
+- The "READING YOU" tag on the stranger's card shows only while your line is
+  the latest message. It is derived from message order alone and is not a
+  presence or typing signal.
+- Your "read on you" card always shows "? ? ?" before the reveal. After the
+  reveal, a bot counterpart yields exactly "Unrated. No human judged you this
+  round."; a bot ballot is never shown as a read, a score, or "believed you".
 - Your seat keeps a face under the hatching so own-typing mouth feedback shows.
 - Round numbers are a display-only, per-browser-session counter; the API
   has none.
@@ -295,5 +304,13 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
 - `prefers-reduced-motion: reduce`: 0 bursts, 0 mouth frames, loop intact.
 - Keyboard simulation (viewport height − 336px): the composer stays visible
   and inside the visible area.
+- Keyboard docking: with `--app-h: 480px` + `kb-open` forced on On air, the
+  composer input lands at y=423 (bottom 471) and `.room` is 451px tall. The
+  earlier build left it at y≈787: the fixture shell was `position: fixed` and
+  `.room` relied on percentage height through a flex item. Both are fixed; the
+  fixture app child now fills its area absolutely. Verified in Chromium only;
+  this environment has no WebKit build.
+- Reference match: each screen was compared side by side with the owner's
+  4-screen charcoal sheet (1125×593) at 390×844.
 - The live backend was never contacted. No physical iPhone was tested.
 
