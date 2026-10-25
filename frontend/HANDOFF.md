@@ -264,7 +264,7 @@ H.264, silent), filled into the existing frames with `object-fit: cover`.
 
 Round-screen geometry was matched by overlay on the owner's 4-screen sheet:
 the sheet's 196px content width maps to our 358 CSS px content width (x1.83).
-On air cards are ~173x166 with a 12px gap. Type: header 10px mono; topic
+Owner re-measurement: sheet phone width 247px = 390 css px (x1.579); sheet content width 196px = 310 css px. On air cards are 144x148 with a 22px gap. Type: header 10px mono; topic
 label 8px, topic text 17px; transcript names 10px mono, body 16px; stage
 titles 27px, subtitles 15.5px; composer 44px tall, SEND 12px mono. Where the
 owner's written list disagreed with the overlay, the sheet won. The composer
