@@ -10,29 +10,34 @@
   <img src="frontend/expo/assets/cast/loops/face25-09-idle.webp" width="96" alt="Another animated portrait from the game's shared character cast" />
 </p>
 
-Almost Human is a playable testbed for short NPC dialogue, wrapped in a social
-guessing game. Chat with an anonymous partner for one minute, decide whether
-they are human or AI, then see the reveal and your score.
+**Natural-sounding speech still needs natural conversation.** Almost Human uses
+a one-minute human-or-AI guessing game to collect feedback on conversational
+replies. Our goal is to help **voice-agent builders** train faster, more natural
+dialogue models with Mubit.
+
+Chat with an anonymous partner for one minute, decide whether they are human
+or AI, then see the reveal and your score.
 People and AI use the same character cast; portraits do not disclose their roles.
 
 The recurring task is **generating short, natural replies that respond to the
-current conversation**. The intended users are game teams testing conversational
-characters. Players' guesses provide a believability signal; the game makes
-repeated dialogue testing engaging. Developer demand and measured improvement
-remain to be validated.
+current conversation**. The game makes repeated dialogue testing engaging and
+supplies a perceived-human-likeness signal for selecting examples to review.
+The current product is **text-only**: voice integration, better spoken dialogue,
+lower latency and customer demand have not yet been demonstrated.
 
 ## Judging at a glance
 
 | Criterion | What to inspect | Evidence and boundary |
 | --- | --- | --- |
 | **Use of Mubit · 25%** | Accepted conversational correction → completed adapter v1 | [Training lineage and result](MUBIT_TRAINING_RUN.md). Training completed; fresh trained-adapter serving is blocked. |
-| **Usefulness · 25%** | Repeated short NPC dialogue and player believability feedback | [User/task rationale](judging/USEFULNESS.md). The prototype is implemented; developer demand and quality gains are unmeasured. |
+| **Usefulness · 25%** | Conversational examples and feedback aimed at improving the words voice agents say | [User/task rationale](judging/USEFULNESS.md). Text-game collection is implemented; voice deployment, demand, quality and speed gains are unverified. |
 | **Technical execution · 25%** | Live game, private rooms, authoritative scoring and reproducible tests | [Hosted checks](INTEGRATION.md) and [local check receipt](judging/evidence/checks.json). Local mocks are labelled; they do not prove live adapter inference. |
 | **Demo · 25%** | Real game interaction plus recorded correction/training evidence | [Sub-two-minute walkthrough](judging/DEMO.md). The final recording still needs validation and upload. |
 
 **Recorded validation:** 143 backend/client tests, 20 Python checks, all 100 WebP
 assets, TypeScript and frontend/diagnostic builds. The command below reproduces
 the checks and writes a new result with its own source fingerprint.
+These checks cover the text game and its tooling, not spoken-audio quality or speed.
 
 **Machine-readable evidence:** [rubric map](judging/evidence/criteria.json) ·
 [Mubit training snapshot](judging/evidence/mubit-run.json) ·
@@ -47,7 +52,8 @@ training results; the final video file must still be checked before upload.
 
 1. **A real game round:** a shared question, conversation, Human/Machine vote,
    server-controlled reveal and points. A round may already be in progress when
-   recording starts; the normal chat duration is 60 seconds.
+   recording starts; the normal chat duration is 60 seconds. This demonstrates
+   the text-based collection interface, not a deployed voice agent.
 2. **A recorded Mubit training experiment:** an original synthetic reply,
    editorial correction, approval of the corrected conversation, and a completed
    adapter version. Training happened before the recording.
@@ -71,6 +77,25 @@ The game also uses eligible votes to identify passed/caught **bot-written** line
 for optional prompt lessons. That prompt-feedback path is separate from the
 recorded adapter-training experiment. We do not claim that live player votes
 already update the model weights serving the game.
+
+## From game feedback to voice-agent dialogue
+
+A Human vote for an AI partner is a **conversation-level believability signal**,
+not proof that every reply is correct, useful or safe. The intended training
+pipeline combines these signals with review of context, relevance, brevity,
+safety and suitability for speech. Texting shortcuts and game-specific bluffing
+would need filtering before use in ordinary voice agents.
+
+Faster responses are a goal to benchmark, not a measured result. The game's
+deliberate 6–12-second display pause is separate from model inference latency.
+Voice validation would compare unseen conversations with a fixed speech system
+and measure both reply quality and end-to-end response time.
+
+Reviewed human-written replies could become another source of training targets
+in future, with separate permission, personal-data filtering and provenance.
+That pipeline is not implemented, and the current [terms](PLAYTEST_TERMS.md)
+explicitly do not authorize importing chat messages as human-authored training
+examples. The completed Mubit experiment used synthetic game conversations.
 
 The [diagnostic report](judging/DIAGNOSTIC.md) separates verified
 application behavior from the unresolved Mubit training/serving step.
