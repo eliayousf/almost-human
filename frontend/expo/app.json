@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Almost Human",
+    "slug": "almost-human",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true
+    },
+    "web": {
+      "name": "Almost Human",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-image"
+    ]
+  }
+}
