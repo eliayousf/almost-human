@@ -68,3 +68,19 @@ See ../../INTEGRATION.md for hosted verification and the exact tested preview.
 Physical iOS/Android token persistence, playback and mobile performance remain
 unverified; this delivery targets the Expo web build. The trained Mubit adapter
 serving blocker remains separate from working provider replies through Mubit.
+
+## Mobile and laptop layout
+
+Enter room sits directly beneath the character. The web root follows the visible
+viewport when browser toolbars or the keyboard change size. Non-chat screens
+scroll; chat keeps a scrolling transcript and a separate composer. Laptop chat
+uses a wider opponent/topic column beside the conversation.
+
+`/?preview=idle`, `/?preview=chat`, `/?preview=guess`, `/?preview=waiting` and
+`/?preview=reveal` provide clearly labelled synthetic single-screen checks with
+no live session or queue. See [MOBILE_MULTIPLAYER.md](MOBILE_MULTIPLAYER.md) for
+responsive checks, 40-player test coverage, live verification and its limits.
+
+Preview builds use the public development URL from `.env.example` if their
+`EXPO_PUBLIC_CONVEX_URL` is unset. An explicitly configured value takes precedence.
+Production builds still require explicit configuration and fail when it is absent.
