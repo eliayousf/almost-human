@@ -1136,7 +1136,10 @@ describe("round verdicts teach the bots and Mubit", () => {
     expect(captures).toHaveLength(2);
     for (const [, request] of captures) {
       expect(request?.headers).toMatchObject({ "x-middleware-record": "full" });
-      expect(JSON.parse(String(request?.body)).metadata.session_id).toBe(r.roundId);
+      const body = JSON.parse(String(request?.body));
+      expect(body.metadata).toBeUndefined();
+      expect(body.store).toBeUndefined();
+      expect(body.messages.find((message: { role: string }) => message.role === "user").content).toBe(`Game conversation ID: ${r.roundId}`);
     }
     const scheduled = await r.t.run(ctx => ctx.db.system.query("_scheduled_functions").collect());
     expect(scheduled.some(job => job.name.includes("rateRound") && job.state.kind === "pending")).toBe(true);
