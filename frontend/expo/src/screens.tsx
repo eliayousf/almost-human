@@ -54,8 +54,8 @@ export function Frame({ title, children, onMenu }: { title: string; children: Re
 export function RoundScreen({ state, phase, count = 3, busy = false, onPlay, onSend, onVote, onMenu }: { state: State; phase: Phase; count?: number; busy?: boolean; onPlay: () => void; onSend: (text: string) => Promise<boolean>; onVote: (v: Verdict) => void; onMenu?: () => void }) {
   const [text, setText] = useState('');
   const visibleHeight = useVisibleHeight();
-  const compact = visibleHeight < 740;
   const desktop = useWindowDimensions().width >= 900;
+  const compact = !desktop && visibleHeight < 740;
   const [showcaseId] = useState(randomCharacterId);
   const messages = useRef<React.ComponentRef<typeof ScrollView>>(null);
   const partner = state.partner || state.reveal?.partner;
