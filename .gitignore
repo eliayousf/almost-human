@@ -23,3 +23,6 @@ uploads/
 *.log
 *.pem
 *.key
+
+# Owner-supplied cast media: never commit (local only)
+frontend/public/cast/
