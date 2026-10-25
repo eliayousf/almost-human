@@ -1,26 +1,23 @@
-import type { HumanOrAi, Recognition, RevealRound, Seat } from "@game/game-contract";
+import type { Recognition, RevealRound } from "@game/game-contract";
+import { Hud, SeatTile } from "./parts";
+import type { ScreenProps } from "./Round";
 import { verdictLabel } from "./Verdict";
 
-/** The stamp over the counterpart's face; server-provided kind only. */
-export function RevealStamp({ kind }: { kind: HumanOrAi }) {
-  return <span className={`stamp stamp--${kind}`} role="status">{verdictLabel(kind)}</span>;
-}
-
 /**
- * One reciprocal line from the recognition AGGREGATE (human votes only). With
- * no human vote (e.g. an AI counterpart) it is the unrated empty state, never a
- * verdict. No per-person breakdown exists in the API, so none is shown.
+ * One reciprocal line from the recognition AGGREGATE (human votes only). No
+ * human vote (e.g. an AI counterpart) is the unrated empty state, never a
+ * verdict. The API exposes no per-person breakdown, so none is shown.
  */
 export function recognitionLine(recognition: Recognition): { text: string; unrated: boolean } {
   const { humanVotesReceived: votes, humanVotesRecognisingYou: yes, fraction } = recognition;
   if (fraction === null || votes === 0) return { text: "Unrated. No human judged you this round.", unrated: true };
-  if (votes === 1) return { text: yes ? "They read you as human." : "They had you down as a machine.", unrated: false };
-  return { text: `${yes} of ${votes} humans read you as human.`, unrated: false };
+  if (votes === 1) return { text: yes ? "They believed you." : "They had you down as a machine.", unrated: false };
+  return { text: `${yes} of ${votes} humans believed you.`, unrated: false };
 }
 
-export function RevealPanel({ round, others, busy, onPlayAgain, onLobby }: {
+/** 4 · Reveal: server-provided kinds, your calls, points, streak, recognition. */
+export function RevealScreen({ round, visuals, others, busy, onPlayAgain, onLobby }: ScreenProps & {
   round: RevealRound;
-  others: readonly Seat[];
   busy: boolean;
   onPlayAgain: () => void;
   onLobby: () => void;
@@ -29,34 +26,54 @@ export function RevealPanel({ round, others, busy, onPlayAgain, onLobby }: {
   const votes = result.votes ?? [];
   const reciprocal = recognitionLine(result.recognition);
   const kindOf = (id: string) => round.participants.find(seat => seat.id === id)?.kind;
+  const perfect = result.ballotStatus === "submitted" && result.correctGuessCount === others.length;
+  const headline = result.ballotStatus === "not_submitted" ? "No call made"
+    : perfect ? (others.length === 1 ? "Correct call" : "Perfect round")
+      : result.correctGuessCount ? "Partly right" : "Fooled";
+  const fraction = result.recognition.fraction;
 
-  return <div className="reveal">
-    <ul className="reveal__calls">
-      {result.ballotStatus === "not_submitted" && <li className="dim">No call made. No points this round.</li>}
-      {votes.map(vote => {
-        const right = kindOf(vote.participantId) === vote.label;
-        return <li key={vote.participantId}>
-          {others.length > 1 && <span className="mono">{others.find(seat => seat.id === vote.participantId)?.alias} · </span>}
-          You called <span className={`tag tag--${vote.label}`}>{verdictLabel(vote.label)}</span>
-          <span className={right ? "reveal__right" : "reveal__wrong"}>{right ? "Correct" : "Wrong"}</span>
-        </li>;
+  return <>
+    <Hud label="Round over" />
+    <div className="room__body room__body--reveal">
+      <h1 className="room__title">Who was real?</h1>
+      <p className="room__sub">{result.ballotStatus === "submitted" ? "You called it. But did they believe you?" : "You didn't lock a call this round."}</p>
+
+      {others.map(seat => {
+        const kind = kindOf(seat.id);
+        const vote = votes.find(item => item.participantId === seat.id);
+        return <div key={seat.id} className="card card--seat">
+          <SeatTile seat={seat} visuals={visuals} variant="thumb" />
+          <div className="card__who">
+            <p className="card__name">{seat.alias}</p>
+            <p className="card__meta mono">
+              {vote ? `You said ${verdictLabel(vote.label)} ${vote.label === kind ? "✓" : "✗"}` : "No call"}
+            </p>
+          </div>
+          {kind && <span className={`stamp stamp--${kind} mono`} role="status">{verdictLabel(kind)}</span>}
+        </div>;
       })}
-      {others.length > 1 && others.map(seat => <li key={seat.id} className="mono dim">
-        {seat.alias} was {kindOf(seat.id) === "human" ? "human" : "a machine"}
-      </li>)}
-    </ul>
-    <div className="reveal__score">
-      <span className="points">+{result.guessingPointsEarned}</span>
-      <span className="reveal__meta mono">
-        <span>Streak {result.streak}</span>
-        <span>Total {result.totalGuessingPoints.toLocaleString()}</span>
-      </span>
+
+      <p className={`reciprocal${reciprocal.unrated ? " reciprocal--unrated" : ""}`}>{reciprocal.text}</p>
+
+      <div className="tally">
+        <p className="tally__points">+{result.guessingPointsEarned}</p>
+        <p className="tally__head mono">{headline}</p>
+        <p className="tally__meta mono">Streak ×{result.streak} · Total {result.totalGuessingPoints.toLocaleString()}</p>
+      </div>
+
+      <div className="recog">
+        <p className="recog__label mono">Recognition · how often they read you right</p>
+        <div className="recog__bar" role="meter" aria-label="Recognition this round"
+          aria-valuemin={0} aria-valuemax={1} aria-valuenow={fraction ?? undefined}
+          aria-valuetext={fraction === null ? "Not rated" : `${Math.round(fraction * 100)}%`}>
+          <span className="recog__fill" style={{ transform: `scaleX(${fraction ?? 0})` }} />
+        </div>
+        {fraction === null && <p className="recog__label mono">Not rated</p>}
+      </div>
+
+      <button type="button" className="cta" disabled={busy} onClick={onPlayAgain}>Next room</button>
+      <button type="button" className="cta cta--quiet" onClick={onLobby}>Lobby</button>
     </div>
-    <p className={`reciprocal${reciprocal.unrated ? " reciprocal--unrated" : ""}`}>{reciprocal.text}</p>
-    <div className="row">
-      <button type="button" className="btn btn--primary" disabled={busy} onClick={onPlayAgain}>Play again</button>
-      <button type="button" className="btn btn--ghost" onClick={onLobby}>Lobby</button>
-    </div>
-  </div>;
+  </>;
 }
 // END Reveal.tsx

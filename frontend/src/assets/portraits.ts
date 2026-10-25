@@ -34,7 +34,9 @@ export const PORTRAITS = {
   },
   self: {
     key: "self", src: selfSrc, width: 800, height: 1000,
-    mouth: { x: 0.52, y: 0.585, w: 0.068, h: 0.026 },
+    // Lips centre (208, 293) on the 400x500 plate; enlarged so own-typing
+    // feedback reads on the small seat tile at arm's length.
+    mouth: { x: 0.52, y: 0.586, w: 0.11, h: 0.055 },
     alt: "Your seat", placeholder: true,
   },
 } as const satisfies Record<string, PortraitAsset>;

@@ -32,6 +32,12 @@ export function App() {
   const seconds = binding.useRoundSeconds(round);
   const leaderboard = binding.useLeaderboard();
   const [busy, setBusy] = useState(false);
+  // Display-only round counter for this browser session; the API has none.
+  const [seenRounds, setSeenRounds] = useState<string[]>([]);
+  useEffect(() => {
+    if (roundId) setSeenRounds(list => list.includes(roundId) ? list : [...list, roundId]);
+  }, [roundId]);
+  const roundNumber = roundId ? Math.max(1, seenRounds.indexOf(roundId) + 1) : 0;
   const [notice, setNotice] = useState("");
 
   // Prefer the active round; retain a settled round locally so its reveal stays.
@@ -113,7 +119,7 @@ export function App() {
         action={{ label: "Back to lobby", onClick: toLobby }} />;
     }
     return <Suspense fallback={<StatusScreen title="Loading round…" />}>
-      <Round game={game} round={roundResult.data} seconds={seconds} busy={busy}
+      <Round game={game} round={roundResult.data} seconds={seconds} busy={busy} roundNumber={roundNumber}
         onPlayAgain={() => { void join(); }} onLobby={toLobby} />
     </Suspense>;
   }

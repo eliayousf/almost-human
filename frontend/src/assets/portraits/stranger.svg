@@ -64,5 +64,5 @@
   <path fill="none" stroke="#5a4a38" stroke-width="1.2" opacity=".35" filter="url(#s1)" d="M170 120C150 160 146 240 132 330M190 112C170 150 166 210 160 280M248 118C268 150 276 220 282 300"/>
   <!-- vignette + grain -->
   <rect width="400" height="500" fill="#000" opacity=".18" filter="url(#s9)" mask="none"/>
-  <rect width="400" height="500" filter="url(#grain)" opacity=".55"/>
+  <rect width="400" height="500" filter="url(#grain)" opacity=".2"/>
 </svg>

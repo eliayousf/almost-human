@@ -59,7 +59,7 @@ export function Composer({ game, roundId, onType }: {
         placeholder="Convince them…" aria-label="Your message" autoComplete="off" autoCorrect="on"
         enterKeyHint="send" onChange={event => { setText(event.target.value); onType(); }}
         onKeyDown={event => { if (event.key.length === 1 || event.key === "Backspace") onType(); }} />
-      <button className="btn btn--send" disabled={pending || limited || !text.trim()}>{pending ? "…" : "Send"}</button>
+      <button className="composer__send mono" disabled={pending || limited || !text.trim()}>{pending ? "…" : "Send"}</button>
     </div>
     {remaining < 60 && <p className="composer__count mono" aria-live="polite">{remaining}</p>}
   </form>;

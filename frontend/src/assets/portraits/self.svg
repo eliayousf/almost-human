@@ -39,5 +39,5 @@
     <path fill="none" stroke="#24180f" stroke-width="1.5" stroke-linecap="round" d="M193 292C203 293.5 213 293.5 223 292"/>
   </g>
   <path filter="url(#s4)" fill="#0d0c0a" opacity=".85" d="M140 360C170 380 240 380 270 360L290 420L120 420Z"/>
-  <rect width="400" height="500" filter="url(#grain)" opacity=".55"/>
+  <rect width="400" height="500" filter="url(#grain)" opacity=".2"/>
 </svg>
