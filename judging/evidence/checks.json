@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "checked_at": "2026-10-25T02:37:31.386271+00:00",
+  "checked_at": "2026-10-25T03:12:04.644982+00:00",
   "status": "passed",
-  "source_commit": "55c97ff598555c5566dfc29886d8dde9e71a1679",
-  "source_fingerprint_sha256": "f0aeea9b45ffb656c766934f596a9de313f395800fd1109c6bc089e6298f97f6",
+  "source_commit": "ecf0c6a5c4594556d56360d61b8631d71f32794d",
+  "source_fingerprint_sha256": "1014c3da575064ca15cd4dccf36340f9637f8e6b941797f154f11ac07fd6cf4d",
   "fingerprint_scope": "Git-listed and nonignored files, excluding this public checks receipt; file names and content hashes in sorted order.",
   "nix_shell": true,
   "scope": "Local code, fixtures, builds and sanitised summary consistency. Does not verify current deployment, remote Mubit state, user demand or live demo success.",
@@ -45,6 +45,21 @@
       "status": "passed"
     },
     {
+      "name": "expo_typecheck",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "expo_asset_and_state_checks",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
+      "name": "expo_web_build",
+      "exit_code": 0,
+      "status": "passed"
+    },
+    {
       "name": "diff_whitespace",
       "exit_code": 0,
       "status": "passed"
@@ -62,9 +77,10 @@
     "numPendingTests": 0
   },
   "python_tests": {
-    "passed": 19
+    "passed": 20
   },
   "shared_round_fixtures": 9,
   "diagnostic_bundles": 2,
-  "frontend_live_bundles": 1
+  "frontend_live_bundles": 1,
+  "expo_web_bundles": 1
 }
