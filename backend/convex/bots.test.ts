@@ -617,9 +617,10 @@ describe("typing-paced publication and texting style", () => {
 
   test("typing time grows with Unicode message length, is bounded, and fits the retry watchdog", () => {
     const short = botTypingDelayMs("hey");
-    const medium = botTypingDelayMs("x".repeat(40));
+    const medium = botTypingDelayMs("x".repeat(60));
     const long = botTypingDelayMs("x".repeat(400));
     expect(short).toBe(BOT_MIN_TYPING_MS);
+    expect(short).toBeGreaterThanOrEqual(6_000);
     expect(medium).toBeGreaterThan(short);
     expect(long).toBeGreaterThan(medium);
     expect(long).toBeLessThanOrEqual(12_000);
@@ -627,14 +628,14 @@ describe("typing-paced publication and texting style", () => {
     expect(BOT_WATCHDOG_MS).toBeGreaterThan(2 * MUBIT_TIMEOUT_MS + BOT_RETRY_DELAY_MS + long);
   });
 
-  test("reply speed varies with character count instead of an unrelated fixed pause", () => {
+  test("reply speed varies with character count while preserving the six-second minimum", () => {
     for (const text of ["ok", "that is a brilliant idea", "x".repeat(400)]) {
       for (const variation of [0, 0.5, 0.999]) {
         expect(botTypingDelayMs(text, variation)).toBeGreaterThanOrEqual(BOT_MIN_TYPING_MS);
         expect(botTypingDelayMs(text, variation)).toBeLessThanOrEqual(BOT_MAX_TYPING_MS);
       }
     }
-    expect(botTypingDelayMs("x".repeat(40), 1) - botTypingDelayMs("x".repeat(40), 0)).toBe(2000);
+    expect(botTypingDelayMs("x".repeat(60), 1) - botTypingDelayMs("x".repeat(60), 0)).toBe(3000);
     expect(botTypingDelayMs("🙂".repeat(10), 0.5)).toBe(botTypingDelayMs("x".repeat(10), 0.5));
   });
 
@@ -710,7 +711,7 @@ describe("typing-paced publication and texting style", () => {
     const r = await room(t, 1); await chat(r);
     await t.mutation(internal.botState.claim, { roundId: r.roundId, turn: 0 });
     const round = await t.run(ctx => ctx.db.get(r.roundId));
-    vi.setSystemTime(round!.chatEndsAt - 500);
+    vi.setSystemTime(round!.chatEndsAt - 5000);
     await t.mutation(internal.botState.prepareReply, { roundId: r.roundId, turn: 0, text: "x".repeat(100) });
     expect((await t.run(ctx => ctx.db.get(r.roundId)))?.botPending).toBeUndefined();
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [] });
