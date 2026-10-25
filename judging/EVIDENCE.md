@@ -8,6 +8,7 @@
 | [mubit-run.json](evidence/mubit-run.json) | Allowlisted identifiers, states, counts and content hashes from the observed synthetic training run. | Independent service attestation, raw dataset-row access or current live availability. |
 | [checks.json](evidence/checks.json) | The recorded local verification outcome, runtimes, source fingerprint and actual test counts. | Deployment, user demand, mobile usability or remote adapter serving. |
 | [Training run report](../MUBIT_TRAINING_RUN.md) | Explains the completed job, inference blocker and quality limitations. | A working production learning loop. |
+| [Main playtest](https://almost-human-playtest.vercel.app/) and [integration report](../INTEGRATION.md) | Current released interface and dated, revision-specific hosted observations, including animated media and real game rounds. | A timed event rehearsal, physical-device certification or trained-adapter serving. |
 | [Historical backend verification](../backend/VERIFICATION.md) | Dated reports of full synthetic browser rounds and earlier checks. | A new browser/device test on today's submitted branch. |
 
 These are maintainer-collected observations and reproducible code checks. They

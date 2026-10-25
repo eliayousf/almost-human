@@ -1,6 +1,8 @@
 # Almost Human: judging guide
 
-**Review this branch's README and this guide first.** The submission is a real
+**Start with the [live game](https://almost-human-playtest.vercel.app/) and
+[GitHub main](https://github.com/eliayousf/almost-human/tree/main).** This guide
+is the submission entry point. The submission is a real
 multiplayer game backend plus a verified synthetic Mubit training experiment.
 **The trained adapter cannot currently serve a fresh live answer.** This package
 documents that blocker; it does not claim all four criteria are satisfied.
@@ -10,6 +12,13 @@ task is generating short, natural NPC dialogue for game developers, with play
 testing providing feedback. That developer benefit is a hypothesis, not a
 validated customer result.
 
+The released Expo interface includes 25 animated characters, 60-second chat,
+up to 10 seconds to vote, immediate reveal when all humans have voted, and
+6–12 second bot reply pauses after generation. Each round gets one shared
+question from 289 starters/combinations, excluding each player's last 20.
+Vote feedback is included in the [versioned playtest terms](PLAYTEST_TERMS.md).
+The live game's replies use provider inference through Mubit.
+
 ## Review in five minutes
 
 1. Read the four-criterion table below.
@@ -17,7 +26,7 @@ validated customer result.
    [evidence boundaries](judging/EVIDENCE.md).
 3. Run the credential-free verification command. Compare the new result with
    the [recorded local check receipt](judging/evidence/checks.json).
-4. Follow the [demo runbook](judging/DEMO.md) for the diagnostic client and
+4. Follow the [demo runbook](judging/DEMO.md) for the main game and
    honest 2:20 walkthrough. The [integration report](INTEGRATION.md) identifies
    the current [main playtest](https://almost-human-playtest.vercel.app/) and
    the source revisions covered by earlier live checks.
@@ -34,15 +43,27 @@ contains `use flake` for direnv users.
 
 ## Four criteria, equally weighted
 
+The [organizer's event page](https://luma.com/nightshift-london), checked on
+25 October 2026, confirms these four criteria and equal weighting.
+
 | Criterion | Evidence available now | What is not established |
 | --- | --- | --- |
 | **Use of Mubit — 25%** | Real gateway calls; a reviewed conversational correction; 36 kept synthetic examples from 36 sessions; completed Qwen3-4B training job and v1 evaluation. [Snapshot](judging/evidence/mubit-run.json), [run report](MUBIT_TRAINING_RUN.md), [runner](scripts/mubit-learning-proof.py). | Fresh live trained-adapter answer; improved quality; automatic learning from real players; a replacement-target API. |
 | **Usefulness — 25%** | Implemented recurring dialogue generation and game feedback collection. [User/job rationale and validation protocol](judging/USEFULNESS.md), [bot behavior](backend/BOTS.md). | Customer demand, retention, willingness to pay, or measured improvement in the player experience. |
-| **Technical execution — 25%** | Reproducible TypeScript, backend/client tests, experiment tests, player/diagnostic builds and shared-contract checks. A real hosted frontend round passed. [Check receipt](judging/evidence/checks.json), [integration evidence](INTEGRATION.md). | Production readiness, comprehensive moderation, cast-video delivery or physical-iPhone verification. |
-| **Demo — 25%** | Tested live game preview, diagnostic clients, synthetic fixtures, a timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal, the confirmed event time limit, or a live learned-model demo. |
+| **Technical execution — 25%** | Released Expo game, all 100 WebP assets checked, verified hosted chat/vote/reveal and replay, plus reproducible backend/client tests and builds. [Check receipt](judging/evidence/checks.json), [integration evidence](INTEGRATION.md). | Comprehensive moderation, public-launch hardening or physical-iPhone verification. |
+| **Demo — 25%** | Public main playtest, earlier verified live rounds, diagnostic clients, labelled fixtures, a proposed timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal, the confirmed event time limit, or a live learned-model demo. |
 
 Machine-readable mapping: [criteria.json](judging/evidence/criteria.json).
 Statuses describe evidence coverage; they are not self-awarded judging scores.
+
+## Automated review
+
+The public event page does not specify AI judge models, tools or access. This
+package does not assume a particular judging agent. The live URL, source,
+criterion-to-evidence JSON and verification command are independently readable.
+Local checks need no account or service credentials. Live play requires the
+game's adult eligibility declaration and terms acceptance; those are not needed
+to inspect the code or run the offline checks.
 
 ## The Mubit result, without overclaiming
 
@@ -88,12 +109,15 @@ Rebuild with the explicit live configuration in the runbook before a live demo.
 
 ## Source and branch scope
 
-This guide and checks apply to the checkout that contains them. Record
-`git rev-parse HEAD` when presenting. The implementation is proposed in
-[PR #4](https://github.com/eliayousf/almost-human/pull/4), stacked on the earlier
-learning-proof work; a judge opening `main` may see older code.
+The judging source is [GitHub main](https://github.com/eliayousf/almost-human/tree/main).
+[PR #5](https://github.com/eliayousf/almost-human/pull/5) brings together the
+game, Mubit experiment, frontend and judging package while preserving their
+commit history. [PR #4](https://github.com/eliayousf/almost-human/pull/4) records
+the earlier training/evidence work. Record `git rev-parse HEAD` when presenting.
+The check receipt names the checked source commit and content fingerprint;
+the [integration report](INTEGRATION.md) separately records hosted observations.
 
-This integration branch contains Ayo's `frontend/` and the diagnostic clients.
+The repository contains Ayo's `frontend/` and the diagnostic clients.
 The check command builds the player frontend in live mode against an inert URL;
 that build alone does not prove a live round. See [INTEGRATION.md](INTEGRATION.md)
 for deployment and browser evidence. Earlier verification documents retain

@@ -1,9 +1,11 @@
 # Demo runbook
 
-**Current status:** Ayo's frontend is integrated and a hosted preview completed
-a real round; see [INTEGRATION.md](../INTEGRATION.md) for source revisions and
-the current preview URL. The newer Expo interface includes all 25 animated
-characters and uses the same Convex client. This is not a timed presentation
+**Play here: [almost-human-playtest.vercel.app](https://almost-human-playtest.vercel.app/).**
+The released Expo interface includes all 25 animated characters and uses the
+shared Convex client. Hosted chat/vote/reveal and replay have been verified;
+see [INTEGRATION.md](../INTEGRATION.md) for exact revisions and evidence scope.
+Use [GitHub main](https://github.com/eliayousf/almost-human/tree/main) for the
+submission source. This is not a timed presentation
 rehearsal. The trained adapter is blocked from serving, and the event's actual
 time limit has not been confirmed in this package.
 
@@ -38,8 +40,9 @@ off for the game demonstration. Send only invented, nonpersonal text.
 
 In normal matchmaking, a solo player can receive bot partners after the waiting
 period when server bot inference is enabled and available. With bots disabled,
-human matching may wait. Do not promise an instant match. The active Expo preview requests strict pairs; its hosted integration evidence
-is recorded in INTEGRATION.md.
+human matching may wait. Do not promise an instant match. The main Expo game
+requests strict pairs and uses the current terms flow; this diagnostic client
+retains the earlier optional feedback control.
 
 Verify visible behavior: a shared countdown/topic, a real reply, server timer,
 one vote per other seat, reveal and server-scored points, then refresh/replay.
@@ -52,12 +55,13 @@ New rounds use 3 seconds countdown + 60 seconds chat + at most 10 seconds
 voting, plus queue time. The server reveals as soon as all humans vote; a
 bot round reveals immediately on your vote. Start matchmaking during the
 introduction, allow time for service delays, and rehearse against the organiser's
-actual time limit. Do not change the server clock to fit the presentation.
+actual time limit. Bot messages deliberately pause 6–12 seconds after generation.
+Do not change the server clock to fit the presentation.
 
 | Time | Show and say | Evidence boundary |
 | --- | --- | --- |
 | 0:00–0:15 | Explain the NPC-dialogue job and the guessing-game interface. | Developer usefulness is proposed; no demand or improvement claim. |
-| 0:15–0:45 | Send a synthetic message in the real diagnostic client and show a response. | Label it provider inference through Mubit. It is not the trained adapter. |
+| 0:15–0:45 | Send a synthetic message in the main game and show a response. | Label it provider inference through Mubit. It is not the trained adapter. |
 | 0:45–1:10 | Show the conversational correction and completed training lineage. | Training happened earlier. Use the public summary or owner-held receipts; do not simulate live training. |
 | 1:10–1:40 | Cast guesses, wait for the server reveal, show points. | Actual timings can vary; do not fabricate a reveal or award. |
 | 1:40–2:05 | Show the serving blocker and 2/12 length-compliance result. | Fresh learned-model inference is unavailable. Explain the literal-string checks and genuine quality issue. |

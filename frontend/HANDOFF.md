@@ -372,4 +372,3 @@ Chromium at a 390×844 mobile viewport, against `npm run dev` (fixtures):
 - Reference match: each screen was compared side by side with the owner's
   4-screen charcoal sheet (1125×593) at 390×844.
 - The live backend was never contacted. No physical iPhone was tested.
-

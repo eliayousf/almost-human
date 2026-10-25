@@ -1,31 +1,72 @@
 {
   "schema_version": 1,
-  "rubric_source": "The four equally weighted criteria supplied by the event participant",
+  "rubric_source": "Official organizer event page, verified 25 October 2026: https://luma.com/nightshift-london",
   "self_awarded_scores": false,
   "criteria": [
     {
-      "id": "mubit", "weight": 0.25, "status": "partial",
+      "id": "mubit",
+      "weight": 0.25,
+      "status": "partial",
       "claim": "A reviewed synthetic conversational correction reached kept data and a completed training job.",
-      "evidence": ["judging/evidence/mubit-run.json", "MUBIT_TRAINING_RUN.md", "scripts/mubit-learning-proof.py"],
-      "limitations": ["Fresh live trained-adapter inference is blocked.", "No quality improvement established.", "Separate replacement-target field remains null.", "Exact training-row membership is inferred."]
+      "evidence": [
+        "judging/evidence/mubit-run.json",
+        "MUBIT_TRAINING_RUN.md",
+        "scripts/mubit-learning-proof.py"
+      ],
+      "limitations": [
+        "Fresh live trained-adapter inference is blocked.",
+        "No quality improvement established.",
+        "Separate replacement-target field remains null.",
+        "Exact training-row membership is inferred."
+      ]
     },
     {
-      "id": "usefulness", "weight": 0.25, "status": "partial",
+      "id": "usefulness",
+      "weight": 0.25,
+      "status": "partial",
       "claim": "The implemented recurring task is short NPC dialogue generation; the proposed beneficiary is a game developer.",
-      "evidence": ["judging/USEFULNESS.md", "backend/BOTS.md", "backend/convex/ratings.ts"],
-      "limitations": ["Developer demand and player benefit were not measured.", "Synthetic operator-reviewed examples are not a user study."]
+      "evidence": [
+        "judging/USEFULNESS.md",
+        "backend/BOTS.md",
+        "backend/convex/ratings.ts"
+      ],
+      "limitations": [
+        "Developer demand and player benefit were not measured.",
+        "Synthetic operator-reviewed examples are not a user study."
+      ]
     },
     {
-      "id": "technical_execution", "weight": 0.25, "status": "implemented_with_limits",
-      "claim": "Backend, client, contract and learning-runner behavior can be checked locally with locked dependencies.",
-      "evidence": ["judging/evidence/checks.json", "scripts/verify-judging.py", "backend/VERIFICATION.md", "INTEGRATION.md"],
-      "limitations": ["Local tests use mocks and do not prove current deployment behavior.", "Public-launch safeguards and physical-device verification remain incomplete."]
+      "id": "technical_execution",
+      "weight": 0.25,
+      "status": "implemented_with_limits",
+      "claim": "Released Expo game with animated characters and verified hosted rounds, plus reproducible local backend, client, asset and learning-runner checks.",
+      "evidence": [
+        "judging/evidence/checks.json",
+        "scripts/verify-judging.py",
+        "backend/VERIFICATION.md",
+        "INTEGRATION.md"
+      ],
+      "limitations": [
+        "Local tests use mocks and do not prove current deployment behavior.",
+        "Public-launch safeguards and physical-device verification remain incomplete."
+      ]
     },
     {
-      "id": "demo", "weight": 0.25, "status": "prepared_not_rehearsed",
-      "claim": "The integrated frontend has a tested live preview, with diagnostic clients, labelled fixtures and a timed honest walkthrough.",
-      "evidence": ["judging/DEMO.md", "INTEGRATION.md", "backend/playtest/react-main.tsx", "shared/fixtures.ts"],
-      "limitations": ["No timed presentation rehearsal of this submission is claimed.", "Production promotion and physical-device validation remain pending.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
+      "id": "demo",
+      "weight": 0.25,
+      "status": "prepared_not_rehearsed",
+      "claim": "The main playtest is released, with earlier verified live rounds, diagnostic clients, labelled fixtures and a proposed timed walkthrough.",
+      "evidence": [
+        "judging/DEMO.md",
+        "INTEGRATION.md",
+        "backend/playtest/react-main.tsx",
+        "shared/fixtures.ts"
+      ],
+      "limitations": [
+        "No timed presentation rehearsal or confirmed event demo time limit is claimed.",
+        "Physical-device validation remains incomplete.",
+        "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."
+      ]
     }
   ]
 }

@@ -5,12 +5,15 @@
 A small game team repeatedly needs short NPC replies that respond to the
 conversation, stay in character and fit its interaction limits. Almost Human
 provides a play-testing environment: people chat with disclosed possible AI
-partners and vote at the reveal. The backend records opted-in feedback and
-can place earlier bot lines in subsequent prompts.
+partners and vote at the reveal. The backend records eligible vote feedback
+under the current playtest terms or a legacy preference, and can place earlier
+bot-written lines in subsequent prompts. Earlier opted-out votes stay excluded;
+the terms do not authorize human-authored chat training. See
+[playtest terms](../PLAYTEST_TERMS.md).
 
 Implemented evidence: [bot generation](../backend/convex/bots.ts),
 [fixed prompt and per-turn context](../backend/convex/botlogic.ts),
-[opted-in verdict aggregation](../backend/convex/ratings.ts), and
+[eligible-vote aggregation](../backend/convex/ratings.ts), and
 [game/client tests](../backend/convex/game.test.ts).
 
 The completed training experiment used **authored synthetic conversations and
