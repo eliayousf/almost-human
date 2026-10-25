@@ -11,10 +11,15 @@
   `backend/` and shared contracts in `shared/`; preserve other people's changes.
 - Follow `backend/AGENTS.md` before editing Convex code. Do not deploy or
   reconfigure the shared Convex backend simply to run client tests.
-- Rooms have three seats and may include 0, 1, or 2 Mubit bots, with at least
-  one human. Keep roles and provider details private until reveal. All game LLM
-  calls must route through Mubit. Adapter training is not verified.
+- Default rooms have two to five seats and may include 0, 1, or 2 Mubit bots,
+  with at least one human; strictPair is an opt-in two-seat source path. Keep
+  roles and provider details private until reveal. All game LLM calls must route
+  through Mubit. Synthetic adapter training completed; live trained-adapter
+  serving remains blocked. See `JUDGING.md` and `MUBIT_TRAINING_RUN.md`.
 - Keep credentials, player transcripts, test artifacts, and model data out of Git.
+- `judging/evidence/` contains only explicitly allowlisted, content-free public
+  summaries. Keep raw receipts and logs in ignored `artifacts/`; never call a
+  local consistency check independent service verification.
 - Make changes on a `codex/` branch and open/update a reviewable PR; do not merge
   to main or publish the public game without user direction.
 - Do not send Discord, email, social posts, or teammate messages without explicit

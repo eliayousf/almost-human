@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "rubric_source": "The four equally weighted criteria supplied by the event participant",
+  "self_awarded_scores": false,
+  "criteria": [
+    {
+      "id": "mubit", "weight": 0.25, "status": "partial",
+      "claim": "A reviewed synthetic conversational correction reached kept data and a completed training job.",
+      "evidence": ["judging/evidence/mubit-run.json", "MUBIT_TRAINING_RUN.md", "scripts/mubit-learning-proof.py"],
+      "limitations": ["Fresh live trained-adapter inference is blocked.", "No quality improvement established.", "Separate replacement-target field remains null.", "Exact training-row membership is inferred."]
+    },
+    {
+      "id": "usefulness", "weight": 0.25, "status": "partial",
+      "claim": "The implemented recurring task is short NPC dialogue generation; the proposed beneficiary is a game developer.",
+      "evidence": ["judging/USEFULNESS.md", "backend/BOTS.md", "backend/convex/ratings.ts"],
+      "limitations": ["Developer demand and player benefit were not measured.", "Synthetic operator-reviewed examples are not a user study."]
+    },
+    {
+      "id": "technical_execution", "weight": 0.25, "status": "implemented_with_limits",
+      "claim": "Backend, client, contract and learning-runner behavior can be checked locally with locked dependencies.",
+      "evidence": ["judging/evidence/checks.json", "scripts/verify-judging.py", "backend/VERIFICATION.md"],
+      "limitations": ["Local tests use mocks and do not prove current deployment behavior.", "Public-launch safeguards and physical-device verification remain incomplete."]
+    },
+    {
+      "id": "demo", "weight": 0.25, "status": "prepared_not_rehearsed",
+      "claim": "Diagnostic clients, labelled fixtures and a timed honest walkthrough are available.",
+      "evidence": ["judging/DEMO.md", "backend/playtest/react-main.tsx", "shared/fixtures.ts"],
+      "limitations": ["No timed live rehearsal of this submission is claimed.", "No verified public frontend URL is supplied.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
+    }
+  ]
+}

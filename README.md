@@ -6,12 +6,27 @@ A social guessing game for the Mubit Night Shift hackathon. Players chat
 anonymously in lobbies of two to five with zero, one, or two bots, then
 identify who is human and who is AI.
 
+**Judges: start with [JUDGING.md](JUDGING.md).** It maps all four criteria to
+sanitised evidence, reproducible checks and an honest demo runbook.
+
+**Current limit:** a synthetic conversational correction reached completed
+Mubit training, but the trained adapter cannot serve a fresh live answer.
+Improved dialogue and production readiness are not established.
+
+```sh
+nix develop -c python3 scripts/verify-judging.py --install
+```
+
+This installs locked dependencies and runs credential-free local checks. It
+does not contact the game or Mubit. See the [check receipt](judging/evidence/checks.json)
+and [demo instructions](judging/DEMO.md) for their separate scopes.
+
 ## How it works today
 
 Matchmaking fills lobbies from the live queue: five or more waiting humans
 match immediately (ten queued players become two five-player games), three or
-four accumulate for a few seconds, and after a short honest wait a solo player
-is seated with bot teammates so one judge can always play. Each round runs a
+four accumulate for a few seconds, and after a waiting period a solo player
+can be seated with bots when server bot inference is enabled and available. Each round runs a
 synchronised countdown, a random topic, two minutes of chat, then voting: every
 human guesses Human or AI for each other seat. Scores are server-scored (100
 points per correct seat) and land on a public alias leaderboard.

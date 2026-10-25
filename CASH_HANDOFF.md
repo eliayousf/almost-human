@@ -1,5 +1,10 @@
 # Cash: frontend integration handoff
 
+**Review scope:** [JUDGING.md](JUDGING.md) is the current submission entry point.
+This handoff records an earlier integration milestone; its live-test counts do
+not certify the newest frontend or a physical iPhone. Use the current shared
+contract for source behavior and verify deployed compatibility before playtesting.
+
 Start here. Build your screens in `frontend/`; the backend is already hosted.
 Recommended demo: **React + Vite + TypeScript, opened in iPhone Safari via HTTPS**.
 Your design remains yours. The provider, hooks, types, fixtures, and reference

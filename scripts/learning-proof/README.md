@@ -55,16 +55,18 @@ The batch and all model receipts remain under ignored `artifacts/`.
 ```mermaid
 flowchart LR
     A[Bot writes a reply] --> B[Review and correct it]
-    B -.-> C[Mubit accepts the correction]
-    C -.-> D[Mubit trains a new version]
-    D -.-> E[New version answers a fresh question]
+    B --> C[Mubit keeps the corrected conversation]
+    C --> D[Mubit completes training v1]
+    D -.-> E[Fresh live adapter answer is blocked]
     classDef prepared fill:#e1f1e7,stroke:#297148,color:#183527
     classDef pending fill:#fff2df,stroke:#a56516,stroke-dasharray:5 5,color:#58370e
-    class A,B prepared
-    class C,D,E pending
+    class A,B,C,D prepared
+    class E pending
 ```
 
-Green: exercised with synthetic examples. Amber: needs service evidence. A successful provider response or a Good/Bad rating alone does not verify the amber steps.
+Green: exercised with synthetic examples and service evidence. Amber: blocked
+by the current evaluation/serving state. Exact training-row membership remains
+inferred because the full dataset manifest was not exposed.
 
 ## Run the local experiment
 

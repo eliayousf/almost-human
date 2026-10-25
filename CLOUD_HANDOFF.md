@@ -1,5 +1,10 @@
 # Almost Human: cloud agent handoff
 
+**Historical handoff.** For the current submission, use [JUDGING.md](JUDGING.md)
+and its source-fingerprinted checks. Synthetic training has since completed;
+trained-adapter serving remains blocked. Deployment claims below describe their
+recorded milestone, not a new verification of this checkout.
+
 **Local continuation:** `codex/mubit-bots` adds server-side Mubit bot rooms to
 the backend base below. Read `backend/README.md` and the new milestone in
 `backend/VERIFICATION.md` for current behavior. Local development and a real
