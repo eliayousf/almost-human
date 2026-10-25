@@ -56,6 +56,9 @@ The [organizer's event page](https://luma.com/nightshift-london), checked on
 Machine-readable mapping: [criteria.json](judging/evidence/criteria.json).
 Statuses describe evidence coverage; they are not self-awarded judging scores.
 
+For the boundary between working application code and the unresolved Mubit
+workflow, see the [diagnostic evidence and conditional contract tests](judging/DIAGNOSTIC.md).
+
 ## Automated review
 
 The public event page does not specify AI judge models, tools or access. This
