@@ -87,7 +87,15 @@ test('the gateway defaults to metadata and groups eligible calls by explicit ses
   await createMubitModel('synthetic-key', undefined, { mode: 'full', sessionId: 'synthetic-round' }).doGenerate({ prompt });
   const request = provider.mock.calls[1][1]!;
   expect(request.headers).toMatchObject({ 'x-middleware-record': 'full' });
-  expect(JSON.parse(String(request.body)).metadata).toEqual({ session_id: 'synthetic-round' });
+  const body = JSON.parse(String(request.body));
+  expect(body.metadata).toBeUndefined();
+  expect(body.store).toBeUndefined();
+  expect(body.messages[0]).toEqual({ role: 'user', content: 'Game conversation ID: synthetic-round' });
+  expect(body.messages[1]).toEqual({ role: 'user', content: 'An invented question' });
+  await createMubitModel('synthetic-key', undefined, { mode: 'metadata', sessionId: 'synthetic-round' }).doGenerate({ prompt: [{ role: 'user', content: [{ type: 'text', text: 'A different follow-up' }] }] });
+  expect(JSON.parse(String(provider.mock.calls[2][1]!.body)).messages[0]).toEqual(body.messages[0]);
+  await createMubitModel('synthetic-key', undefined, { mode: 'metadata', sessionId: 'another-round' }).doGenerate({ prompt });
+  expect(JSON.parse(String(provider.mock.calls[3][1]!.body)).messages[0]).not.toEqual(body.messages[0]);
 });
 
 test('withdrawal and a later grant never revive training permission for an earlier room', async () => {
