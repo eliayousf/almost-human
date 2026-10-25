@@ -10,7 +10,7 @@ import { scheduleBotTurn } from "./botState";
 import { presence } from "./connections";
 import { matchWaiting } from "./matchmaking";
 import { BOT_FALLBACK_WAIT_MS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY } from "./botlogic";
-import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV } from "./validators";
+import { resultV, sessionV, queueV, roundV, messageV, leaderboardV, commandV, createSessionV, consentV, sendMessageV, submitVotesV, reportV, blockV, joinQueueV } from "./validators";
 
 const limiter = new RateLimiter(components.rateLimiter, {
   chat: { kind: "token bucket", rate: 45, period: MINUTE, capacity: 3 },
@@ -70,7 +70,7 @@ export const heartbeat = playerMutation({ args: { sessionId: v.string() }, retur
   await presence.heartbeat(ctx, "lobby", ctx.player._id, sessionId, 10000);
   return ok(null);
 } });
-export const joinQueue = playerMutation({ args: { input: commandV }, returns: resultV(queueV), handler: async (ctx, { input }) => {
+export const joinQueue = playerMutation({ args: { input: joinQueueV }, returns: resultV(queueV), handler: async (ctx, { input }) => {
   if (!ctx.player) return unauthenticated();
   const player = ctx.player;
   return idempotent(ctx, player._id, "joinQueue", input, async () => {
@@ -82,7 +82,7 @@ export const joinQueue = playerMutation({ args: { input: commandV }, returns: re
     const rate = await limiter.limit(ctx, "queue", { key: player._id });
     if (!rate.ok) return fail("RATE_LIMITED", "Please wait before joining again.", rate.retryAfter);
     const now = Date.now();
-    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now });
+    const queueId = await ctx.db.insert("queue", { playerId: player._id, status: "waiting", joinedAt: now, updatedAt: now, ...(input.strictPair ? { strictPair: true } : {}) });
     await ctx.db.patch(player._id, { activeQueueId: queueId, updatedAt: now });
     await presence.heartbeat(ctx, "lobby", player._id, `queue-${queueId}`, 10000);
     await ctx.scheduler.runAfter(30000, internal.connections.expireQueue, { queueId });

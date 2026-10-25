@@ -5,6 +5,9 @@ export const phaseV = v.union(v.literal("countdown"), v.literal("chat"), v.liter
 export const cancelReasonV = v.union(v.literal("participant_left"), v.literal("connection_lost"), v.literal("service_unavailable"), v.literal("room_closed"));
 export const reportReasonV = v.union(v.literal("harassment"), v.literal("personal_information"), v.literal("unsafe_content"), v.literal("spam"), v.literal("other"));
 export const commandV = v.object({ clientRequestId: v.string() });
+// Opt-in strict 1v1: strictPair seats the ticket in a two-seat round only.
+// Omitted/false keeps the default 2-5 participant lobby rules unchanged.
+export const joinQueueV = v.object({ clientRequestId: v.string(), strictPair: v.optional(v.boolean()) });
 export const createSessionV = v.object({ clientRequestId: v.string(), adultConfirmed: v.literal(true), rulesAccepted: v.literal(true), policyVersion: v.string(), trainingOptIn: v.boolean() });
 export const consentV = v.object({ clientRequestId: v.string(), policyVersion: v.string(), trainingOptIn: v.boolean() });
 export const guessV = v.object({ participantId: v.id("members"), label: labelV });

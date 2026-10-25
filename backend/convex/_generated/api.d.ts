@@ -10,6 +10,7 @@
 
 import type * as auth from "../auth.js";
 import type * as botState from "../botState.js";
+import type * as botTiming from "../botTiming.js";
 import type * as botlogic from "../botlogic.js";
 import type * as bots from "../bots.js";
 import type * as connections from "../connections.js";
@@ -32,6 +33,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   botState: typeof botState;
+  botTiming: typeof botTiming;
   botlogic: typeof botlogic;
   bots: typeof bots;
   connections: typeof connections;

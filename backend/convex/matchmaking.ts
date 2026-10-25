@@ -5,7 +5,7 @@ import { components, internal } from "./_generated/api";
 import type { Doc, Id } from "./_generated/dataModel";
 import { isOnline } from "./connections";
 import { SEAT_NAMES, TOPICS, shuffled } from "./lib";
-import { BOT_DIFFICULTIES, BOT_FALLBACK_WAIT_MS, BOT_PERSONAS, MAX_LOBBY, chooseLobby } from "./botlogic";
+import { BOT_DIFFICULTIES, BOT_FALLBACK_WAIT_MS, BOT_PERSONAS, LOBBY_ACCUMULATE_WAIT_MS, MAX_LOBBY, chooseLobby } from "./botlogic";
 import { GAME_DEFAULTS } from "../../shared/game-contract";
 
 function botsEnabled(): boolean {
@@ -43,24 +43,9 @@ async function findGroup(ctx: MutationCtx, candidates: Doc<"queue">[], size: num
   return (await search(0)) ? [...chosen] : undefined;
 }
 
-export async function matchWaiting(ctx: MutationCtx): Promise<void> {
-  const waiting = await ctx.db.query("queue").withIndex("by_status_and_joinedAt", q => q.eq("status", "waiting")).take(MAX_LOBBY * 3);
-  const candidates: Doc<"queue">[] = [];
-  for (const ticket of waiting) {
-    const player = await ctx.db.get(ticket.playerId);
-    if (player?.activeQueueId === ticket._id && !player.activeRoundId && await isOnline(ctx, player._id)) candidates.push(ticket);
-  }
-  if (!candidates.length) return;
-  const now = Date.now();
-  const oldestWaitMs = now - Math.min(...candidates.map(ticket => ticket.joinedAt));
-  // Lobbies seat 2-5 participants with zero, one, or two bots chosen at
-  // random. A short queue waits honestly instead of silently becoming a bot
-  // room; see chooseLobby. Without a server key, rooms stay all-human.
-  const sized = chooseLobby(candidates.length, oldestWaitMs, Math.random());
-  if (sized === null) return;
-  const lobby = botsEnabled() ? sized : { humans: Math.min(candidates.length, MAX_LOBBY), bots: 0 };
-  const group = await findGroup(ctx, candidates, lobby.humans);
-  if (!group) return;
+// Seats one lobby: creates the round and its members and schedules the
+// lifecycle. Returns the number of humans seated.
+async function seatLobby(ctx: MutationCtx, now: number, group: Doc<"queue">[], bots: number): Promise<number> {
   const threadId = await createThread(ctx, components.agent, {});
   const chatStartsAt = now + GAME_DEFAULTS.countdownMs;
   const chatEndsAt = chatStartsAt + GAME_DEFAULTS.chatMs;
@@ -71,7 +56,7 @@ export async function matchWaiting(ctx: MutationCtx): Promise<void> {
   });
   const seats = shuffled([
     ...group.map(ticket => ({ kind: "human" as const, ticket })),
-    ...Array.from({ length: lobby.bots }, () => ({
+    ...Array.from({ length: bots }, () => ({
       kind: "ai" as const,
       persona: Math.floor(Math.random() * BOT_PERSONAS.length),
       difficulty: BOT_DIFFICULTIES[Math.floor(Math.random() * BOT_DIFFICULTIES.length)],
@@ -89,7 +74,48 @@ export async function matchWaiting(ctx: MutationCtx): Promise<void> {
   }
   await ctx.scheduler.runAt(chatStartsAt, internal.lifecycle.advance, { roundId });
   await ctx.scheduler.runAt(now + 30000, internal.connections.checkRound, { roundId });
-  if (candidates.length > group.length) await ctx.scheduler.runAfter(0, internal.matchmaking.match, {});
+  return group.length;
+}
+
+export async function matchWaiting(ctx: MutationCtx): Promise<void> {
+  const waiting = await ctx.db.query("queue").withIndex("by_status_and_joinedAt", q => q.eq("status", "waiting")).take(MAX_LOBBY * 3);
+  const candidates: Doc<"queue">[] = [];
+  for (const ticket of waiting) {
+    const player = await ctx.db.get(ticket.playerId);
+    if (player?.activeQueueId === ticket._id && !player.activeRoundId && await isOnline(ctx, player._id)) candidates.push(ticket);
+  }
+  if (!candidates.length) return;
+  const now = Date.now();
+  // Opt-in strict 1v1: a ticket flagged strictPair always seats exactly two
+  // participants - a compatible waiting strict pair together, otherwise one
+  // strict human with one bot. Unflagged tickets never mix into strict rooms
+  // and keep the default 2-5 participant lobby rules below.
+  const strict = candidates.filter(ticket => ticket.strictPair === true);
+  const normal = candidates.filter(ticket => ticket.strictPair !== true);
+  let seated = 0;
+  if (strict.length) {
+    const pair = strict.length >= 2 ? await findGroup(ctx, strict, 2) : undefined;
+    if (pair) seated += await seatLobby(ctx, now, pair, 0);
+    else if (botsEnabled()) {
+      // A lone strict human waits one accumulate window for a strict partner
+      // before a bot takes the other seat.
+      const strictWaitMs = now - Math.min(...strict.map(ticket => ticket.joinedAt));
+      if (strictWaitMs >= LOBBY_ACCUMULATE_WAIT_MS) seated += await seatLobby(ctx, now, [strict[0]], 1);
+    }
+  }
+  if (normal.length) {
+    const oldestWaitMs = now - Math.min(...normal.map(ticket => ticket.joinedAt));
+    // Lobbies seat 2-5 participants with zero, one, or two bots chosen at
+    // random. A short queue waits honestly instead of silently becoming a bot
+    // room; see chooseLobby. Without a server key, rooms stay all-human.
+    const sized = chooseLobby(normal.length, oldestWaitMs, Math.random());
+    if (sized !== null) {
+      const lobby = botsEnabled() ? sized : { humans: Math.min(normal.length, MAX_LOBBY), bots: 0 };
+      const group = await findGroup(ctx, normal, lobby.humans);
+      if (group) seated += await seatLobby(ctx, now, group, lobby.bots);
+    }
+  }
+  if (seated > 0 && seated < candidates.length) await ctx.scheduler.runAfter(0, internal.matchmaking.match, {});
 }
 
 // Retried matchmaking for waiting humans whose honest wait has elapsed.
