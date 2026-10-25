@@ -1,3 +1,4 @@
+import { roundTrainingAllowed } from "./learningConsent";
 import { v } from "convex/values";
 import { env, internalMutation, internalQuery, type MutationCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
@@ -52,7 +53,7 @@ export async function judgeBots(ctx: MutationCtx, round: Doc<"rounds">, members:
     for (const call of calls) {
       if (call.memberId !== bot._id) continue;
       await ctx.db.patch(call._id, { judgedAt: now, judgedHuman, judgedAi, verdict });
-      if (verdict && call.mubitRequestId) toRate += 1;
+      if (verdict && call.mubitRequestId && call.trainingEligible === true) toRate += 1;
     }
   }
   if (toRate && env.MUBIT_RATINGS_ENABLED === "true") {
@@ -64,9 +65,14 @@ export const pending = internalQuery({
   args: { roundId: v.id("rounds") },
   returns: v.array(v.object({ id: v.id("botCalls"), requestId: v.string(), rating: v.union(v.literal("up"), v.literal("down")), comment: v.string() })),
   handler: async (ctx, { roundId }) => {
+    const round = await ctx.db.get(roundId);
+    if (round?.chatTrainingAllowed !== true) return [];
+    const members = await ctx.db.query("members").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(8);
+    const humans = members.filter(member => member.kind === "human");
+    if (!humans.length || !roundTrainingAllowed(round, await Promise.all(humans.map(member => ctx.db.get(member.playerId))))) return [];
     const calls = await ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", roundId)).take(50);
     return calls.flatMap(call => {
-      if (!call.verdict || !call.mubitRequestId || call.mubitRating === "sent") return [];
+      if (call.trainingEligible !== true || !call.verdict || !call.mubitRequestId || call.mubitRating === "sent") return [];
       const total = (call.judgedHuman ?? 0) + (call.judgedAi ?? 0);
       const comment = call.verdict === "passed"
         ? `Passed as human: ${call.judgedHuman} of ${total} players voted human.`
@@ -92,6 +98,8 @@ const statV = v.object({ seats: v.number(), votes: v.number(), fooledRate: v.uni
 export const progress = internalQuery({
   args: { seats: v.optional(v.number()), bucket: v.optional(v.number()) },
   returns: v.object({
+    configuration: v.object({ ratingsEnabled: v.boolean(), projectConfigured: v.boolean(), consoleConfigured: v.boolean() }),
+    trainingEligibility: v.object({ eligible: v.number(), withheld: v.number() }),
     overall: statV,
     trend: v.array(v.object({ from: v.number(), to: v.number(), ...statV.fields })),
     byServedBy: v.array(v.object({ servedBy: v.string(), ...statV.fields })),
@@ -131,6 +139,8 @@ export const progress = internalQuery({
       return [...groups.entries()];
     };
     return {
+      configuration: { ratingsEnabled: env.MUBIT_RATINGS_ENABLED === "true", projectConfigured: Boolean(env.MUBIT_PROJECT?.trim()), consoleConfigured: Boolean(env.MUBIT_CONSOLE_COOKIE) },
+      trainingEligibility: { eligible: rows.filter(row => row.trainingEligible === true).length, withheld: rows.filter(row => row.trainingEligible !== true).length },
       overall: stat(all),
       trend,
       byServedBy: groupBy(seat => seat.servedBy).map(([servedBy, group]) => ({ servedBy, ...stat(group) })),

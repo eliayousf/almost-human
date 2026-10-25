@@ -22,7 +22,7 @@ const tokens = (value: unknown): number | undefined => typeof value === "number"
  * bodies never enter errors, telemetry, or the public game transcript.
  * `onRequestId` receives Mubit's call ID (mreq_...) for each usable reply, so
  * the round's verdict can later be sent to Mubit as a rating for that call. */
-export function createMubitModel(apiKey: string, onRequestId?: (requestId: string) => void): LanguageModelV4 {
+export function createMubitModel(apiKey: string, onRequestId?: (requestId: string) => void, recording: { mode: "full" | "metadata"; sessionId: string } = { mode: "metadata", sessionId: "unassigned" }): LanguageModelV4 {
   return {
     specificationVersion: "v4", provider: "mubit", modelId: "gpt-6-luna", supportedUrls: {},
     async doGenerate(options): Promise<LanguageModelV4GenerateResult> {
@@ -32,6 +32,13 @@ export function createMubitModel(apiKey: string, onRequestId?: (requestId: strin
         if (message.role === "tool" || message.content.some(part => part.type !== "text")) throw new Error("Mubit chat accepts text only.");
         return { role: message.role, content: message.content.map(part => part.type === "text" ? part.text : "").join("") };
       });
+      // Mubit also groups sessions by the first user message. Keep that message
+      // stable per round: the provider rejects metadata unless store is enabled,
+      // and grouping must not require enabling additional provider storage.
+      const firstUser = messages.findIndex(message => message.role === "user");
+      if (firstUser >= 0 && recording.sessionId !== "unassigned") {
+        messages.splice(firstUser, 0, { role: "user", content: `Game conversation ID: ${recording.sessionId}` });
+      }
       const controller = new AbortController();
       const abort = () => controller.abort();
       options.abortSignal?.addEventListener("abort", abort, { once: true });
@@ -42,7 +49,7 @@ export function createMubitModel(apiKey: string, onRequestId?: (requestId: strin
       const timeout = setTimeout(() => { timedOut = true; abort(); }, MUBIT_TIMEOUT_MS);
       try {
         const response = await fetch("https://api.mubit.ai/openai/v1/chat/completions", {
-          method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json" },
+          method: "POST", headers: { authorization: `Bearer ${apiKey}`, "content-type": "application/json", "x-middleware-record": recording.mode },
           body: JSON.stringify({ model: "gpt-6-luna", messages, max_completion_tokens: Math.min(options.maxOutputTokens ?? 384, 384), reasoning_effort: "low" }),
           signal: controller.signal, redirect: "error",
         });

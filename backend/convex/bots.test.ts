@@ -25,20 +25,21 @@ function init() {
   return t;
 }
 type Backend = ReturnType<typeof init>;
-async function player(t: Backend, trainingOptIn = false) {
+async function player(t: Backend, trainingOptIn = false, chatTraining = false) {
   const userId = await t.run(ctx => ctx.db.insert("users", { isAnonymous: true }));
   const client = t.withIdentity({ subject: `${userId}|test-session` });
   must(await client.mutation(api.game.createSession, { input: { ...command(), adultConfirmed: true, rulesAccepted: true, policyVersion: "playtest-v1", trainingOptIn } }));
+  if (chatTraining) must(await client.mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: true, policyVersion: "optional-chat-training-v1" } }));
   return client;
 }
 
 // Match `humans` players into one room under the lobby rules: 3-4 accumulate
 // briefly, 1-2 wait out the honest window (staying online) before bots fill.
-async function room(t: Backend, humans: number, trainingOptIn = false) {
+async function room(t: Backend, humans: number, trainingOptIn = false, chatTraining = false) {
   const people: Awaited<ReturnType<typeof player>>[] = [];
   const tickets = [];
   for (let i = 0; i < humans; i++) {
-    const person = await player(t, trainingOptIn); people.push(person);
+    const person = await player(t, trainingOptIn, chatTraining); people.push(person);
     tickets.push(must(await person.mutation(api.game.joinQueue, { input: command() })));
   }
   if (humans >= 3) {
@@ -352,6 +353,24 @@ describe("Mubit turns and lifecycle", () => {
     expect(fetch).toHaveBeenCalledTimes(2);
     expect(await r.get()).toMatchObject({ phase: "chat", messages: [expect.objectContaining({ text: "Moon shop idea: emergency cheese." })] });
     noPrivateFields(await r.get());
+  });
+
+  test("withdrawal during a transient failure makes the retry metadata-only", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "synthetic-project");
+    const t = init(); vi.spyOn(Math, "random").mockReturnValue(0);
+    const r = await room(t, 1, true, true); await chat(r);
+    vi.mocked(fetch).mockResolvedValueOnce(new Response("synthetic transient failure", { status: 503 }));
+    const running = r.t.action(internal.bots.takeTurn, { roundId: r.roundId, turn: 0 });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1), { interval: 1, timeout: 1000 });
+    expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({ "x-middleware-record": "full" });
+    must(await r.people[0].mutation(api.game.setChatTrainingConsent, { input: { ...command(), allowed: false, policyVersion: "optional-chat-training-v1" } }));
+    await vi.advanceTimersByTimeAsync(BOT_RETRY_DELAY_MS + 1); await running; await publishReply(r);
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(fetch).mock.calls[1][1]?.headers).toMatchObject({ "x-middleware-record": "metadata" });
+    expect(await r.get()).toMatchObject({ phase: "chat", messages: [expect.objectContaining({ text: "Moon shop idea: emergency cheese." })] });
+    const calls = await t.run(ctx => ctx.db.query("botCalls").withIndex("by_roundId", q => q.eq("roundId", r.roundId)).take(2));
+    expect(calls).toHaveLength(1);
+    expect(calls[0].trainingEligible).toBe(false);
   });
 
   test.each([400, 401, 403, 408])("HTTP %i is never retried", async status => {
@@ -993,11 +1012,12 @@ function fakeMubit() {
 // Each bot speaks once; the first human votes one human and one AI. Tests
 // changing preferences after a vote keep a second human unvoted until timeout.
 async function judgedRound(t: Backend, trainingOptIn: boolean, hooks: {
+  chatTraining?: boolean;
   beforeVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
   afterVote?: (matched: Awaited<ReturnType<typeof room>>) => Promise<void>;
 } = {}) {
   vi.spyOn(Math, "random").mockReturnValue(0.99);
-  const r = await room(t, hooks.afterVote ? 2 : 1, trainingOptIn); await chat(r);
+  const r = await room(t, hooks.afterVote ? 2 : 1, trainingOptIn, hooks.chatTraining ?? true); await chat(r);
   await takeTurn(r, 0);
   await takeTurn(r, 1);
   const round = await r.t.run(ctx => ctx.db.get(r.roundId));
@@ -1112,6 +1132,15 @@ describe("round verdicts teach the bots and Mubit", () => {
     vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
     const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
     const { r } = await judgedRound(t, true);
+    const captures = mubit.fn.mock.calls.filter(([url]) => String(url).startsWith("https://api.mubit.ai/"));
+    expect(captures).toHaveLength(2);
+    for (const [, request] of captures) {
+      expect(request?.headers).toMatchObject({ "x-middleware-record": "full" });
+      const body = JSON.parse(String(request?.body));
+      expect(body.metadata).toBeUndefined();
+      expect(body.store).toBeUndefined();
+      expect(body.messages.find((message: { role: string }) => message.role === "user").content).toBe(`Game conversation ID: ${r.roundId}`);
+    }
     const scheduled = await r.t.run(ctx => ctx.db.system.query("_scheduled_functions").collect());
     expect(scheduled.some(job => job.name.includes("rateRound") && job.state.kind === "pending")).toBe(true);
     await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
@@ -1130,6 +1159,17 @@ describe("round verdicts teach the bots and Mubit", () => {
     expect(report.byServedBy).toEqual([{ servedBy: "provider", seats: 2, votes: 2, fooledRate: 0.5 }]);
     expect(report.byLessons).toEqual([{ lessons: "without", seats: 2, votes: 2, fooledRate: 0.5 }]);
     expect(report.mubitRatings).toEqual({ sent: 2, failed: 0, notFound: 0, notSent: 0 });
+  });
+
+  test("vote feedback alone never uploads a transcript for training or sends a trainable rating", async () => {
+    vi.stubEnv("MUBIT_RATINGS_ENABLED", "true"); vi.stubEnv("MUBIT_CONSOLE_COOKIE", "__client=synthetic-cookie"); vi.stubEnv("MUBIT_PROJECT", "almost-human");
+    const t = init(); const mubit = fakeMubit(); vi.stubGlobal("fetch", mubit.fn);
+    const { r, judged } = await judgedRound(t, true, { chatTraining: false });
+    expect(judged.every(call => call.trainingEligible === false)).toBe(true);
+    for (const [, request] of mubit.fn.mock.calls) expect(request?.headers).toMatchObject({ "x-middleware-record": "metadata" });
+    await r.t.action(internal.mubitConsole.rateRound, { roundId: r.roundId, attempt: 0 });
+    expect(mubit.consoleCalls()).toBe(0);
+    expect(mubit.feedback).toHaveLength(0);
   });
 
   test("a refused console login sends nothing and is retried, never exposing the cookie", async () => {
