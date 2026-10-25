@@ -22,6 +22,8 @@ export default defineSchema({
     topic: topicV, threadId: v.string(), messageCount: v.number(), settled: v.boolean(), cancelReason: v.optional(cancelReasonV),
     typingRoomToken: v.optional(v.string()),
     chatTrainingAllowed: v.optional(v.boolean()), chatTrainingConsents: v.optional(v.array(v.object({ playerId: v.id("players"), revision: v.number() }))),
+    // Internal operator grant for one consented turn; never present in public views.
+    reviewCapture: v.optional(v.object({ turn: v.number(), expiresAt: v.number() })),
     botTurn: v.optional(v.number()), botPending: v.optional(v.number()),
     // Latest human message included in a claimed two-seat turn; null for an opener.
     botLastHumanMessageId: v.optional(v.union(v.string(), v.null())),
