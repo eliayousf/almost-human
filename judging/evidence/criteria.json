@@ -18,14 +18,14 @@
     {
       "id": "technical_execution", "weight": 0.25, "status": "implemented_with_limits",
       "claim": "Backend, client, contract and learning-runner behavior can be checked locally with locked dependencies.",
-      "evidence": ["judging/evidence/checks.json", "scripts/verify-judging.py", "backend/VERIFICATION.md"],
+      "evidence": ["judging/evidence/checks.json", "scripts/verify-judging.py", "backend/VERIFICATION.md", "INTEGRATION.md"],
       "limitations": ["Local tests use mocks and do not prove current deployment behavior.", "Public-launch safeguards and physical-device verification remain incomplete."]
     },
     {
       "id": "demo", "weight": 0.25, "status": "prepared_not_rehearsed",
-      "claim": "Diagnostic clients, labelled fixtures and a timed honest walkthrough are available.",
-      "evidence": ["judging/DEMO.md", "backend/playtest/react-main.tsx", "shared/fixtures.ts"],
-      "limitations": ["No timed live rehearsal of this submission is claimed.", "No verified public frontend URL is supplied.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
+      "claim": "The integrated frontend has a tested live preview, with diagnostic clients, labelled fixtures and a timed honest walkthrough.",
+      "evidence": ["judging/DEMO.md", "INTEGRATION.md", "backend/playtest/react-main.tsx", "shared/fixtures.ts"],
+      "limitations": ["No timed presentation rehearsal of this submission is claimed.", "Production promotion and cast-video delivery remain pending.", "Fresh learned-model serving remains blocked; fixtures and recorded evidence are not live substitutes."]
     }
   ]
 }

@@ -18,7 +18,8 @@ validated customer result.
 3. Run the credential-free verification command. Compare the new result with
    the [recorded local check receipt](judging/evidence/checks.json).
 4. Follow the [demo runbook](judging/DEMO.md) for the diagnostic client and
-   honest 2:20 walkthrough. No verified public frontend URL is claimed here.
+   honest 2:20 walkthrough. The [integration report](INTEGRATION.md) identifies
+   the tested live preview separately from the unchanged production site.
 
 ```sh
 nix develop -c python3 scripts/verify-judging.py --install
@@ -36,8 +37,8 @@ contains `use flake` for direnv users.
 | --- | --- | --- |
 | **Use of Mubit — 25%** | Real gateway calls; a reviewed conversational correction; 36 kept synthetic examples from 36 sessions; completed Qwen3-4B training job and v1 evaluation. [Snapshot](judging/evidence/mubit-run.json), [run report](MUBIT_TRAINING_RUN.md), [runner](scripts/mubit-learning-proof.py). | Fresh live trained-adapter answer; improved quality; automatic learning from real players; a replacement-target API. |
 | **Usefulness — 25%** | Implemented recurring dialogue generation and game feedback collection. [User/job rationale and validation protocol](judging/USEFULNESS.md), [bot behavior](backend/BOTS.md). | Customer demand, retention, willingness to pay, or measured improvement in the player experience. |
-| **Technical execution — 25%** | Reproducible TypeScript, backend/client tests, experiment tests, two diagnostic builds and shared-contract checks. [Check receipt](judging/evidence/checks.json), [historical live verification](backend/VERIFICATION.md). | Current production readiness, comprehensive moderation, physical-iPhone verification, or the newest frontend's live integration. |
-| **Demo — 25%** | Runnable diagnostic clients, synthetic screen fixtures, a timed walkthrough, and a precise failure explanation. [Runbook](judging/DEMO.md), [fixtures](shared/fixtures.ts). | A completed timed rehearsal of this exact branch, the event's confirmed time limit, or an end-to-end live learned-model demo. |
+| **Technical execution — 25%** | Reproducible TypeScript, backend/client tests, experiment tests, player/diagnostic builds and shared-contract checks. A real hosted frontend round passed. [Check receipt](judging/evidence/checks.json), [integration evidence](INTEGRATION.md). | Production readiness, comprehensive moderation, cast-video delivery or physical-iPhone verification. |
+| **Demo — 25%** | Tested live game preview, diagnostic clients, synthetic fixtures, a timed walkthrough and a precise learning-blocker explanation. [Runbook](judging/DEMO.md), [integration report](INTEGRATION.md). | A timed presentation rehearsal, the confirmed event time limit, or a live learned-model demo. |
 
 Machine-readable mapping: [criteria.json](judging/evidence/criteria.json).
 Statuses describe evidence coverage; they are not self-awarded judging scores.

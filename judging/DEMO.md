@@ -1,9 +1,10 @@
 # Demo runbook
 
-**Current status:** the diagnostic client is runnable and historical real-backend
-rounds are documented. This exact submission has not completed a timed live
-rehearsal. The trained adapter is blocked from serving. The event's actual time
-limit has not been confirmed in this package.
+**Current status:** Ayo's frontend is integrated and a hosted preview completed
+a real round; see [INTEGRATION.md](../INTEGRATION.md) for source revisions and
+the current preview URL. Cast media is pending. This is not a timed presentation
+rehearsal. The trained adapter is blocked from serving, and the event's actual
+time limit has not been confirmed in this package.
 
 ## Run the checks first
 
