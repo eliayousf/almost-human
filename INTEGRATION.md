@@ -1,5 +1,22 @@
 # Frontend integration — 25 October 2026
 
+## Main playtest release
+
+The owner authorized release of the latest interface on 25 October 2026.
+Use **https://almost-human-playtest.vercel.app/** for shared testing.
+Production deployment `dpl_SdYZqw6HdEcZJii4a3heY3QXvNFi` was rebuilt from
+commit `46c4001fa5833b57b86c2afe33a8fcd9630f2c63` with the same public Convex
+backend URL as the integration preview. Vercel reports READY and the main alias
+maps to this deployment. Anonymous HTTP access returns 200; existing project
+access settings were preserved.
+
+This release includes Ayo's animated interface, versioned playtest terms,
+60-second chats, varied questions with recent-question exclusion, immediate
+reveal once all humans vote (at most 10 seconds), and 6–12 second bot reply
+pauses after generation. The entry screen loads and connects on the main domain.
+The existing 139-test receipt covers the application source; publishing the
+main URL does not establish public-launch safeguards or trained-adapter serving.
+
 ## Current interface: Ayo's Expo/WebP UI
 
 The owner selected the newer interface after upload `248643b` arrived on
@@ -35,8 +52,8 @@ has no horizontal or vertical overflow. This is desktop viewport simulation,
 not physical iPhone/Android verification. A missing vote is labelled unsubmitted
 rather than falsely described as an incorrect guess.
 
-The Vite frontend below is retained as previous work. The main production URL
-has not been promoted; the tested builds remain protected Vercel previews.
+The Vite frontend below is retained as previous work. The main URL now serves
+the Expo release described above; older preview URLs remain historical builds.
 The Mubit trained-adapter serving blocker is unchanged.
 
 ## Earlier Vite integration evidence
@@ -111,8 +128,8 @@ The stable branch preview alias is
 https://almost-human-playtest-git-codex-fron-c8e447-eliayousfs-projects.vercel.app/
 and follows future branch builds. An anonymous HTTP check redirected to Vercel
 SSO, so the preview is not claimed to be publicly accessible to judges. Its
-existing protection settings were preserved. Production promotion is a separate
-owner decision.
+existing protection settings were preserved. The later owner-authorized main
+release is recorded at the top of this document.
 
 Physical-iPhone validation remains separate.
 The Mubit trained-adapter serving blocker described in `MUBIT_TRAINING_RUN.md`

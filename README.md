@@ -2,6 +2,9 @@
 
 *One minute. One stranger. Who's human?*
 
+**Playtest: [almost-human-playtest.vercel.app](https://almost-human-playtest.vercel.app/).**
+Use this main link for shared testing; older deployment URLs retain older builds.
+
 A social guessing game for the Mubit Night Shift hackathon. The current
 [Expo/web interface](frontend/expo/README.md) pairs two anonymous participants,
 then asks who is human and who is AI. It uses the shared Convex backend and
@@ -25,7 +28,7 @@ and [demo instructions](judging/DEMO.md) for their separate scopes.
 
 ## How it works today
 
-The deployed integration preview now builds `frontend/expo/`. Its shared client
+The main playtest and integration preview now build `frontend/expo/`. Its shared client
 requests strict 1v1 rooms, receives server topics/timers/scores and routes bot
 replies through Mubit. See [INTEGRATION.md](INTEGRATION.md) for exact tested builds.
 The Vite frontend in `frontend/src/` remains as earlier work, not the active build.

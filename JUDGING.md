@@ -19,7 +19,8 @@ validated customer result.
    the [recorded local check receipt](judging/evidence/checks.json).
 4. Follow the [demo runbook](judging/DEMO.md) for the diagnostic client and
    honest 2:20 walkthrough. The [integration report](INTEGRATION.md) identifies
-   the tested live preview separately from the unchanged production site.
+   the current [main playtest](https://almost-human-playtest.vercel.app/) and
+   the source revisions covered by earlier live checks.
 
 ```sh
 nix develop -c python3 scripts/verify-judging.py --install
