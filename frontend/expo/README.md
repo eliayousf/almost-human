@@ -80,3 +80,7 @@ uses a wider opponent/topic column beside the conversation.
 `/?preview=reveal` provide clearly labelled synthetic single-screen checks with
 no live session or queue. See [MOBILE_MULTIPLAYER.md](MOBILE_MULTIPLAYER.md) for
 responsive checks, 40-player test coverage, live verification and its limits.
+
+Preview builds use the public development URL from `.env.example` if their
+`EXPO_PUBLIC_CONVEX_URL` is unset. An explicitly configured value takes precedence.
+Production builds still require explicit configuration and fail when it is absent.

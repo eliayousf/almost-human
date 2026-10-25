@@ -25,7 +25,7 @@
     "web": "expo start --web",
     "build:web": "node scripts/check-env.mjs && expo export --platform web",
     "typecheck": "tsc --noEmit",
-    "test": "node scripts/check-assets.mjs && node --experimental-strip-types scripts/random.test.mjs && node --experimental-strip-types scripts/game-state.test.mjs"
+    "test": "node scripts/check-assets.mjs && node --experimental-strip-types scripts/random.test.mjs && node --experimental-strip-types scripts/game-state.test.mjs && node scripts/deployment-env.test.mjs"
   },
   "private": true
 }
