@@ -133,15 +133,10 @@ Official references: [first adapter](https://docs.mubit.ai/guides/first-adapter)
 
 Compare provider and adapter on the **same** held-out inputs. Blindly score each for relevance, naturalness, and the game's short-reply constraints. Report the number of examples, wins/ties/losses, failures, latency and measured cost when available. A small sample is exploratory; do not claim a statistically established improvement. Existing player votes with prompt lessons enabled cannot isolate the effect of adapter training.
 
-Suggested 2:30 demo (adjust to the event's actual limit):
-
-| Time | Show |
-| --- | --- |
-| 0:00–0:25 | One game exchange and the recurring NPC-dialogue problem |
-| 0:25–0:55 | Original reply, reviewed replacement, and accepted training target |
-| 0:55–1:25 | Completed version linked to the correction; disclose that training happened earlier |
-| 1:25–2:05 | Fresh live question answered by the trained version, with provenance |
-| 2:05–2:30 | Small honest comparison and remaining limitations |
+The submission video has a hard two-minute / 300 MB limit. Use the current
+[1:45–1:50 recording plan](../../judging/DEMO.md) and
+[submission checklist](../../judging/SUBMISSION.md). Training shown from saved
+receipts must be labelled as recorded; live adapter inference remains unverified.
 
 ## Local checks
 
