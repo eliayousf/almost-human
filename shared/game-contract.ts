@@ -184,12 +184,23 @@ export interface ReportInput extends CommandInput {
 }
 export interface BlockInput extends CommandInput { participantId: ParticipantId }
 
+/**
+ * Opt-in strict 1v1: when strictPair is true the ticket seats exactly two
+ * participants - a waiting strict pair together, otherwise one human with one
+ * bot after a short grace window. Omitted/false keeps the default 2-5 lobby.
+ * If no strict partner is waiting and bots are unavailable, the ticket waits
+ * honestly: getQueue keeps returning status "waiting" while the player stays
+ * online (no implied instant match, no timeout); if the player disconnects or
+ * leaves, the ticket closes and getQueue then returns QUEUE_CLOSED.
+ */
+export interface JoinQueueInput extends CommandInput { strictPair?: boolean }
+
 /** Use a mock or the shared Convex adapter; never import LLM SDKs into UI code. */
 export interface GameClient {
   getSession(): Promise<ApiResult<SessionView>>;
   createSession(input: CreateSessionInput): Promise<ApiResult<SessionView>>;
   setTrainingConsent(input: TrainingConsentInput): Promise<ApiResult<SessionView>>;
-  joinQueue(input: CommandInput): Promise<ApiResult<QueueTicket>>;
+  joinQueue(input: JoinQueueInput): Promise<ApiResult<QueueTicket>>;
   getQueue(queueId: string): Promise<ApiResult<QueueTicket>>;
   leaveQueue(queueId: string, input: CommandInput): Promise<ApiResult<LeftResult>>;
   getRound(roundId: string): Promise<ApiResult<RoundSnapshot>>;

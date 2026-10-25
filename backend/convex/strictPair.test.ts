@@ -118,3 +118,33 @@ describe("strictPair opt-in 1v1", () => {
     expect((row as { strictPair?: boolean }).strictPair).toBeUndefined();
   });
 });
+
+describe("strictPair with bots unavailable", () => {
+  beforeEach(() => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date("2026-10-24T12:00:00Z"));
+    vi.stubEnv("MUBIT_API_KEY", ""); vi.stubEnv("MUBIT_BOTS_ENABLED", "false");
+  });
+  afterEach(() => { vi.unstubAllEnvs(); vi.useRealTimers(); });
+
+  test("a lone strict human waits honestly while online, then closes on leave", async () => {
+    const t = init();
+    const person = await player(t);
+    const ticket = await strictJoin(person);
+    // Stay online through two fallback windows: never seated, never expired.
+    for (let i = 0; i < 5; i++) {
+      await vi.advanceTimersByTimeAsync(9000);
+      must(await person.mutation(api.game.heartbeat, { sessionId: `heartbeat-wait-${i}` }));
+      await t.finishInProgressScheduledFunctions();
+      const queue = must(await person.query(api.game.getQueue, { queueId: ticket.queueId }));
+      expect(queue.status).toBe("waiting");
+    }
+    // No rounds were created for this ticket.
+    const rounds = await t.run(ctx => ctx.db.query("rounds").collect());
+    expect(rounds).toHaveLength(0);
+    // Leaving closes the ticket; getQueue then reports QUEUE_CLOSED.
+    must(await person.mutation(api.game.leaveQueue, { queueId: ticket.queueId, input: command() }));
+    const closed = await person.query(api.game.getQueue, { queueId: ticket.queueId });
+    expect(closed.ok).toBe(false);
+    if (!closed.ok) expect(closed.error.code).toBe("QUEUE_CLOSED");
+  });
+});
