@@ -4,12 +4,6 @@
 
 **[Play the game](https://almost-human-playtest.vercel.app/) · [Judging evidence](JUDGING.md) · [Two-minute video plan](judging/DEMO.md)**
 
-<p>
-  <img src="frontend/expo/assets/cast/loops/face25-04-idle.webp" width="96" alt="Animated portrait from the game's shared character cast" />
-  <img src="frontend/expo/assets/cast/loops/face25-05-smile.webp" width="96" alt="Smiling portrait from the game's shared character cast" />
-  <img src="frontend/expo/assets/cast/loops/face25-09-idle.webp" width="96" alt="Another animated portrait from the game's shared character cast" />
-</p>
-
 **Natural-sounding speech still needs natural conversation.** Almost Human uses
 a one-minute human-or-AI guessing game to collect feedback on conversational
 replies. Our goal is to help **voice-agent builders** train faster, more natural
